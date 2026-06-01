@@ -201,62 +201,65 @@ export function StudioWorkspace() {
   }
 
   return (
-    <main className="grid min-h-screen grid-cols-1 gap-5 bg-[#f7f5f1] p-5 text-zinc-950 lg:grid-cols-[280px_minmax(0,1fr)_320px]">
-      <aside className="rounded-2xl border border-zinc-200 bg-white/90 p-4 shadow-sm shadow-zinc-200/70">
+    <main className="grid min-h-screen grid-cols-1 bg-[#151611] text-[#f4efe4] lg:grid-cols-[300px_minmax(0,1fr)_340px]">
+      <aside className="border-b border-[#2a2d22] bg-[#1d2118] p-5 lg:min-h-screen lg:border-b-0 lg:border-r">
         <FolderTree tree={tree} selectedPath={selectedPath} onSelectPath={setSelectedPath} />
       </aside>
-      <section className="space-y-5">
-        <div className="rounded-2xl border border-zinc-200 bg-white/95 p-5 text-sm text-zinc-600 shadow-sm shadow-zinc-200/70">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <section className="min-w-0 bg-[#e8dfd0] px-5 py-6 text-[#201f1b] md:px-8 lg:px-10">
+        <div className="mx-auto max-w-4xl">
+        <div className="pb-7 text-sm text-[#6b6257]">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#837969]">
                 Writing Session
               </p>
-              <h1 className="mt-2 text-2xl font-semibold text-zinc-950">새 학습 기록 작성</h1>
+              <h1 className="mt-3 text-4xl font-semibold leading-tight text-[#24221d]">
+                새 학습 기록 작성
+              </h1>
             </div>
-            <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-medium text-zinc-600">
+            <div className="max-w-full rounded-full bg-[#27251f] px-4 py-2 text-xs font-medium text-[#efe7d8]">
               {status}
             </div>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+          <div className="mt-7 grid gap-4 md:grid-cols-[1fr_1fr_auto]">
             <label className="space-y-1">
-              <span className="block text-xs font-semibold text-zinc-700">선택 위치</span>
-              <div className="flex h-11 items-center rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-700">
-                {selectedPath}
+              <span className="block text-xs font-semibold text-[#5e564c]">선택 위치</span>
+              <div className="flex h-12 items-center rounded-2xl bg-[#d8cebd] px-4 text-sm text-[#39352d] shadow-inner">
+                {selectedPath || "레포에서 위치를 선택하세요"}
               </div>
             </label>
             <label className="space-y-1">
-              <span className="block text-xs font-semibold text-zinc-700">학습 자료 폴더</span>
+              <span className="block text-xs font-semibold text-[#5e564c]">학습 자료 폴더</span>
               <input
                 value={sourceName}
                 onChange={(event) => setSourceName(event.target.value)}
-                className="h-11 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-950 outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-4 focus:ring-zinc-100"
+                className="h-12 w-full rounded-2xl bg-[#f3ecdf] px-4 text-sm text-[#24221d] outline-none shadow-inner placeholder:text-[#9a8f7d] focus:ring-4 focus:ring-[#d3b979]/40"
               />
             </label>
             <button
               type="button"
               onClick={prepareNotePublish}
-              className="self-end rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"
+              className="self-end rounded-2xl bg-[#31513a] px-5 py-3 text-sm font-semibold text-[#f6efe2] shadow-[0_14px_30px_rgba(38,57,40,0.25)] transition hover:bg-[#294632]"
             >
               Publish 준비
             </button>
           </div>
-          <div className="mt-3 rounded-xl bg-zinc-50 px-4 py-3 font-mono text-xs text-zinc-700">
+          <div className="mt-4 rounded-2xl bg-[#2b2923] px-4 py-3 font-mono text-xs text-[#e8dcc7]">
             {notePath || "주제 폴더를 선택하면 저장 경로가 표시됩니다"}
           </div>
         </div>
         {draftKind === "note" ? (
           <NoteComposer draft={noteDraft} onChange={updateNoteDraft} />
         ) : null}
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm shadow-zinc-200/60">
-          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <section className="mt-8 border-t border-[#c8bba7] pt-7">
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-base font-semibold text-zinc-950">Markdown Preview</h2>
-              <p className="mt-1 text-sm text-zinc-500">
+              <h2 className="text-base font-semibold text-[#24221d]">Markdown Preview</h2>
+              <p className="mt-1 text-sm text-[#6b6257]">
                 Publish 시점에는 이 내용이 GitHub에 저장됩니다.
               </p>
             </div>
-            <label className="inline-flex items-center gap-2 text-sm font-medium text-zinc-700">
+            <label className="inline-flex items-center gap-2 rounded-full bg-[#d8cebd] px-4 py-2 text-sm font-medium text-[#3a352e]">
               <input
                 type="checkbox"
                 checked={isMarkdownEditing}
@@ -264,7 +267,7 @@ export function StudioWorkspace() {
                   if (event.target.checked) setMarkdown(publishMarkdown);
                   setIsMarkdownEditing(event.target.checked);
                 }}
-                className="size-4 rounded border-zinc-300"
+                className="size-4 rounded border-[#968b78]"
               />
               Markdown 원문 수정
             </label>
@@ -272,13 +275,15 @@ export function StudioWorkspace() {
           {isMarkdownEditing ? (
             <FileEditor value={markdown} onChange={setMarkdown} />
           ) : (
-            <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-sm leading-7 text-zinc-800">
+            <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap rounded-3xl bg-[#d9d0c0] p-5 font-mono text-sm leading-7 text-[#343027] shadow-inner">
               {publishMarkdown}
             </pre>
           )}
         </section>
+        </div>
       </section>
-      <aside className="space-y-5">
+      <aside className="bg-[#24281e] p-5 text-[#f4efe4] lg:min-h-screen lg:border-l lg:border-[#34382b]">
+        <div className="sticky top-5 space-y-5">
         <AiPanel onCleanup={cleanup} onFindMissing={findMissing} isBusy={isBusy} />
         <TheoryLookupPanel
           query={query}
@@ -286,18 +291,19 @@ export function StudioWorkspace() {
           onSearch={() => setStatus(`theory 조회: ${query}`)}
           onCreateTheory={createTheory}
         />
-        <label className="block space-y-2 rounded-2xl border border-zinc-200 bg-white p-4 text-sm shadow-sm shadow-zinc-200/60">
-          <span className="font-semibold text-zinc-950">Theory Title</span>
+        <label className="block space-y-2 text-sm">
+          <span className="font-semibold text-[#f4efe4]">Theory Title</span>
           <input
             value={theoryTitle}
             onChange={(event) => setTheoryTitle(event.target.value)}
-            className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-4 focus:ring-zinc-100"
+            className="h-11 w-full rounded-2xl bg-[#34382b] px-4 text-sm text-[#f4efe4] outline-none placeholder:text-[#918a79] focus:ring-4 focus:ring-[#769269]/30"
           />
-          <span className="block break-all font-mono text-xs text-zinc-500">
+          <span className="block break-all font-mono text-xs text-[#a9a18f]">
             {theoryPath || "주제 폴더를 선택하세요"}
           </span>
         </label>
         <SaveControls mode={mode} onModeChange={setMode} onSave={save} />
+        </div>
       </aside>
     </main>
   );

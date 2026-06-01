@@ -57,34 +57,34 @@ const fields: Array<{
 
 export function NoteComposer({ draft, onChange }: NoteComposerProps) {
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm shadow-zinc-200/60">
+    <section className="rounded-[2rem] bg-[#f1eadc] p-5 shadow-[0_22px_70px_rgba(59,50,35,0.16)] md:p-7">
       <div className="mb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">Note Draft</p>
-        <h2 className="mt-2 text-xl font-semibold text-zinc-950">공부하면서 편하게 적기</h2>
-        <p className="mt-2 text-sm leading-6 text-zinc-600">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b806f]">Note Draft</p>
+        <h2 className="mt-2 text-2xl font-semibold text-[#25221c]">공부하면서 편하게 적기</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6c6255]">
           Markdown 문법을 몰라도 괜찮아요. 아래 칸에 자연스럽게 적으면 publish할 때 notes
           형식으로 변환됩니다.
         </p>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-5">
         {fields.map((item) => (
           <label key={item.field} className="block">
-            <span className="mb-2 block text-sm font-semibold text-zinc-800">{item.label}</span>
+            <span className="mb-2 block text-sm font-semibold text-[#3f3a31]">{item.label}</span>
             {item.rows ? (
               <textarea
                 value={draft[item.field]}
                 onChange={(event) => onChange(item.field, event.target.value)}
                 placeholder={item.placeholder}
                 rows={item.rows}
-                className="w-full resize-y rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-[15px] leading-7 text-zinc-950 outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-4 focus:ring-zinc-100"
+                className="w-full resize-y rounded-3xl bg-[#e1d7c5] px-5 py-4 text-[15px] leading-7 text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:bg-[#f7f1e7] focus:ring-4 focus:ring-[#c7ad6d]/30"
               />
             ) : (
               <input
                 value={draft[item.field]}
                 onChange={(event) => onChange(item.field, event.target.value)}
                 placeholder={item.placeholder}
-                className="h-11 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-[15px] text-zinc-950 outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-4 focus:ring-zinc-100"
+                className="h-12 w-full rounded-3xl bg-[#e1d7c5] px-5 text-[15px] text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:bg-[#f7f1e7] focus:ring-4 focus:ring-[#c7ad6d]/30"
               />
             )}
           </label>

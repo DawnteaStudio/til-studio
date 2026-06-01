@@ -8,7 +8,7 @@ export function FileEditor({ value, onChange }: FileEditorProps) {
     <textarea
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="min-h-[360px] w-full resize-y rounded-xl border border-zinc-200 bg-zinc-950 p-4 font-mono text-sm leading-6 text-zinc-50 outline-none transition focus:border-zinc-400 focus:ring-4 focus:ring-zinc-100"
+      className="min-h-[360px] w-full resize-y rounded-3xl bg-[#25231d] p-5 font-mono text-sm leading-7 text-[#f3ead8] outline-none shadow-inner transition focus:ring-4 focus:ring-[#c7ad6d]/30"
       spellCheck={false}
     />
   );

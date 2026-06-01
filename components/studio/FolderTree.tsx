@@ -10,8 +10,8 @@ export function FolderTree({ tree, selectedPath, onSelectPath }: FolderTreeProps
   return (
     <nav className="space-y-3 text-sm">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">Repository</p>
-        <p className="mt-2 text-lg font-semibold text-zinc-950">{tree.name}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d9a7b]">Repository</p>
+        <p className="mt-2 text-2xl font-semibold text-[#f3ecd8]">{tree.name}</p>
       </div>
       <div className="space-y-1.5">
         {(tree.children ?? []).map((node) => (
@@ -50,10 +50,10 @@ function TreeNode({
         }}
         disabled={!isDirectory}
         className={[
-          "block w-full rounded px-2 py-1.5 text-left",
+          "block w-full px-3 py-2 text-left transition",
           isSelected
-            ? "rounded-xl bg-zinc-950 text-white shadow-sm"
-            : "rounded-xl text-zinc-700 hover:bg-zinc-100",
+            ? "rounded-2xl bg-[#d8c69a] text-[#1e2118] shadow-[0_12px_26px_rgba(0,0,0,0.18)]"
+            : "rounded-2xl text-[#d8d0bd] hover:bg-[#2a2f22]",
           !isDirectory ? "cursor-default opacity-60 hover:bg-transparent" : "",
         ].join(" ")}
         style={{ paddingLeft: `${8 + depth * 12}px` }}
