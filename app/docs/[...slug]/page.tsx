@@ -1,5 +1,5 @@
 import { DocumentView } from "@/components/public/DocumentView";
-import { fetchRepositoryMarkdownDocument } from "@/lib/github/repository";
+import { resolveRepositoryMarkdownDocument } from "@/lib/github/repository";
 import { notFound } from "next/navigation";
 
 export default async function DocumentPage({
@@ -9,7 +9,7 @@ export default async function DocumentPage({
 }) {
   const { slug } = await params;
   const path = slug.join("/");
-  const document = await fetchRepositoryMarkdownDocument(path);
+  const document = await resolveRepositoryMarkdownDocument(path);
 
   if (!document) notFound();
 

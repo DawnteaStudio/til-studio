@@ -8,7 +8,11 @@ import { buildNotePath, buildTheoryPath, parentReadmePath } from "@/lib/content/
 import { deriveStudyTarget } from "@/lib/content/studio-target";
 import { createTheoryTemplate } from "@/lib/content/templates";
 import type { ContentNode, SaveMode } from "@/lib/content/types";
-import { folderVisibilityStorageKey, topLevelFolder } from "@/lib/content/visibility";
+import {
+  folderVisibilityCookieName,
+  folderVisibilityStorageKey,
+  topLevelFolder,
+} from "@/lib/content/visibility";
 import { AiPanel } from "./AiPanel";
 import { FileEditor } from "./FileEditor";
 import { FolderTree } from "./FolderTree";
@@ -34,6 +38,13 @@ function readVisibleRootPaths(): string[] {
   } catch {
     return [];
   }
+}
+
+function persistVisibleRootPaths(paths: string[]) {
+  window.localStorage.setItem(folderVisibilityStorageKey, JSON.stringify(paths));
+  document.cookie = `${folderVisibilityCookieName}=${encodeURIComponent(
+    JSON.stringify(paths),
+  )}; path=/; max-age=31536000; SameSite=Lax`;
 }
 
 export function StudioWorkspace() {
@@ -101,7 +112,9 @@ export function StudioWorkspace() {
           const roots = [...new Set(data.paths.map(topLevelFolder).filter(Boolean))].sort();
           const saved = readVisibleRootPaths();
           setTree(treeFromPaths(data.paths));
-          setVisibleRootPaths(saved.length ? roots.filter((root) => saved.includes(root)) : roots);
+          const visibleRoots = saved.length ? roots.filter((root) => saved.includes(root)) : roots;
+          setVisibleRootPaths(visibleRoots);
+          persistVisibleRootPaths(visibleRoots);
           setStatus("TIL 레포 구조를 불러왔습니다");
         }
       } catch {
@@ -120,7 +133,7 @@ export function StudioWorkspace() {
 
   function updateVisibleRootPaths(paths: string[]) {
     setVisibleRootPaths(paths);
-    window.localStorage.setItem(folderVisibilityStorageKey, JSON.stringify(paths));
+    persistVisibleRootPaths(paths);
     if (selectedPath && !paths.includes(topLevelFolder(selectedPath))) {
       setSelectedPath("");
     }

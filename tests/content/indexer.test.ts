@@ -6,6 +6,7 @@ describe("content indexer", () => {
     expect(classifyPath("cs/network/notes/book-network/network-layer.md")).toBe("note");
     expect(classifyPath("cs/network/theory/network-layer.md")).toBe("theory");
     expect(classifyPath("cs/network/README.md")).toBe("readme");
+    expect(classifyPath("languages/python/notes/jump_to_python/\bREADME.md")).toBe("readme");
     expect(classifyPath("coding-test/programmers/a.md")).toBe("other");
   });
 
@@ -19,6 +20,15 @@ describe("content indexer", () => {
     expect(doc.kind).toBe("theory");
     expect(doc.headings).toEqual(["개념", "주의할 점"]);
     expect(doc.keywords).toContain("네트워크");
+  });
+
+  it("extracts GitHub-style heading anchors from formatted headings", () => {
+    const doc = indexMarkdownDocument({
+      path: "languages/c/notes/hongongC/note/ch2.md",
+      body: "## 📌 목차\n\n### **1. C 프로그램의 기본 구조**\n\n### **2. 주석**\n",
+    });
+
+    expect(doc.headings).toEqual(["📌 목차", "1. C 프로그램의 기본 구조", "2. 주석"]);
   });
 
   it("builds a nested tree from repository paths", () => {

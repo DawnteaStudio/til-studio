@@ -3,10 +3,15 @@ import type { ContentKind, ContentNode, IndexedDocument } from "./types";
 
 export function classifyPath(path: string): ContentKind {
   if (path.startsWith("coding-test/")) return "other";
-  if (path.endsWith("/README.md") || path === "README.md") return "readme";
+  if (isReadmePath(path)) return "readme";
   if (path.includes("/notes/") && path.endsWith(".md")) return "note";
   if (path.includes("/theory/") && path.endsWith(".md")) return "theory";
   return "other";
+}
+
+function isReadmePath(path: string): boolean {
+  const filename = path.split("/").at(-1)?.replace(/[\u0000-\u001f]/g, "");
+  return filename?.toLowerCase() === "readme.md";
 }
 
 export function indexMarkdownDocument(input: { path: string; body: string }): IndexedDocument {

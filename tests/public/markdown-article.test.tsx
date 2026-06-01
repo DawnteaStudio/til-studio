@@ -11,6 +11,13 @@ describe("MarkdownArticle", () => {
     expect(screen.queryByText("**강조**")).toBeNull();
   });
 
+  it("cleans raw strong markers that appear inside Korean list text", () => {
+    render(<MarkdownArticle markdown={"- 문장의 끝은 **세미콜론(;)**으로 마무리한다."} />);
+
+    expect(screen.getByText("세미콜론(;)")).toBeTruthy();
+    expect(screen.queryByText("**세미콜론(;)**")).toBeNull();
+  });
+
   it("keeps generated table of contents as anchor navigation", () => {
     render(<MarkdownArticle markdown={"## 목차\n\n- [개념](#개념)\n\n## 개념\n본문"} />);
 
@@ -43,5 +50,31 @@ describe("MarkdownArticle", () => {
     expect(screen.getByRole("heading", { name: "참고자료" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "중간 내용" })).toBeTruthy();
     expect(screen.getByText("본문 B")).toBeTruthy();
+  });
+
+  it("uses GitHub-style ids for formatted headings", () => {
+    render(<MarkdownArticle markdown={"### **1. C 프로그램의 기본 구조**\n본문"} />);
+
+    expect(screen.getByRole("heading", { name: "1. C 프로그램의 기본 구조" }).id).toBe(
+      "1-c-프로그램의-기본-구조",
+    );
+  });
+
+  it("resolves article images from the markdown file directory", () => {
+    render(
+      <MarkdownArticle
+        markdown={"![KMP table](kmp_images/idx0.png)"}
+        imageSource={{
+          owner: "DawnteaStudio",
+          repo: "TIL",
+          branch: "main",
+          path: "cs/algorithms/theory/kmp.md",
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "KMP table" }).getAttribute("src")).toBe(
+      "https://raw.githubusercontent.com/DawnteaStudio/TIL/main/cs/algorithms/theory/kmp_images/idx0.png",
+    );
   });
 });

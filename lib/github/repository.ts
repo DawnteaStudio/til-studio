@@ -1,4 +1,5 @@
 import { indexMarkdownDocument, treeFromPaths } from "@/lib/content/indexer";
+import { documentPathCandidates } from "@/lib/content/document-path";
 import type { ContentNode } from "@/lib/content/types";
 import { createInstallationOctokit } from "./client";
 
@@ -67,7 +68,16 @@ export async function fetchRepositoryMarkdownDocument(path: string) {
   }
 
   const body = Buffer.from(file.data.content, "base64").toString("utf8");
-  return indexMarkdownDocument({ path, body });
+  return { ...indexMarkdownDocument({ path, body }), owner, repo, branch };
+}
+
+export async function resolveRepositoryMarkdownDocument(path: string) {
+  for (const candidate of documentPathCandidates(path)) {
+    const document = await fetchRepositoryMarkdownDocument(candidate);
+    if (document) return document;
+  }
+
+  return null;
 }
 
 export function shouldIndexMarkdownPath(path: string): boolean {

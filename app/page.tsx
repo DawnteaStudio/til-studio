@@ -1,10 +1,19 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { HomeRecentDocuments } from "@/components/public/HomeRecentDocuments";
+import {
+  folderVisibilityCookieName,
+  parseVisibleRootFoldersValue,
+  visibleRootFolders,
+} from "@/lib/content/visibility";
 import { fetchRepositoryMarkdownSnapshot } from "@/lib/github/repository";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const snapshot = await fetchRepositoryMarkdownSnapshot();
+  const savedRoots = parseVisibleRootFoldersValue((await cookies()).get(folderVisibilityCookieName)?.value);
+  const visibleRootPaths = visibleRootFolders(snapshot.paths, savedRoots);
   const noteCount = snapshot.paths.filter((path) => path.includes("/notes/")).length;
   const theoryCount = snapshot.paths.filter((path) => path.includes("/theory/")).length;
 
@@ -54,17 +63,7 @@ export default async function HomePage() {
               <Metric label="notes" value={noteCount} />
               <Metric label="theory" value={theoryCount} />
             </div>
-            <div className="mt-6 space-y-3">
-              {snapshot.paths.slice(0, 6).map((path) => (
-                <Link
-                  key={path}
-                  href={`/docs/${path}`}
-                  className="block rounded-2xl bg-[#303629] px-4 py-3 font-mono text-xs text-[#d8d0bd] transition hover:bg-[#3a422f]"
-                >
-                  {path}
-                </Link>
-              ))}
-            </div>
+            <HomeRecentDocuments paths={snapshot.paths} initialVisibleRootPaths={visibleRootPaths} />
           </div>
         </div>
       </section>

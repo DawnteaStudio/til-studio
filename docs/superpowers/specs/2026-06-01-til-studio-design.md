@@ -233,6 +233,50 @@ The document detail page includes:
 - parent navigation
 - link back to GitHub source
 
+### Visibility Preferences
+
+Studio owns the public visibility preference for top-level repository folders. When the user turns off a root folder in Studio, the app stores that root folder selection under `til-studio.visible-root-folders` in both local storage and a same-name cookie so client and server rendered public surfaces can respect it.
+
+Affected public surfaces:
+
+- home recent documents
+- blog document list and folder navigation
+- learning map areas and repository index
+
+The preference is a display filter only. It does not delete files, hide files from GitHub, or change save behavior.
+
+### Markdown Image Assets
+
+Markdown image paths are resolved relative to the Markdown file that references them, matching GitHub's rendering behavior.
+
+For a document at:
+
+```text
+cs/algorithms/theory/kmp.md
+```
+
+An image reference such as:
+
+```md
+![KMP table](kmp_images/idx0.png)
+```
+
+resolves to:
+
+```text
+cs/algorithms/theory/kmp_images/idx0.png
+```
+
+Recommended convention:
+
+- keep article-specific images in a sibling folder next to the Markdown file
+- name the folder `<article-slug>_images`
+- use relative Markdown links such as `kmp_images/idx0.png`
+- shared images may use `../shared/<file>` when the folder is intentionally shared by nearby documents
+- external `https://...` image URLs remain unchanged
+
+The public renderer converts relative image paths to GitHub raw URLs using the repository owner, repo, default branch, Markdown file path, and image path. Agents must preserve this convention when moving documents or adding images so rendered articles do not produce 404s.
+
 ## Learning Map
 
 The learning map follows the GitHub repository structure exactly.

@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { classifyPath } from "@/lib/content/indexer";
 import type { ContentKind, ContentNode } from "@/lib/content/types";
+import { filterPathsByVisibleRoots, filterTreeByVisibleRoots } from "@/lib/content/visibility";
+import { useVisibleRootPaths } from "./useVisibleRootPaths";
 
 interface LearningMapProps {
   tree: ContentNode;
@@ -8,6 +12,7 @@ interface LearningMapProps {
   owner: string;
   repo: string;
   branch: string;
+  initialVisibleRootPaths?: string[];
 }
 
 type AreaKey = "cs" | "languages" | "projects" | "coding-test";
@@ -24,7 +29,6 @@ interface TopicSummary {
   documents: DocumentSummary[];
   notes: number;
   theory: number;
-  readmes: number;
 }
 
 const areas: Array<{ key: AreaKey; label: string; description: string; accent: string }> = [
@@ -57,15 +61,19 @@ const areas: Array<{ key: AreaKey; label: string; description: string; accent: s
 const kindLabels: Record<ContentKind, string> = {
   note: "note",
   theory: "theory",
-  readme: "README",
+  readme: "guide",
   other: "doc",
 };
 
-export function LearningMap({ tree, paths, owner, repo, branch }: LearningMapProps) {
-  const documents = paths.map(toDocument);
-  const stats = summarizeDocuments(documents);
-  const topLevel = tree.children ?? [];
-  const rootDocuments = documents.filter((doc) => !doc.path.includes("/"));
+export function LearningMap({ tree, paths, owner, repo, branch, initialVisibleRootPaths }: LearningMapProps) {
+  const { visibleRootPaths } = useVisibleRootPaths(paths, initialVisibleRootPaths);
+  const visiblePaths = filterPathsByVisibleRoots(paths, visibleRootPaths);
+  const visibleTree = filterTreeByVisibleRoots(tree, visibleRootPaths);
+  const documents = visiblePaths.map(toDocument);
+  const articleDocuments = documents.filter(isArticleDocument);
+  const stats = summarizeDocuments(articleDocuments);
+  const topLevel = (visibleTree.children ?? []).filter((node) => node.type === "directory");
+  const rootDocuments = articleDocuments.filter((doc) => !doc.path.includes("/"));
 
   return (
     <div className="mx-auto max-w-7xl px-5 py-8 sm:px-6 lg:px-8">
@@ -84,7 +92,7 @@ export function LearningMap({ tree, paths, owner, repo, branch }: LearningMapPro
           <h1 className="mt-3 text-4xl font-semibold text-[#f4efe4] sm:text-5xl">Learning Map</h1>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-[#c8bea8]">
             The map is generated from the live Markdown structure of the connected TIL repository.
-            notes, theory, README files, and coding-test records are grouped exactly from repo paths.
+            notes and theory articles are grouped exactly from repo paths, while guide files stay out of the article map.
           </p>
         </div>
         <a
@@ -96,10 +104,9 @@ export function LearningMap({ tree, paths, owner, repo, branch }: LearningMapPro
       </header>
 
       <section className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Markdown files" value={stats.total} />
+        <Metric label="Articles" value={stats.total} />
         <Metric label="notes" value={stats.note} />
         <Metric label="theory" value={stats.theory} />
-        <Metric label="README" value={stats.readme} />
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -108,7 +115,7 @@ export function LearningMap({ tree, paths, owner, repo, branch }: LearningMapPro
             <AreaSection
               key={area.key}
               area={area}
-              topics={summarizeArea(documents, area.key)}
+              topics={summarizeArea(articleDocuments, area.key)}
             />
           ))}
         </section>
@@ -123,7 +130,7 @@ export function LearningMap({ tree, paths, owner, repo, branch }: LearningMapPro
                   className="flex items-center justify-between rounded-2xl bg-[#303629] px-3 py-2 text-sm"
                 >
                   <span className="font-medium text-[#f4efe4]">{node.name}</span>
-                  <span className="text-xs text-[#9d957f]">{countMarkdown(node)} files</span>
+                  <span className="text-xs text-[#9d957f]">{countArticles(node)} articles</span>
                 </div>
               ))}
             </div>
@@ -201,7 +208,6 @@ function TopicCard({ topic }: { topic: TopicSummary }) {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <StatusPill label="README" value={topic.readmes} />
         <StatusPill label="notes" value={topic.notes} />
         <StatusPill label="theory" value={topic.theory} />
       </div>
@@ -264,13 +270,11 @@ function summarizeArea(documents: DocumentSummary[], area: AreaKey): TopicSummar
       documents: [],
       notes: 0,
       theory: 0,
-      readmes: 0,
     };
 
     topic.documents.push(document);
     if (document.kind === "note") topic.notes += 1;
     if (document.kind === "theory") topic.theory += 1;
-    if (document.kind === "readme") topic.readmes += 1;
     topics.set(topicPath, topic);
   }
 
@@ -293,6 +297,10 @@ function summarizeDocuments(documents: DocumentSummary[]) {
   );
 }
 
+function isArticleDocument(document: DocumentSummary) {
+  return document.kind === "note" || document.kind === "theory";
+}
+
 function toDocument(path: string): DocumentSummary {
   return {
     path,
@@ -302,11 +310,15 @@ function toDocument(path: string): DocumentSummary {
 }
 
 function compareDocuments(a: DocumentSummary, b: DocumentSummary) {
-  const weight: Record<ContentKind, number> = { readme: 0, theory: 1, note: 2, other: 3 };
+  const weight: Record<ContentKind, number> = { theory: 1, note: 2, readme: 3, other: 4 };
   return weight[a.kind] - weight[b.kind] || a.path.localeCompare(b.path);
 }
 
-function countMarkdown(node: ContentNode): number {
-  if (node.type === "file") return node.path.endsWith(".md") ? 1 : 0;
-  return (node.children ?? []).reduce((sum, child) => sum + countMarkdown(child), 0);
+function countArticles(node: ContentNode): number {
+  if (node.type === "file") {
+    const kind = classifyPath(node.path);
+    return kind === "note" || kind === "theory" ? 1 : 0;
+  }
+
+  return (node.children ?? []).reduce((sum, child) => sum + countArticles(child), 0);
 }
