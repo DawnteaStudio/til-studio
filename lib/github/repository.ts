@@ -32,7 +32,8 @@ export async function fetchRepositoryMarkdownSnapshot(): Promise<RepositoryMarkd
   const paths = gitTree.data.tree
     .filter((item) => item.type === "blob" && item.path?.endsWith(".md"))
     .map((item) => item.path)
-    .filter((path): path is string => Boolean(path));
+    .filter((path): path is string => Boolean(path))
+    .filter(shouldIndexMarkdownPath);
 
   return {
     owner,
@@ -67,4 +68,8 @@ export async function fetchRepositoryMarkdownDocument(path: string) {
 
   const body = Buffer.from(file.data.content, "base64").toString("utf8");
   return indexMarkdownDocument({ path, body });
+}
+
+export function shouldIndexMarkdownPath(path: string): boolean {
+  return path.endsWith(".md") && !path.startsWith("templates/");
 }

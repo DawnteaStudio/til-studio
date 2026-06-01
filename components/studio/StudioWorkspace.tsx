@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { treeFromPaths } from "@/lib/content/indexer";
 import { draftToNoteMarkdown, type StructuredNoteDraft } from "@/lib/content/note-draft";
@@ -203,6 +204,17 @@ export function StudioWorkspace() {
   return (
     <main className="grid min-h-screen grid-cols-1 bg-[#151611] text-[#f4efe4] lg:grid-cols-[300px_minmax(0,1fr)_340px]">
       <aside className="border-b border-[#2a2d22] bg-[#1d2118] p-5 lg:min-h-screen lg:border-b-0 lg:border-r">
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <Link href="/" className="text-lg font-semibold text-[#f3ecd8]">
+            til-studio
+          </Link>
+          <Link
+            href="/blog"
+            className="rounded-full bg-[#2a2f22] px-3 py-1.5 text-xs font-medium text-[#d8d0bd] hover:bg-[#343b2a]"
+          >
+            Blog
+          </Link>
+        </div>
         <FolderTree tree={tree} selectedPath={selectedPath} onSelectPath={setSelectedPath} />
       </aside>
       <section className="min-w-0 bg-[#e8dfd0] px-5 py-6 text-[#201f1b] md:px-8 lg:px-10">

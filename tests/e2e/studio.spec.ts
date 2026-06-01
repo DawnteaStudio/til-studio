@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 test("studio loads workspace controls", async ({ page }) => {
   await page.goto("/studio");
 
+  await expect(page.getByRole("link", { name: "til-studio" })).toBeVisible();
   await expect(page.getByText("AI Actions")).toBeVisible();
   await expect(page.getByText("Theory Lookup")).toBeVisible();
   await expect(page.getByRole("button", { name: "Quick" })).toBeVisible();
