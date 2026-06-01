@@ -1,5 +1,7 @@
 # til-studio
 
+[English](README.md) | [한국어](README_ko.md)
+
 til-studio is a GitHub-backed writing workspace for a personal TIL repository.
 
 It is being built around this workflow:
