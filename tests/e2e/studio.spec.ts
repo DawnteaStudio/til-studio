@@ -7,7 +7,7 @@ test("studio loads workspace controls", async ({ page }) => {
   await expect(page.getByText("Theory Lookup")).toBeVisible();
   await expect(page.getByRole("button", { name: "Quick" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Review" })).toBeVisible();
-  await expect(page.getByText("학습 출처")).toBeVisible();
+  await expect(page.getByLabel("학습 출처")).toBeVisible();
 });
 
 test("public learning map loads repository structure", async ({ page }) => {

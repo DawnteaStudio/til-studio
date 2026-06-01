@@ -8,9 +8,12 @@ interface FolderTreeProps {
 
 export function FolderTree({ tree, selectedPath, onSelectPath }: FolderTreeProps) {
   return (
-    <nav className="space-y-1 text-sm">
-      <p className="font-medium text-zinc-950">{tree.name}</p>
-      <div className="space-y-1">
+    <nav className="space-y-3 text-sm">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">Repository</p>
+        <p className="mt-2 text-lg font-semibold text-zinc-950">{tree.name}</p>
+      </div>
+      <div className="space-y-1.5">
         {(tree.children ?? []).map((node) => (
           <TreeNode
             key={node.path}
@@ -48,7 +51,9 @@ function TreeNode({
         disabled={!isDirectory}
         className={[
           "block w-full rounded px-2 py-1.5 text-left",
-          isSelected ? "bg-zinc-950 text-white" : "text-zinc-700 hover:bg-zinc-100",
+          isSelected
+            ? "rounded-xl bg-zinc-950 text-white shadow-sm"
+            : "rounded-xl text-zinc-700 hover:bg-zinc-100",
           !isDirectory ? "cursor-default opacity-60 hover:bg-transparent" : "",
         ].join(" ")}
         style={{ paddingLeft: `${8 + depth * 12}px` }}

@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { treeFromPaths } from "@/lib/content/indexer";
+import { draftToNoteMarkdown, type StructuredNoteDraft } from "@/lib/content/note-draft";
 import { buildNotePath, buildTheoryPath, parentReadmePath } from "@/lib/content/paths";
 import { deriveStudyTarget } from "@/lib/content/studio-target";
-import { createNoteTemplate, createTheoryTemplate } from "@/lib/content/templates";
+import { createTheoryTemplate } from "@/lib/content/templates";
 import type { ContentNode, SaveMode } from "@/lib/content/types";
-import { treeFromPaths } from "@/lib/content/indexer";
 import { AiPanel } from "./AiPanel";
 import { FileEditor } from "./FileEditor";
 import { FolderTree } from "./FolderTree";
+import { NoteComposer } from "./NoteComposer";
 import { SaveControls } from "./SaveControls";
 import { TheoryLookupPanel } from "./TheoryLookupPanel";
 
@@ -30,16 +32,31 @@ const initialTree: ContentNode = {
 export function StudioWorkspace() {
   const [tree, setTree] = useState(initialTree);
   const [selectedPath, setSelectedPath] = useState("cs");
-  const [noteTitle, setNoteTitle] = useState("@Transactional 롤백 기준을 공부하면서 헷갈린 점");
   const [sourceName, setSourceName] = useState("inflearn-spring-db");
   const [theoryTitle, setTheoryTitle] = useState("트랜잭션");
+  const [noteDraft, setNoteDraft] = useState<StructuredNoteDraft>({
+    title: "@Transactional 롤백 기준을 공부하면서 헷갈린 점",
+    source: "인프런 김영한 스프링 DB 1편",
+    learned: "@Transactional은 트랜잭션을 자동으로 시작하고 커밋/롤백해준다.",
+    confused: "처음에는 예외가 발생하면 무조건 롤백되는 줄 알았다.",
+    questions: "RuntimeException, checked exception, rollbackFor를 각각 테스트해보고 싶다.",
+    conclusion: "@Transactional은 예외 종류와 호출 구조까지 같이 봐야 한다.",
+    experiments: "",
+    parentHref: "../README.md",
+  });
   const [markdown, setMarkdown] = useState(() =>
-    createNoteTemplate({
+    draftToNoteMarkdown({
       title: "@Transactional 롤백 기준을 공부하면서 헷갈린 점",
       source: "인프런 김영한 스프링 DB 1편",
+      learned: "@Transactional은 트랜잭션을 자동으로 시작하고 커밋/롤백해준다.",
+      confused: "처음에는 예외가 발생하면 무조건 롤백되는 줄 알았다.",
+      questions: "RuntimeException, checked exception, rollbackFor를 각각 테스트해보고 싶다.",
+      conclusion: "@Transactional은 예외 종류와 호출 구조까지 같이 봐야 한다.",
+      experiments: "",
       parentHref: "../README.md",
     }),
   );
+  const [isMarkdownEditing, setIsMarkdownEditing] = useState(false);
   const [query, setQuery] = useState("transactional rollbackFor checked exception");
   const [mode, setMode] = useState<SaveMode>("quick");
   const [draftKind, setDraftKind] = useState<DraftKind>("note");
@@ -51,9 +68,9 @@ export function StudioWorkspace() {
     return buildNotePath({
       ...target,
       source: sourceName,
-      title: noteTitle,
+      title: noteDraft.title,
     });
-  }, [noteTitle, sourceName, target]);
+  }, [noteDraft.title, sourceName, target]);
   const theoryPath = useMemo(() => {
     if (!target) return "";
     return buildTheoryPath({
@@ -61,6 +78,15 @@ export function StudioWorkspace() {
       title: theoryTitle,
     });
   }, [target, theoryTitle]);
+  const generatedNoteMarkdown = useMemo(
+    () =>
+      draftToNoteMarkdown({
+        ...noteDraft,
+        parentHref: notePath ? parentReadmePath(notePath) : "../README.md",
+      }),
+    [noteDraft, notePath],
+  );
+  const publishMarkdown = draftKind === "note" && !isMarkdownEditing ? generatedNoteMarkdown : markdown;
 
   useEffect(() => {
     let isMounted = true;
@@ -86,22 +112,22 @@ export function StudioWorkspace() {
     };
   }, []);
 
-  function regenerateNoteTemplate() {
+  function updateNoteDraft(field: Exclude<keyof StructuredNoteDraft, "parentHref">, value: string) {
+    setNoteDraft((current) => ({ ...current, [field]: value }));
+    setDraftKind("note");
+  }
+
+  function prepareNotePublish() {
     if (!notePath) {
       setStatus("cs/languages/projects 아래의 주제 폴더를 선택하세요");
       return;
     }
 
-    setMarkdown(
-      createNoteTemplate({
-        title: noteTitle,
-        source: sourceName,
-        parentHref: parentReadmePath(notePath),
-      }),
-    );
+    setMarkdown(generatedNoteMarkdown);
     setMode("quick");
     setDraftKind("note");
-    setStatus(`note 초안 생성: ${notePath}`);
+    setIsMarkdownEditing(false);
+    setStatus(`publish 준비: ${notePath}`);
   }
 
   async function cleanup() {
@@ -111,10 +137,13 @@ export function StudioWorkspace() {
       const response = await fetch("/api/ai/note-cleanup", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ markdown }),
+        body: JSON.stringify({ markdown: publishMarkdown }),
       });
       const data = (await response.json()) as { markdown?: string };
-      if (data.markdown) setMarkdown(data.markdown);
+      if (data.markdown) {
+        setMarkdown(data.markdown);
+        setIsMarkdownEditing(true);
+      }
       setStatus("AI 정리 완료");
     } catch {
       setStatus("AI 정리에 실패했습니다");
@@ -130,7 +159,7 @@ export function StudioWorkspace() {
       const response = await fetch("/api/ai/missing-sections", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ markdown }),
+        body: JSON.stringify({ markdown: publishMarkdown }),
       });
       const data = (await response.json()) as { followUpQuestions?: string[] };
       setStatus(data.followUpQuestions?.join(" / ") || "빠진 섹션이 없습니다");
@@ -156,6 +185,7 @@ export function StudioWorkspace() {
     );
     setMode("review");
     setDraftKind("theory");
+    setIsMarkdownEditing(true);
     setStatus(`새 theory 초안 생성: ${theoryPath}`);
   }
 
@@ -176,7 +206,7 @@ export function StudioWorkspace() {
         changes: [
           {
             path,
-            content: markdown,
+            content: publishMarkdown,
           },
         ],
       }),
@@ -185,48 +215,84 @@ export function StudioWorkspace() {
   }
 
   return (
-    <main className="grid min-h-screen grid-cols-1 gap-4 bg-zinc-50 p-4 text-zinc-950 lg:grid-cols-[260px_1fr_280px]">
-      <aside className="rounded border border-zinc-200 bg-white p-4">
+    <main className="grid min-h-screen grid-cols-1 gap-5 bg-[#f7f5f1] p-5 text-zinc-950 lg:grid-cols-[280px_minmax(0,1fr)_320px]">
+      <aside className="rounded-2xl border border-zinc-200 bg-white/90 p-4 shadow-sm shadow-zinc-200/70">
         <FolderTree tree={tree} selectedPath={selectedPath} onSelectPath={setSelectedPath} />
       </aside>
-      <section className="space-y-3">
-        <div className="space-y-3 rounded border border-zinc-200 bg-white p-3 text-sm text-zinc-600">
-          <div>
-            <span className="font-medium text-zinc-950">선택 위치:</span> {selectedPath}
-            <span className="ml-4 font-medium text-zinc-950">상태:</span> {status}
+      <section className="space-y-5">
+        <div className="rounded-2xl border border-zinc-200 bg-white/95 p-5 text-sm text-zinc-600 shadow-sm shadow-zinc-200/70">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                Writing Session
+              </p>
+              <h1 className="mt-2 text-2xl font-semibold text-zinc-950">새 학습 기록 작성</h1>
+            </div>
+            <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-medium text-zinc-600">
+              {status}
+            </div>
           </div>
-          <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+          <div className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
             <label className="space-y-1">
-              <span className="block text-xs font-medium text-zinc-700">학습 자료 폴더</span>
+              <span className="block text-xs font-semibold text-zinc-700">선택 위치</span>
+              <div className="flex h-11 items-center rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-700">
+                {selectedPath}
+              </div>
+            </label>
+            <label className="space-y-1">
+              <span className="block text-xs font-semibold text-zinc-700">학습 자료 폴더</span>
               <input
                 value={sourceName}
                 onChange={(event) => setSourceName(event.target.value)}
-                className="w-full rounded border border-zinc-300 px-3 py-2 text-sm text-zinc-950"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="block text-xs font-medium text-zinc-700">note 제목</span>
-              <input
-                value={noteTitle}
-                onChange={(event) => setNoteTitle(event.target.value)}
-                className="w-full rounded border border-zinc-300 px-3 py-2 text-sm text-zinc-950"
+                className="h-11 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-950 outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-4 focus:ring-zinc-100"
               />
             </label>
             <button
               type="button"
-              onClick={regenerateNoteTemplate}
-              className="self-end rounded bg-zinc-950 px-3 py-2 text-sm text-white"
+              onClick={prepareNotePublish}
+              className="self-end rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"
             >
-              note 초안 생성
+              Publish 준비
             </button>
           </div>
-          <div className="rounded bg-zinc-50 px-3 py-2 font-mono text-xs text-zinc-700">
+          <div className="mt-3 rounded-xl bg-zinc-50 px-4 py-3 font-mono text-xs text-zinc-700">
             {notePath || "주제 폴더를 선택하면 저장 경로가 표시됩니다"}
           </div>
         </div>
-        <FileEditor value={markdown} onChange={setMarkdown} />
+        {draftKind === "note" ? (
+          <NoteComposer draft={noteDraft} onChange={updateNoteDraft} />
+        ) : null}
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm shadow-zinc-200/60">
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-zinc-950">Markdown Preview</h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                Publish 시점에는 이 내용이 GitHub에 저장됩니다.
+              </p>
+            </div>
+            <label className="inline-flex items-center gap-2 text-sm font-medium text-zinc-700">
+              <input
+                type="checkbox"
+                checked={isMarkdownEditing}
+                onChange={(event) => {
+                  if (event.target.checked) setMarkdown(publishMarkdown);
+                  setIsMarkdownEditing(event.target.checked);
+                }}
+                className="size-4 rounded border-zinc-300"
+              />
+              Markdown 원문 수정
+            </label>
+          </div>
+          {isMarkdownEditing ? (
+            <FileEditor value={markdown} onChange={setMarkdown} />
+          ) : (
+            <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-sm leading-7 text-zinc-800">
+              {publishMarkdown}
+            </pre>
+          )}
+        </section>
       </section>
-      <aside className="space-y-5 rounded border border-zinc-200 bg-white p-4">
+      <aside className="space-y-5">
         <AiPanel onCleanup={cleanup} onFindMissing={findMissing} isBusy={isBusy} />
         <TheoryLookupPanel
           query={query}
@@ -234,12 +300,12 @@ export function StudioWorkspace() {
           onSearch={() => setStatus(`theory 조회: ${query}`)}
           onCreateTheory={createTheory}
         />
-        <label className="block space-y-1 text-sm">
+        <label className="block space-y-2 rounded-2xl border border-zinc-200 bg-white p-4 text-sm shadow-sm shadow-zinc-200/60">
           <span className="font-semibold text-zinc-950">Theory Title</span>
           <input
             value={theoryTitle}
             onChange={(event) => setTheoryTitle(event.target.value)}
-            className="w-full rounded border border-zinc-300 px-3 py-2 text-sm text-zinc-950"
+            className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-4 focus:ring-zinc-100"
           />
           <span className="block break-all font-mono text-xs text-zinc-500">
             {theoryPath || "주제 폴더를 선택하세요"}
