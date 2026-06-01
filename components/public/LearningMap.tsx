@@ -32,25 +32,25 @@ const areas: Array<{ key: AreaKey; label: string; description: string; accent: s
     key: "cs",
     label: "Computer Science",
     description: "Core CS topics, concepts, and lecture notes.",
-    accent: "border-sky-300 bg-sky-50 text-sky-800",
+    accent: "bg-[#8aa1c1] text-[#151611]",
   },
   {
     key: "languages",
     label: "Languages",
     description: "Language-specific notes, syntax, runtime behavior, and patterns.",
-    accent: "border-emerald-300 bg-emerald-50 text-emerald-800",
+    accent: "bg-[#9fb88b] text-[#151611]",
   },
   {
     key: "projects",
     label: "Projects",
     description: "Project experience, implementation notes, and retrospectives.",
-    accent: "border-amber-300 bg-amber-50 text-amber-800",
+    accent: "bg-[#d8c69a] text-[#151611]",
   },
   {
     key: "coding-test",
     label: "Coding Test",
     description: "Problem solving records kept separate from study notes.",
-    accent: "border-zinc-300 bg-zinc-100 text-zinc-700",
+    accent: "bg-[#777f68] text-[#f4efe4]",
   },
 ];
 
@@ -69,20 +69,27 @@ export function LearningMap({ tree, paths, owner, repo, branch }: LearningMapPro
 
   return (
     <div className="mx-auto max-w-7xl px-5 py-8 sm:px-6 lg:px-8">
-      <header className="mb-8 grid gap-5 border-b border-zinc-200 pb-7 lg:grid-cols-[1fr_auto] lg:items-end">
+      <nav className="mb-12 flex flex-wrap items-center justify-between gap-4">
+        <Link href="/" className="text-lg font-semibold">til-studio</Link>
+        <div className="flex gap-3 text-sm text-[#cec4ae]">
+          <Link href="/blog" className="hover:text-[#f4efe4]">Blog</Link>
+          <Link href="/studio" className="hover:text-[#f4efe4]">Studio</Link>
+        </div>
+      </nav>
+      <header className="mb-8 grid gap-5 border-b border-[#34382b] pb-7 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9da88c]">
             {owner}/{repo} · {branch}
           </p>
-          <h1 className="mt-3 text-3xl font-semibold text-zinc-950 sm:text-4xl">Learning Map</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600">
+          <h1 className="mt-3 text-4xl font-semibold text-[#f4efe4] sm:text-5xl">Learning Map</h1>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-[#c8bea8]">
             The map is generated from the live Markdown structure of the connected TIL repository.
             notes, theory, README files, and coding-test records are grouped exactly from repo paths.
           </p>
         </div>
         <a
           href={`https://github.com/${owner}/${repo}/tree/${branch}`}
-          className="inline-flex h-10 items-center justify-center rounded border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-800 shadow-sm hover:border-zinc-400"
+          className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#d8c69a] px-4 text-sm font-semibold text-[#151611]"
         >
           Open Repository
         </a>
@@ -107,24 +114,24 @@ export function LearningMap({ tree, paths, owner, repo, branch }: LearningMapPro
         </section>
 
         <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
-          <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-semibold text-zinc-950">Repository Index</h2>
+          <section className="rounded-[1.75rem] bg-[#24281e] p-4">
+            <h2 className="text-sm font-semibold text-[#f4efe4]">Repository Index</h2>
             <div className="mt-4 space-y-2">
               {topLevel.map((node) => (
                 <div
                   key={node.path}
-                  className="flex items-center justify-between rounded border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm"
+                  className="flex items-center justify-between rounded-2xl bg-[#303629] px-3 py-2 text-sm"
                 >
-                  <span className="font-medium text-zinc-800">{node.name}</span>
-                  <span className="text-xs text-zinc-500">{countMarkdown(node)} files</span>
+                  <span className="font-medium text-[#f4efe4]">{node.name}</span>
+                  <span className="text-xs text-[#9d957f]">{countMarkdown(node)} files</span>
                 </div>
               ))}
             </div>
           </section>
 
           {rootDocuments.length ? (
-            <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-              <h2 className="text-sm font-semibold text-zinc-950">Root Documents</h2>
+            <section className="rounded-[1.75rem] bg-[#24281e] p-4">
+              <h2 className="text-sm font-semibold text-[#f4efe4]">Root Documents</h2>
               <div className="mt-4 space-y-2">
                 {rootDocuments.map((doc) => (
                   <DocumentLink key={doc.path} document={doc} />
@@ -148,18 +155,18 @@ function AreaSection({
   const documentCount = topics.reduce((sum, topic) => sum + topic.documents.length, 0);
 
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white shadow-sm">
-      <div className="flex flex-col gap-3 border-b border-zinc-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
+    <section className="rounded-[1.75rem] bg-[#24281e]">
+      <div className="flex flex-col gap-3 border-b border-[#34382b] px-5 py-4 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className={`rounded border px-2 py-1 text-xs font-semibold ${area.accent}`}>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${area.accent}`}>
               {area.key}
             </span>
-            <h2 className="text-lg font-semibold text-zinc-950">{area.label}</h2>
+            <h2 className="text-lg font-semibold text-[#f4efe4]">{area.label}</h2>
           </div>
-          <p className="mt-2 text-sm text-zinc-600">{area.description}</p>
+          <p className="mt-2 text-sm text-[#c8bea8]">{area.description}</p>
         </div>
-        <div className="text-sm text-zinc-500">
+        <div className="text-sm text-[#9d957f]">
           {topics.length} topics · {documentCount} files
         </div>
       </div>
@@ -171,7 +178,7 @@ function AreaSection({
           ))}
         </div>
       ) : (
-        <div className="px-5 py-8 text-sm text-zinc-500">No Markdown files found in this area.</div>
+        <div className="px-5 py-8 text-sm text-[#9d957f]">No Markdown files found in this area.</div>
       )}
     </section>
   );
@@ -182,13 +189,13 @@ function TopicCard({ topic }: { topic: TopicSummary }) {
   const extraCount = topic.documents.length - visibleDocs.length;
 
   return (
-    <article className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+    <article className="rounded-[1.5rem] bg-[#303629] p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold text-zinc-950">{topic.name}</h3>
-          <p className="mt-1 break-all font-mono text-xs text-zinc-500">{topic.path}</p>
+          <h3 className="truncate text-base font-semibold text-[#f4efe4]">{topic.name}</h3>
+          <p className="mt-1 break-all font-mono text-xs text-[#9d957f]">{topic.path}</p>
         </div>
-        <span className="shrink-0 rounded bg-white px-2 py-1 text-xs font-medium text-zinc-600">
+        <span className="shrink-0 rounded-full bg-[#d8c69a] px-2 py-1 text-xs font-semibold text-[#151611]">
           {topic.documents.length}
         </span>
       </div>
@@ -204,7 +211,7 @@ function TopicCard({ topic }: { topic: TopicSummary }) {
           <DocumentLink key={doc.path} document={doc} />
         ))}
         {extraCount > 0 ? (
-          <p className="pt-1 text-xs text-zinc-500">+ {extraCount} more files in this topic</p>
+          <p className="pt-1 text-xs text-[#9d957f]">+ {extraCount} more files in this topic</p>
         ) : null}
       </div>
     </article>
@@ -213,16 +220,16 @@ function TopicCard({ topic }: { topic: TopicSummary }) {
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-zinc-950">{value}</p>
+    <div className="rounded-[1.5rem] bg-[#24281e] px-4 py-3">
+      <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#9d957f]">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-[#f4efe4]">{value}</p>
     </div>
   );
 }
 
 function StatusPill({ label, value }: { label: string; value: number }) {
   return (
-    <span className="rounded border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-600">
+    <span className="rounded-full bg-[#252a20] px-2 py-1 text-xs font-medium text-[#c8bea8]">
       {label} {value}
     </span>
   );
@@ -232,10 +239,10 @@ function DocumentLink({ document }: { document: DocumentSummary }) {
   return (
     <Link
       href={`/docs/${document.path}`}
-      className="flex items-center justify-between gap-3 rounded border border-zinc-200 bg-white px-3 py-2 text-sm hover:border-zinc-300 hover:bg-zinc-50"
+      className="flex items-center justify-between gap-3 rounded-2xl bg-[#252a20] px-3 py-2 text-sm hover:bg-[#3a422f]"
     >
-      <span className="min-w-0 truncate text-zinc-800">{document.title}</span>
-      <span className="shrink-0 rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
+      <span className="min-w-0 truncate text-[#f4efe4]">{document.title}</span>
+      <span className="shrink-0 rounded-full bg-[#d8c69a] px-2 py-0.5 text-xs text-[#151611]">
         {kindLabels[document.kind]}
       </span>
     </Link>

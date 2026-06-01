@@ -7,7 +7,7 @@ export default async function MapPage() {
   const snapshot = await fetchRepositoryMarkdownSnapshot();
 
   return (
-    <main className="min-h-screen bg-zinc-50 text-zinc-950">
+    <main className="min-h-screen bg-[#151611] text-[#f4efe4]">
       <LearningMap
         tree={snapshot.tree}
         paths={snapshot.paths}
