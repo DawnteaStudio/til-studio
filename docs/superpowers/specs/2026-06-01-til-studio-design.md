@@ -121,18 +121,22 @@ The default theory template is:
 
 ## Studio Flow
 
-The main writing flow is location-first:
+The main writing flow is workspace-first:
 
-1. Select a repository area such as `cs`, `languages`, or `projects`.
-2. Select a topic folder such as `algorithms`, `spring`, or `javascript`.
-3. Select or create a source folder under `notes`, using only a simple folder name.
-4. Create a topic-based note file.
-5. Write raw study thoughts into the note.
-6. Use AI to organize the note into the default template.
-7. Let AI check for missing sections.
+1. Choose the draft kind in the left workspace panel: `Notes` or `Theory`.
+2. Select a repository area such as `cs`, `languages`, or `projects`.
+3. Select or create a topic folder such as `algorithms`, `spring`, or `javascript`.
+4. For `Notes`, select or create a source folder under `notes`, using only a simple folder name.
+5. Write the note or theory draft.
+6. Use AI to organize notes into the default template when useful.
+7. Let AI check for missing note sections.
 8. Optionally look up related theory by keywords.
-9. Optionally create a theory document after lookup.
-10. Save to GitHub using Quick Save or Review Save.
+9. Save to GitHub using the draft kind's default save mode.
+
+The Studio workspace selector must not expose raw repository implementation folders such as `notes` and `theory` as places the user manually chooses. The selected draft kind determines the destination folder:
+
+- `Notes` writes to `<area>/<topic>/notes/<source>/<slug>.md`.
+- `Theory` writes to `<area>/<topic>/theory/<slug>.md`.
 
 The note file unit is chapter/topic based, not daily. Examples:
 
@@ -146,16 +150,25 @@ cs/spring/notes/inflearn-spring-db/transactional-rollback.md
 
 The writing screen uses a workspace layout:
 
-- left panel: repository location and folder tree
+- left panel: draft kind, area, topic, source, and visibility preferences
 - center panel: Markdown editor and preview
 - right panel: AI actions, theory lookup, save controls
 
 The app is not a generic note app. It is a repository-aware writing studio.
 
+The left panel is a guided workspace picker, not a generic file browser:
+
+- `Notes` and `Theory` are mode controls.
+- `Area` shows publishable top-level roots.
+- `Topic` shows existing topics and supports creating a new topic by slugging the entered name.
+- `Source` is shown only for `Notes`, lists existing source folders under the selected topic's `notes` folder, and supports entering a new lecture, book, course, or project source.
+- Public visibility preferences remain separate from the write-location selector.
+
 Required MVP actions:
 
-- select existing folder
-- create new folder
+- select existing area, topic, and source
+- create new topic
+- create new source
 - create topic note file
 - generate note template
 - generate table of contents and parent navigation

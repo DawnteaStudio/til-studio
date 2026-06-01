@@ -6,6 +6,7 @@ import { treeFromPaths } from "@/lib/content/indexer";
 import { draftToNoteMarkdown, type StructuredNoteDraft } from "@/lib/content/note-draft";
 import { buildNotePath, buildTheoryPath, parentReadmePath } from "@/lib/content/paths";
 import { deriveStudyTarget } from "@/lib/content/studio-target";
+import { defaultSaveModeForDraft, type StudioDraftKind } from "@/lib/content/studio-workspace";
 import { createTheoryTemplate } from "@/lib/content/templates";
 import type { ContentNode, SaveMode } from "@/lib/content/types";
 import {
@@ -19,8 +20,6 @@ import { FolderTree } from "./FolderTree";
 import { NoteComposer } from "./NoteComposer";
 import { SaveControls } from "./SaveControls";
 import { TheoryLookupPanel } from "./TheoryLookupPanel";
-
-type DraftKind = "note" | "theory";
 
 const initialTree: ContentNode = {
   name: "TIL",
@@ -66,7 +65,7 @@ export function StudioWorkspace() {
   const [isMarkdownEditing, setIsMarkdownEditing] = useState(false);
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<SaveMode>("quick");
-  const [draftKind, setDraftKind] = useState<DraftKind>("note");
+  const [draftKind, setDraftKind] = useState<StudioDraftKind>("note");
   const [isBusy, setIsBusy] = useState(false);
   const [isTreeLoading, setIsTreeLoading] = useState(true);
   const [visibleRootPaths, setVisibleRootPaths] = useState<string[]>([]);
@@ -98,6 +97,25 @@ export function StudioWorkspace() {
     [noteDraft, notePath],
   );
   const publishMarkdown = draftKind === "note" && !isMarkdownEditing ? generatedNoteMarkdown : markdown;
+
+  function updateDraftKind(kind: StudioDraftKind) {
+    setDraftKind(kind);
+    setMode(defaultSaveModeForDraft(kind));
+    if (kind === "note") {
+      setIsMarkdownEditing(false);
+    } else {
+      setIsMarkdownEditing(true);
+      if (!markdown && theoryTitle) {
+        setMarkdown(
+          createTheoryTemplate({
+            title: theoryTitle,
+            parentHref: theoryPath ? parentReadmePath(theoryPath) : "../README.md",
+            relatedNotes: notePath ? [notePath] : [],
+          }),
+        );
+      }
+    }
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -198,8 +216,8 @@ export function StudioWorkspace() {
   }
 
   function createTheory() {
-    if (!theoryPath || !notePath) {
-      setStatus("위치, note 제목, 학습 자료 폴더, theory 제목을 먼저 입력하세요");
+    if (!theoryPath) {
+      setStatus("위치와 theory 제목을 먼저 입력하세요");
       return;
     }
 
@@ -207,7 +225,7 @@ export function StudioWorkspace() {
       createTheoryTemplate({
         title: theoryTitle,
         parentHref: parentReadmePath(theoryPath),
-        relatedNotes: [notePath],
+        relatedNotes: notePath ? [notePath] : [],
       }),
     );
     setMode("review");
@@ -258,7 +276,11 @@ export function StudioWorkspace() {
         <FolderTree
           tree={tree}
           selectedPath={selectedPath}
+          draftKind={draftKind}
+          sourceName={sourceName}
           visibleRootPaths={visibleRootPaths}
+          onDraftKindChange={updateDraftKind}
+          onSourceNameChange={setSourceName}
           onVisibleRootPathsChange={updateVisibleRootPaths}
           onSelectPath={setSelectedPath}
           isLoading={isTreeLoading}
@@ -280,37 +302,28 @@ export function StudioWorkspace() {
               {status}
             </div>
           </div>
-          <div className="mt-7 grid gap-4 md:grid-cols-[1fr_1fr_auto]">
+          <div className="mt-7 grid gap-4 md:grid-cols-[1fr_auto]">
             <label className="space-y-1">
-              <span className="block text-xs font-semibold text-[#5e564c]">선택 위치</span>
+              <span className="block text-xs font-semibold text-[#5e564c]">작업 위치</span>
               <div className="flex h-12 items-center rounded-2xl bg-[#d8cebd] px-4 text-sm text-[#39352d] shadow-inner">
-                {selectedPath || "레포에서 위치를 선택하세요"}
+                {selectedPath || "왼쪽에서 area와 topic을 선택하세요"}
               </div>
-            </label>
-            <label className="space-y-1">
-              <span className="block text-xs font-semibold text-[#5e564c]">
-                자료 폴더명 (notes 하위)
-              </span>
-              <input
-                value={sourceName}
-                onChange={(event) => setSourceName(event.target.value)}
-                className="h-12 w-full rounded-2xl bg-[#f3ecdf] px-4 text-sm text-[#24221d] outline-none shadow-inner placeholder:text-[#9a8f7d] focus:ring-4 focus:ring-[#d3b979]/40"
-              />
             </label>
             <button
               type="button"
-              onClick={prepareNotePublish}
+              onClick={draftKind === "theory" ? createTheory : prepareNotePublish}
               className="self-end rounded-2xl bg-[#31513a] px-5 py-3 text-sm font-semibold text-[#f6efe2] shadow-[0_14px_30px_rgba(38,57,40,0.25)] transition hover:bg-[#294632]"
             >
-              Publish 준비
+              {draftKind === "theory" ? "Theory 초안 만들기" : "Publish 준비"}
             </button>
           </div>
           <div className="mt-4 rounded-2xl bg-[#2b2923] px-4 py-3 font-mono text-xs text-[#e8dcc7]">
-            {notePath || "주제 폴더를 선택하면 저장 경로가 표시됩니다"}
+            {(draftKind === "theory" ? theoryPath : notePath) || "선택을 마치면 저장 경로가 표시됩니다"}
           </div>
           <p className="mt-2 text-xs leading-5 text-[#6b6257]">
-            선택 위치는 글을 넣을 주제 폴더이고, 자료 폴더명은 notes 아래에서 강의나 책 단위로
-            묶일 폴더 이름입니다.
+            {draftKind === "theory"
+              ? "Theory는 선택한 topic 아래 theory 폴더로 자동 저장됩니다."
+              : "Notes는 선택한 topic과 source 아래 notes 폴더로 자동 저장됩니다."}
           </p>
         </div>
         {draftKind === "note" ? (
