@@ -10,8 +10,8 @@ describe("markdown image assets", () => {
   };
 
   it("resolves relative image paths beside the markdown file", () => {
-    expect(resolveMarkdownImageUrl("kmp_images/idx0.png", source)).toBe(
-      "https://raw.githubusercontent.com/DawnteaStudio/TIL/main/cs/algorithms/theory/kmp_images/idx0.png",
+    expect(resolveMarkdownImageUrl("./kmp_images/kmp-01.png", source)).toBe(
+      "https://raw.githubusercontent.com/DawnteaStudio/TIL/main/cs/algorithms/theory/kmp_images/kmp-01.png",
     );
   });
 

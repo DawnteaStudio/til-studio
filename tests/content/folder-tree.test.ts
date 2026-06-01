@@ -3,7 +3,7 @@ import { buildFolderNav, filterPathsByFolder } from "@/lib/content/folder-tree";
 
 describe("folder navigation", () => {
   const paths = [
-    "cs/algorithms/theory/KMP.md",
+    "cs/algorithms/theory/kmp.md",
     "cs/algorithms/notes/APSS/ch1.md",
     "languages/c/notes/hongongC/note/ch2.md",
   ];

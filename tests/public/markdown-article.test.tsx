@@ -63,7 +63,7 @@ describe("MarkdownArticle", () => {
   it("resolves article images from the markdown file directory", () => {
     render(
       <MarkdownArticle
-        markdown={"![KMP table](kmp_images/idx0.png)"}
+        markdown={"![KMP table](./kmp_images/kmp-01.png)"}
         imageSource={{
           owner: "DawnteaStudio",
           repo: "TIL",
@@ -74,7 +74,7 @@ describe("MarkdownArticle", () => {
     );
 
     expect(screen.getByRole("img", { name: "KMP table" }).getAttribute("src")).toBe(
-      "https://raw.githubusercontent.com/DawnteaStudio/TIL/main/cs/algorithms/theory/kmp_images/idx0.png",
+      "https://raw.githubusercontent.com/DawnteaStudio/TIL/main/cs/algorithms/theory/kmp_images/kmp-01.png",
     );
   });
 });

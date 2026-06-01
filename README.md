@@ -58,6 +58,36 @@ TIL/
 
 `coding-test/` is intentionally kept separate from the study-note workflow.
 
+### Markdown image assets
+
+Article images should live beside the Markdown document that uses them. This keeps GitHub rendering, til-studio rendering, and local editing aligned.
+
+Rules:
+
+- Use lowercase kebab-case for Markdown filenames, such as `kmp.md` or `union-find.md`.
+- Treat the filename without `.md` as the article slug.
+- Put article-specific images in `<article-slug>_images/` next to the Markdown file.
+- Name image files `<article-slug>-NN.<ext>`, using two-digit numbering in the order the images appear in the document.
+- Use relative Markdown links from the article, such as `./kmp_images/kmp-01.png`.
+- Use exact case for every path segment. GitHub and deployment environments can be case-sensitive.
+- Use a short lowercase suffix only when it adds useful meaning, such as `kmp-05-failure.png`.
+- Keep shared images in an intentionally named shared folder, such as `../shared_images/`, only when multiple nearby documents reuse the same asset.
+
+Example:
+
+```text
+cs/algorithms/theory/
+├── kmp.md
+└── kmp_images/
+    ├── kmp-01.png
+    ├── kmp-02.png
+    └── kmp-03.png
+```
+
+```md
+![KMP comparison](./kmp_images/kmp-01.png)
+```
+
 ## Current MVP
 
 - GitHub App based access to a TIL repository

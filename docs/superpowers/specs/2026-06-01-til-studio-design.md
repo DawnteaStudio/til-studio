@@ -249,6 +249,8 @@ The preference is a display filter only. It does not delete files, hide files fr
 
 Markdown image paths are resolved relative to the Markdown file that references them, matching GitHub's rendering behavior.
 
+Document filenames use lowercase kebab-case. The document slug is the filename without `.md`.
+
 For a document at:
 
 ```text
@@ -258,22 +260,25 @@ cs/algorithms/theory/kmp.md
 An image reference such as:
 
 ```md
-![KMP table](kmp_images/idx0.png)
+![KMP table](./kmp_images/kmp-01.png)
 ```
 
 resolves to:
 
 ```text
-cs/algorithms/theory/kmp_images/idx0.png
+cs/algorithms/theory/kmp_images/kmp-01.png
 ```
 
 Recommended convention:
 
 - keep article-specific images in a sibling folder next to the Markdown file
 - name the folder `<article-slug>_images`
-- use relative Markdown links such as `kmp_images/idx0.png`
+- name image files `<article-slug>-NN.<ext>`, using two-digit numbering in document appearance order
+- use relative Markdown links such as `./kmp_images/kmp-01.png`
+- allow a short lowercase suffix only when it materially clarifies the image, such as `kmp-05-failure.png`
 - shared images may use `../shared/<file>` when the folder is intentionally shared by nearby documents
 - external `https://...` image URLs remain unchanged
+- preserve exact case because GitHub and deployment file paths are case-sensitive
 
 The public renderer converts relative image paths to GitHub raw URLs using the repository owner, repo, default branch, Markdown file path, and image path. Agents must preserve this convention when moving documents or adding images so rendered articles do not produce 404s.
 
@@ -288,7 +293,7 @@ TIL
 └── cs
     └── algorithms
         ├── theory
-        │   └── KMP.md
+        │   └── kmp.md
         └── notes
             └── inflearn-algorithm
                 └── sorting.md

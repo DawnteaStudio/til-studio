@@ -58,6 +58,37 @@ TIL/
 
 `coding-test/`는 학습 노트 작성 흐름과 의도적으로 분리합니다.
 
+### Markdown 이미지 자산
+
+글에서 사용하는 이미지는 그 Markdown 문서 옆에 둡니다. 이렇게 하면 GitHub 렌더링, til-studio 렌더링, 로컬 편집 기준이 모두 같아집니다.
+
+규칙:
+
+- Markdown 파일명은 `kmp.md`, `union-find.md`처럼 소문자 kebab-case를 사용합니다.
+- `.md`를 제외한 파일명을 글 slug로 봅니다.
+- 글 전용 이미지는 Markdown 파일 옆의 `<article-slug>_images/` 폴더에 둡니다.
+- 이미지 파일명은 문서에 등장하는 순서대로 `<article-slug>-NN.<ext>` 형식을 사용합니다.
+- 번호는 `01`, `02`, `03`처럼 두 자리로 씁니다.
+- Markdown 링크는 글 기준 상대 경로를 사용합니다. 예: `./kmp_images/kmp-01.png`
+- 모든 경로의 대소문자를 정확히 맞춥니다. GitHub와 배포 환경은 대소문자를 구분할 수 있습니다.
+- 의미가 꼭 필요할 때만 짧은 소문자 suffix를 붙입니다. 예: `kmp-05-failure.png`
+- 여러 문서가 함께 쓰는 이미지는 의도적으로 공유할 때만 `../shared_images/` 같은 공유 폴더에 둡니다.
+
+예시:
+
+```text
+cs/algorithms/theory/
+├── kmp.md
+└── kmp_images/
+    ├── kmp-01.png
+    ├── kmp-02.png
+    └── kmp-03.png
+```
+
+```md
+![KMP 비교](./kmp_images/kmp-01.png)
+```
+
 ## 현재 MVP
 
 - GitHub App 기반 TIL 저장소 접근
