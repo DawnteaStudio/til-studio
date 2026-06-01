@@ -1,11 +1,19 @@
 import OpenAI from "openai";
 import { z } from "zod";
-import { missingSectionsSystemPrompt, noteCleanupSystemPrompt } from "./prompts";
+import {
+  noteCleanupSystemPrompt,
+  theoryResearchSystemPrompt,
+} from "./prompts";
 
-const missingSectionsSchema = z.object({
-  missingSections: z.array(z.string()),
-  followUpQuestions: z.array(z.string()),
+export const theoryResearchSchema = z.object({
+  title: z.string(),
+  concept: z.string(),
+  keyPoints: z.array(z.string()),
+  cautions: z.array(z.string()),
+  sources: z.array(z.object({ title: z.string(), url: z.string() })),
 });
+
+export type TheoryResearchResult = z.infer<typeof theoryResearchSchema>;
 
 function client(): OpenAI {
   if (!process.env.OPENAI_API_KEY) {
@@ -27,17 +35,15 @@ export async function cleanupNote(markdown: string): Promise<string> {
   return response.output_text;
 }
 
-export async function findMissingSections(markdown: string): Promise<{
-  missingSections: string[];
-  followUpQuestions: string[];
-}> {
+export async function researchTheory(keyword: string): Promise<TheoryResearchResult> {
   const response = await client().responses.create({
     model: "gpt-4.1-mini",
+    tools: [{ type: "web_search" }] as never,
     input: [
-      { role: "system", content: missingSectionsSystemPrompt },
-      { role: "user", content: markdown },
+      { role: "system", content: theoryResearchSystemPrompt },
+      { role: "user", content: `Research this concept for a theory note: ${keyword}` },
     ],
   });
 
-  return missingSectionsSchema.parse(JSON.parse(response.output_text));
+  return theoryResearchSchema.parse(JSON.parse(response.output_text));
 }

@@ -19,7 +19,7 @@ import { FileEditor } from "./FileEditor";
 import { FolderTree } from "./FolderTree";
 import { NoteComposer } from "./NoteComposer";
 import { SaveControls } from "./SaveControls";
-import { TheoryLookupPanel } from "./TheoryLookupPanel";
+import { TheoryResearchPanel, type TheoryResearchResult } from "./TheoryResearchPanel";
 
 const initialTree: ContentNode = {
   name: "TIL",
@@ -63,7 +63,9 @@ export function StudioWorkspace() {
   });
   const [markdown, setMarkdown] = useState("");
   const [isMarkdownEditing, setIsMarkdownEditing] = useState(false);
-  const [query, setQuery] = useState("");
+  const [theoryKeyword, setTheoryKeyword] = useState("");
+  const [theoryResearch, setTheoryResearch] = useState<TheoryResearchResult | null>(null);
+  const [isResearchingTheory, setIsResearchingTheory] = useState(false);
   const [mode, setMode] = useState<SaveMode>("quick");
   const [draftKind, setDraftKind] = useState<StudioDraftKind>("note");
   const [isBusy, setIsBusy] = useState(false);
@@ -197,41 +199,54 @@ export function StudioWorkspace() {
     }
   }
 
-  async function findMissing() {
-    setIsBusy(true);
-    setStatus("빠진 섹션 확인 중");
-    try {
-      const response = await fetch("/api/ai/missing-sections", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ markdown: publishMarkdown }),
-      });
-      const data = (await response.json()) as { followUpQuestions?: string[] };
-      setStatus(data.followUpQuestions?.join(" / ") || "빠진 섹션이 없습니다");
-    } catch {
-      setStatus("빠진 섹션 확인에 실패했습니다");
-    } finally {
-      setIsBusy(false);
-    }
-  }
-
-  function createTheory() {
-    if (!theoryPath) {
-      setStatus("위치와 theory 제목을 먼저 입력하세요");
+  function createTheoryFromResearch(result: TheoryResearchResult) {
+    if (!target) {
+      setStatus("Theory를 저장할 area와 topic을 먼저 선택하세요");
       return;
     }
 
+    const nextTheoryPath = buildTheoryPath({
+      ...target,
+      title: result.title,
+    });
+    setTheoryTitle(result.title);
     setMarkdown(
       createTheoryTemplate({
-        title: theoryTitle,
-        parentHref: parentReadmePath(theoryPath),
+        title: result.title,
+        parentHref: parentReadmePath(nextTheoryPath),
+        concept: result.concept,
+        keyPoints: result.keyPoints,
+        cautions: result.cautions,
+        sources: result.sources,
         relatedNotes: notePath ? [notePath] : [],
       }),
     );
     setMode("review");
     setDraftKind("theory");
     setIsMarkdownEditing(true);
-    setStatus(`새 theory 초안 생성: ${theoryPath}`);
+    setStatus(`Theory 초안 생성: ${nextTheoryPath}`);
+  }
+
+  async function researchTheoryConcept(keyword: string) {
+    setIsResearchingTheory(true);
+    setStatus(`웹에서 concept 조사 중: ${keyword}`);
+    try {
+      const response = await fetch("/api/ai/theory-research", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ keyword }),
+      });
+      if (!response.ok) throw new Error("Theory research failed");
+      const data = (await response.json()) as TheoryResearchResult;
+      setTheoryResearch(data);
+      setStatus("조사 결과를 확인한 뒤 Theory 초안을 만들 수 있습니다");
+      return data;
+    } catch {
+      setStatus("Theory concept 조사에 실패했습니다");
+      return null;
+    } finally {
+      setIsResearchingTheory(false);
+    }
   }
 
   async function save() {
@@ -309,20 +324,22 @@ export function StudioWorkspace() {
                 {selectedPath || "왼쪽에서 area와 topic을 선택하세요"}
               </div>
             </label>
-            <button
-              type="button"
-              onClick={draftKind === "theory" ? createTheory : prepareNotePublish}
-              className="self-end rounded-2xl bg-[#31513a] px-5 py-3 text-sm font-semibold text-[#f6efe2] shadow-[0_14px_30px_rgba(38,57,40,0.25)] transition hover:bg-[#294632]"
-            >
-              {draftKind === "theory" ? "Theory 초안 만들기" : "Publish 준비"}
-            </button>
+            {draftKind === "note" ? (
+              <button
+                type="button"
+                onClick={prepareNotePublish}
+                className="self-end rounded-2xl bg-[#31513a] px-5 py-3 text-sm font-semibold text-[#f6efe2] shadow-[0_14px_30px_rgba(38,57,40,0.25)] transition hover:bg-[#294632]"
+              >
+                Markdown 만들기
+              </button>
+            ) : null}
           </div>
           <div className="mt-4 rounded-2xl bg-[#2b2923] px-4 py-3 font-mono text-xs text-[#e8dcc7]">
             {(draftKind === "theory" ? theoryPath : notePath) || "선택을 마치면 저장 경로가 표시됩니다"}
           </div>
           <p className="mt-2 text-xs leading-5 text-[#6b6257]">
             {draftKind === "theory"
-              ? "Theory는 선택한 topic 아래 theory 폴더로 자동 저장됩니다."
+              ? "Theory는 오른쪽에서 concept을 조사하고 확인한 뒤, 선택한 topic 아래 theory 폴더로 저장됩니다."
               : "Notes는 선택한 topic과 source 아래 notes 폴더로 자동 저장됩니다."}
           </p>
         </div>
@@ -362,25 +379,30 @@ export function StudioWorkspace() {
       </section>
       <aside className="bg-[#24281e] p-5 text-[#f4efe4] lg:min-h-screen lg:border-l lg:border-[#34382b]">
         <div className="sticky top-5 space-y-5">
-        <AiPanel onCleanup={cleanup} onFindMissing={findMissing} isBusy={isBusy} />
-        <TheoryLookupPanel
-          query={query}
-          onQueryChange={setQuery}
-          onSearch={() => setStatus(`theory 조회: ${query}`)}
-          onCreateTheory={createTheory}
-        />
-        <label className="block space-y-2 text-sm">
-          <span className="font-semibold text-[#f4efe4]">Theory Title</span>
-          <input
-            value={theoryTitle}
-            onChange={(event) => setTheoryTitle(event.target.value)}
-            className="h-11 w-full rounded-2xl bg-[#34382b] px-4 text-sm text-[#f4efe4] outline-none placeholder:text-[#918a79] focus:ring-4 focus:ring-[#769269]/30"
-          />
-          <span className="block break-all font-mono text-xs text-[#a9a18f]">
-            {theoryPath || "주제 폴더를 선택하세요"}
-          </span>
-        </label>
-        <SaveControls mode={mode} onModeChange={setMode} onSave={save} />
+        {draftKind === "note" ? (
+          <>
+            <AiPanel onCleanup={cleanup} isBusy={isBusy} />
+            <SaveControls mode={mode} onModeChange={setMode} onSave={save} />
+          </>
+        ) : (
+          <>
+            <TheoryResearchPanel
+              keyword={theoryKeyword}
+              result={theoryResearch}
+              isResearching={isResearchingTheory}
+              onKeywordChange={setTheoryKeyword}
+              onResearch={researchTheoryConcept}
+              onCreateDraft={createTheoryFromResearch}
+            />
+            <div className="rounded-3xl bg-[#171b14] p-4 text-sm">
+              <p className="font-semibold text-[#f4efe4]">Theory 저장 경로</p>
+              <p className="mt-2 break-all font-mono text-xs text-[#a9a18f]">
+                {theoryPath || "조사 결과로 초안을 만들면 경로가 표시됩니다"}
+              </p>
+            </div>
+            <SaveControls mode="review" onModeChange={setMode} onSave={save} showQuick={false} />
+          </>
+        )}
         </div>
       </aside>
     </main>

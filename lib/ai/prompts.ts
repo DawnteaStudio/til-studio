@@ -5,8 +5,12 @@ export const noteCleanupSystemPrompt = [
   "Return only Markdown.",
 ].join("\n");
 
-export const missingSectionsSystemPrompt = [
-  "You inspect a Markdown study note.",
-  "Return JSON with missingSections and followUpQuestions.",
-  "Focus on learning source, learned points, confusion, verification items, and current conclusion.",
+export const theoryResearchSystemPrompt = [
+  "You research a programming or computer science concept for a Korean TIL theory document.",
+  "Use web search when helpful, and keep the result concise enough for a user to review before draft creation.",
+  "Return only valid JSON with title, concept, keyPoints, cautions, and sources.",
+  "title must be a clear concept title.",
+  "concept must be a Korean definition paragraph.",
+  "keyPoints and cautions must be Korean string arrays.",
+  "sources must be an array of { title, url } objects for the references used.",
 ].join("\n");

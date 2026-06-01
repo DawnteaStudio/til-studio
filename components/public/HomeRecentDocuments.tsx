@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { classifyPath } from "@/lib/content/indexer";
 import { filterPathsByVisibleRoots } from "@/lib/content/visibility";
 import { useVisibleRootPaths } from "./useVisibleRootPaths";
 
@@ -11,7 +12,9 @@ interface HomeRecentDocumentsProps {
 
 export function HomeRecentDocuments({ paths, initialVisibleRootPaths }: HomeRecentDocumentsProps) {
   const { visibleRootPaths } = useVisibleRootPaths(paths, initialVisibleRootPaths);
-  const recentPaths = filterPathsByVisibleRoots(paths, visibleRootPaths).slice(0, 6);
+  const recentPaths = filterPathsByVisibleRoots(paths, visibleRootPaths)
+    .filter((path) => classifyPath(path) !== "readme")
+    .slice(0, 6);
 
   return (
     <div className="mt-6 space-y-3">

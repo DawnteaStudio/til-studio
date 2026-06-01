@@ -5,6 +5,8 @@ import { HomeRecentDocuments } from "@/components/public/HomeRecentDocuments";
 
 describe("HomeRecentDocuments", () => {
   const paths = [
+    "README.md",
+    "cs/network/README.md",
     "cs/network/theory/network-layer.md",
     "languages/javascript/theory/object.md",
     "projects/app/notes/log/day-1.md",
@@ -20,6 +22,8 @@ describe("HomeRecentDocuments", () => {
     render(<HomeRecentDocuments paths={paths} />);
 
     expect(screen.getByText("cs/network/theory/network-layer.md")).toBeTruthy();
+    expect(screen.queryByText("README.md")).toBeNull();
+    expect(screen.queryByText("cs/network/README.md")).toBeNull();
     expect(screen.queryByText("languages/javascript/theory/object.md")).toBeNull();
     expect(screen.queryByText("projects/app/notes/log/day-1.md")).toBeNull();
   });

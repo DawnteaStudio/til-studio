@@ -8,7 +8,11 @@ interface NoteTemplateInput {
 interface TheoryTemplateInput {
   title: string;
   parentHref: string;
+  concept?: string;
+  keyPoints?: string[];
+  cautions?: string[];
   relatedNotes?: string[];
+  sources?: Array<{ title: string; url: string }>;
 }
 
 const coreNoteSections = [
@@ -19,7 +23,7 @@ const coreNoteSections = [
   "현재 이해한 결론",
 ];
 
-const theorySections = ["개념", "핵심 내용", "주의할 점", "관련 notes"];
+const coreTheorySections = ["개념", "핵심 내용", "주의할 점", "관련 notes"];
 
 function headingAnchor(section: string): string {
   return section.trim().replace(/\s+/g, "-").toLowerCase();
@@ -31,6 +35,17 @@ function toc(sections: string[]): string {
 
 function sectionBlock(section: string, content = ""): string {
   return `## ${section}\n\n${content}`.trimEnd();
+}
+
+function bulletList(items?: string[]): string {
+  return items?.filter(Boolean).map((item) => `- ${item}`).join("\n") ?? "";
+}
+
+function sourceList(sources?: Array<{ title: string; url: string }>): string {
+  return sources
+    ?.filter((source) => source.title.trim() && source.url.trim())
+    .map((source) => `- [${source.title}](${source.url})`)
+    .join("\n") ?? "";
 }
 
 function relativeNoteLink(notePath: string): string {
@@ -63,10 +78,17 @@ export function createTheoryTemplate(input: TheoryTemplateInput): string {
   const related = input.relatedNotes?.length
     ? input.relatedNotes.map(relativeNoteLink).join("\n")
     : "";
+  const references = sourceList(input.sources);
+  const theorySections = references ? [...coreTheorySections, "참고 자료"] : coreTheorySections;
 
-  const blocks = theorySections.map((section) =>
-    section === "관련 notes" ? sectionBlock(section, related) : sectionBlock(section),
-  );
+  const blocks = theorySections.map((section) => {
+    if (section === "개념") return sectionBlock(section, input.concept ?? "");
+    if (section === "핵심 내용") return sectionBlock(section, bulletList(input.keyPoints));
+    if (section === "주의할 점") return sectionBlock(section, bulletList(input.cautions));
+    if (section === "관련 notes") return sectionBlock(section, related);
+    if (section === "참고 자료") return sectionBlock(section, references);
+    return sectionBlock(section);
+  });
 
   return [
     `# ${input.title}`,

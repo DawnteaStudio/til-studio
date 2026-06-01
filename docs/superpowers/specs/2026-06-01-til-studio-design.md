@@ -109,6 +109,7 @@ The default theory template is:
 - [핵심 내용](#핵심-내용)
 - [주의할 점](#주의할-점)
 - [관련 notes](#관련-notes)
+- [참고 자료](#참고-자료)
 
 ## 개념
 
@@ -117,7 +118,11 @@ The default theory template is:
 ## 주의할 점
 
 ## 관련 notes
+
+## 참고 자료
 ```
+
+`참고 자료` is required when the theory document is generated from web research. The UI must show clickable sources before draft creation, and the generated Markdown must preserve those sources so the reader can inspect where the definition came from.
 
 ## Studio Flow
 
@@ -127,16 +132,16 @@ The main writing flow is workspace-first:
 2. Select a repository area such as `cs`, `languages`, or `projects`.
 3. Select or create a topic folder such as `algorithms`, `spring`, or `javascript`.
 4. For `Notes`, select or create a source folder under `notes`, using only a simple folder name.
-5. Write the note or theory draft.
-6. Use AI to organize notes into the default template when useful.
-7. Let AI check for missing note sections.
-8. Optionally look up related theory by keywords.
+5. In `Notes`, write the study note and optionally use AI to organize it into the default note template.
+6. In `Theory`, enter a concept keyword and run web research.
+7. Review the web research result, including definition, key points, cautions, and sources.
+8. Create a theory draft only after the user confirms the reviewed research.
 9. Save to GitHub using the draft kind's default save mode.
 
 The Studio workspace selector must not expose raw repository implementation folders such as `notes` and `theory` as places the user manually chooses. The selected draft kind determines the destination folder:
 
 - `Notes` writes to `<area>/<topic>/notes/<source>/<slug>.md`.
-- `Theory` writes to `<area>/<topic>/theory/<slug>.md`.
+- `Theory` writes to `<area>/<topic>/theory/<concept-slug>.md`.
 
 The note file unit is chapter/topic based, not daily. Examples:
 
@@ -152,7 +157,7 @@ The writing screen uses a workspace layout:
 
 - left panel: draft kind, area, topic, source, and visibility preferences
 - center panel: Markdown editor and preview
-- right panel: AI actions, theory lookup, save controls
+- right panel: mode-specific tools and save controls
 
 The app is not a generic note app. It is a repository-aware writing studio.
 
@@ -164,6 +169,13 @@ The left panel is a guided workspace picker, not a generic file browser:
 - `Source` is shown only for `Notes`, lists existing source folders under the selected topic's `notes` folder, and supports entering a new lecture, book, course, or project source.
 - Public visibility preferences remain separate from the write-location selector.
 
+The right panel changes by draft kind:
+
+- `Notes`: show `Note Tools` with note cleanup and `Save` with Quick or Review mode.
+- `Theory`: show `Concept Research`, the reviewed research result, and `Save` in Review mode.
+- The missing-section checker is not part of the current Studio surface.
+- `Theory Lookup` and standalone `Theory Title` inputs should not appear as separate concepts. Theory title is derived from reviewed concept research and may be edited later only if a dedicated title-editing flow is added.
+
 Required MVP actions:
 
 - select existing area, topic, and source
@@ -173,10 +185,11 @@ Required MVP actions:
 - generate note template
 - generate table of contents and parent navigation
 - run AI note cleanup
-- run missing-section check
 - edit the final Markdown before saving
 - Quick Save
 - Review Save
+- run concept web research for theory
+- create a theory draft from reviewed research
 
 ## AI Scope
 
@@ -185,30 +198,28 @@ AI is included in MVP, but with constrained authority.
 MVP AI actions:
 
 - `notes 형식으로 다듬기`: organize rough study text into the notes template while preserving learning context.
-- `빠진 섹션 찾기`: identify missing source, confusing points, verification items, or conclusions and ask the user for more input.
-- `theory 키워드 조회`: suggest keywords and candidate theory titles from the current note.
-- `theory 새 문서 생성`: after keyword lookup and user approval, create a simple theory document.
+- `웹에서 조사하기`: research a concept keyword for a theory document and return a user-reviewable summary with sources.
+- `Theory 초안 만들기`: after the user reviews the research result, create a Markdown theory draft that follows the theory template.
 
 AI does not silently publish content. The user must approve final title, path, content, and save mode.
 
-## Theory Lookup And Creation
+## Theory Research And Creation
 
-Theory creation in MVP is lookup-first.
+Theory creation in MVP is research-first.
 
 Flow:
 
-1. Extract candidate keywords from the current note.
-2. Let the user edit the query.
-3. Search the theory index.
-4. Show matching existing theory files.
-5. Let the user choose:
-   - link the note to an existing theory
-   - update an existing theory later
-   - create a new theory file
-   - ignore for now
-6. If creating a new theory file, use a simple theory template and link the originating note.
+1. User selects `Theory` in the left workspace panel.
+2. User selects the target area and topic.
+3. User enters a concept keyword.
+4. Studio runs web research and displays the proposed title, concept definition, key points, cautions, and clickable sources.
+5. User reviews the result.
+6. Only after review, user clicks `Theory 초안 만들기`.
+7. Studio creates Markdown using the theory template and the reviewed research result.
+8. User edits the final Markdown if needed.
+9. User saves with Review mode.
 
-The initial search index should use file path, title, headings, tags/frontmatter if present, and text keywords. Semantic duplicate detection is deferred.
+Existing theory duplicate detection is deferred. When added later, it should appear as part of the research result review, not as a separate `Theory Lookup` panel.
 
 ## GitHub Save Modes
 
