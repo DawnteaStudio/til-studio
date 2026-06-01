@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 interface MarkdownArticleProps {
   markdown: string;
 }
@@ -19,20 +21,20 @@ export function MarkdownArticle({ markdown }: MarkdownArticleProps) {
           if (block.level === 1) {
             return (
               <h1 key={index} id={id} className="text-4xl font-semibold leading-tight text-[#211f1a]">
-                {block.text}
+                {renderInline(block.text)}
               </h1>
             );
           }
           if (block.level === 2) {
             return (
               <h2 key={index} id={id} className="pt-5 text-2xl font-semibold text-[#211f1a]">
-                {block.text}
+                {renderInline(block.text)}
               </h2>
             );
           }
           return (
             <h3 key={index} id={id} className="pt-3 text-xl font-semibold text-[#211f1a]">
-              {block.text}
+              {renderInline(block.text)}
             </h3>
           );
         }
@@ -42,7 +44,7 @@ export function MarkdownArticle({ markdown }: MarkdownArticleProps) {
             <ul key={index} className="space-y-2 pl-5">
               {block.items.map((item) => (
                 <li key={item} className="list-disc">
-                  {item}
+                  {renderInline(item)}
                 </li>
               ))}
             </ul>
@@ -62,7 +64,7 @@ export function MarkdownArticle({ markdown }: MarkdownArticleProps) {
 
         return (
           <p key={index} className="whitespace-pre-wrap">
-            {block.text}
+            {renderInline(block.text)}
           </p>
         );
       })}
@@ -124,7 +126,7 @@ function parseMarkdown(markdown: string): Block[] {
     const listItem = line.match(/^[-*]\s+(.+)$/);
     if (listItem) {
       flushParagraph();
-      list.push(stripInlineMarkdown(listItem[1]));
+      list.push(listItem[1].trim());
       continue;
     }
 
@@ -134,7 +136,7 @@ function parseMarkdown(markdown: string): Block[] {
       continue;
     }
 
-    paragraph.push(stripInlineMarkdown(line));
+    paragraph.push(line);
   }
 
   flushParagraph();
@@ -150,4 +152,36 @@ function stripInlineMarkdown(value: string) {
     .replace(/`([^`]+)`/g, "$1")
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .trim();
+}
+
+function renderInline(value: string) {
+  const nodes: ReactNode[] = [];
+  const pattern = /(\*\*([^*]+)\*\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\))/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(value))) {
+    if (match.index > lastIndex) nodes.push(value.slice(lastIndex, match.index));
+
+    if (match[2]) {
+      nodes.push(<strong key={match.index}>{match[2]}</strong>);
+    } else if (match[3]) {
+      nodes.push(
+        <code key={match.index} className="rounded bg-[#d9d0c0] px-1.5 py-0.5 font-mono text-sm">
+          {match[3]}
+        </code>,
+      );
+    } else if (match[4] && match[5]) {
+      nodes.push(
+        <a key={match.index} href={match[5]} className="font-medium underline decoration-[#b49a5f] underline-offset-4">
+          {match[4]}
+        </a>,
+      );
+    }
+
+    lastIndex = pattern.lastIndex;
+  }
+
+  if (lastIndex < value.length) nodes.push(value.slice(lastIndex));
+  return nodes.length ? nodes : value;
 }

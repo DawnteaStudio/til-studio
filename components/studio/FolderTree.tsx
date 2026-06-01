@@ -6,14 +6,26 @@ import type { ContentNode } from "@/lib/content/types";
 interface FolderTreeProps {
   tree: ContentNode;
   selectedPath: string;
+  visibleRootPaths: string[];
+  onVisibleRootPathsChange(paths: string[]): void;
   onSelectPath(path: string): void;
+  isLoading?: boolean;
 }
 
-export function FolderTree({ tree, selectedPath, onSelectPath }: FolderTreeProps) {
+export function FolderTree({
+  tree,
+  selectedPath,
+  visibleRootPaths,
+  onVisibleRootPathsChange,
+  onSelectPath,
+  isLoading = false,
+}: FolderTreeProps) {
   const rootDirectories = useMemo(
     () => (tree.children ?? []).filter((node) => node.type === "directory"),
     [tree],
   );
+  const visibleRootSet = useMemo(() => new Set(visibleRootPaths), [visibleRootPaths]);
+  const visibleRootDirectories = rootDirectories.filter((node) => visibleRootSet.has(node.path));
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
 
   function toggle(path: string) {
@@ -34,8 +46,47 @@ export function FolderTree({ tree, selectedPath, onSelectPath }: FolderTreeProps
           폴더를 펼쳐서 작성 위치를 선택하세요. 파일은 글 목록에서 따로 봅니다.
         </p>
       </div>
+      {isLoading ? (
+        <div className="flex items-center gap-3 rounded-2xl bg-[#2a2f22] px-3 py-3 text-[#d8d0bd]">
+          <span className="size-4 animate-spin rounded-full border-2 border-[#d8c69a] border-t-transparent" />
+          <span className="text-xs">저장소 구조를 불러오는 중</span>
+        </div>
+      ) : null}
+      {rootDirectories.length ? (
+        <section className="rounded-3xl bg-[#171b14] p-3">
+          <p className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#8d9a7b]">
+            표시 폴더
+          </p>
+          <div className="mt-3 space-y-1">
+            {rootDirectories.map((node) => {
+              const checked = visibleRootSet.has(node.path);
+              const isLastVisible = checked && visibleRootPaths.length <= 1;
+              return (
+                <label
+                  key={node.path}
+                  className="flex cursor-pointer items-center justify-between rounded-2xl px-3 py-2 text-[#d8d0bd] hover:bg-[#24291d]"
+                >
+                  <span>{node.name}</span>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={isLastVisible}
+                    onChange={(event) => {
+                      const next = event.target.checked
+                        ? [...visibleRootPaths, node.path]
+                        : visibleRootPaths.filter((path) => path !== node.path);
+                      onVisibleRootPathsChange(next);
+                    }}
+                    className="size-4 accent-[#d8c69a]"
+                  />
+                </label>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
       <div className="space-y-1.5">
-        {rootDirectories.map((node) => (
+        {visibleRootDirectories.map((node) => (
           <TreeNode
             key={node.path}
             node={node}

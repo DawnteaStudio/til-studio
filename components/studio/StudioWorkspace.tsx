@@ -8,6 +8,7 @@ import { buildNotePath, buildTheoryPath, parentReadmePath } from "@/lib/content/
 import { deriveStudyTarget } from "@/lib/content/studio-target";
 import { createTheoryTemplate } from "@/lib/content/templates";
 import type { ContentNode, SaveMode } from "@/lib/content/types";
+import { folderVisibilityStorageKey, topLevelFolder } from "@/lib/content/visibility";
 import { AiPanel } from "./AiPanel";
 import { FileEditor } from "./FileEditor";
 import { FolderTree } from "./FolderTree";
@@ -24,6 +25,16 @@ const initialTree: ContentNode = {
   kind: "other",
   children: [],
 };
+
+function readVisibleRootPaths(): string[] {
+  try {
+    const raw = window.localStorage.getItem(folderVisibilityStorageKey);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 export function StudioWorkspace() {
   const [tree, setTree] = useState(initialTree);
@@ -46,6 +57,8 @@ export function StudioWorkspace() {
   const [mode, setMode] = useState<SaveMode>("quick");
   const [draftKind, setDraftKind] = useState<DraftKind>("note");
   const [isBusy, setIsBusy] = useState(false);
+  const [isTreeLoading, setIsTreeLoading] = useState(true);
+  const [visibleRootPaths, setVisibleRootPaths] = useState<string[]>([]);
   const [status, setStatus] = useState("TIL 레포 구조를 불러오는 중");
   const target = useMemo(() => deriveStudyTarget(selectedPath), [selectedPath]);
   const notePath = useMemo(() => {
@@ -79,16 +92,22 @@ export function StudioWorkspace() {
     let isMounted = true;
 
     async function loadTree() {
+      setIsTreeLoading(true);
       try {
         const response = await fetch("/api/github/tree");
         if (!response.ok) return;
         const data = (await response.json()) as { paths?: string[] };
         if (isMounted && data.paths?.length) {
+          const roots = [...new Set(data.paths.map(topLevelFolder).filter(Boolean))].sort();
+          const saved = readVisibleRootPaths();
           setTree(treeFromPaths(data.paths));
+          setVisibleRootPaths(saved.length ? roots.filter((root) => saved.includes(root)) : roots);
           setStatus("TIL 레포 구조를 불러왔습니다");
         }
       } catch {
         setStatus("TIL 레포 구조를 불러오지 못했습니다");
+      } finally {
+        if (isMounted) setIsTreeLoading(false);
       }
     }
 
@@ -98,6 +117,14 @@ export function StudioWorkspace() {
       isMounted = false;
     };
   }, []);
+
+  function updateVisibleRootPaths(paths: string[]) {
+    setVisibleRootPaths(paths);
+    window.localStorage.setItem(folderVisibilityStorageKey, JSON.stringify(paths));
+    if (selectedPath && !paths.includes(topLevelFolder(selectedPath))) {
+      setSelectedPath("");
+    }
+  }
 
   function updateNoteDraft(field: Exclude<keyof StructuredNoteDraft, "parentHref">, value: string) {
     setNoteDraft((current) => ({ ...current, [field]: value }));
@@ -215,7 +242,14 @@ export function StudioWorkspace() {
             Blog
           </Link>
         </div>
-        <FolderTree tree={tree} selectedPath={selectedPath} onSelectPath={setSelectedPath} />
+        <FolderTree
+          tree={tree}
+          selectedPath={selectedPath}
+          visibleRootPaths={visibleRootPaths}
+          onVisibleRootPathsChange={updateVisibleRootPaths}
+          onSelectPath={setSelectedPath}
+          isLoading={isTreeLoading}
+        />
       </aside>
       <section className="min-w-0 bg-[#e8dfd0] px-5 py-6 text-[#201f1b] md:px-8 lg:px-10">
         <div className="mx-auto max-w-4xl">
@@ -241,7 +275,9 @@ export function StudioWorkspace() {
               </div>
             </label>
             <label className="space-y-1">
-              <span className="block text-xs font-semibold text-[#5e564c]">학습 자료 폴더</span>
+              <span className="block text-xs font-semibold text-[#5e564c]">
+                자료 폴더명 (notes 하위)
+              </span>
               <input
                 value={sourceName}
                 onChange={(event) => setSourceName(event.target.value)}
@@ -259,6 +295,10 @@ export function StudioWorkspace() {
           <div className="mt-4 rounded-2xl bg-[#2b2923] px-4 py-3 font-mono text-xs text-[#e8dcc7]">
             {notePath || "주제 폴더를 선택하면 저장 경로가 표시됩니다"}
           </div>
+          <p className="mt-2 text-xs leading-5 text-[#6b6257]">
+            선택 위치는 글을 넣을 주제 폴더이고, 자료 폴더명은 notes 아래에서 강의나 책 단위로
+            묶일 폴더 이름입니다.
+          </p>
         </div>
         {draftKind === "note" ? (
           <NoteComposer draft={noteDraft} onChange={updateNoteDraft} />

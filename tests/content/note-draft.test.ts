@@ -16,6 +16,8 @@ describe("structured note draft", () => {
 
     expect(markdown).toContain("[상위로 이동](../README.md)");
     expect(markdown).toContain("# 네트워크 계층 정리");
+    expect(markdown).toContain("## 목차");
+    expect(markdown).toContain("- [학습 출처](#학습-출처)");
     expect(markdown).toContain("## 학습 출처\n컴퓨터 네트워크 강의");
     expect(markdown).toContain("## 오늘 배운 것\n네트워크 계층은 서로 다른 네트워크 사이의 패킷 전달을 담당한다.");
     expect(markdown).toContain("## 헷갈린 점\n라우팅과 포워딩의 차이가 헷갈렸다.");

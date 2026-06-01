@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { classifyPath } from "@/lib/content/indexer";
 import type { ContentKind } from "@/lib/content/types";
+import { filterPathsByVisibleRoots, folderVisibilityStorageKey, topLevelFolder } from "@/lib/content/visibility";
 
 interface BlogIndexProps {
   paths: string[];
@@ -24,9 +28,21 @@ const kindLabel: Record<ContentKind, string> = {
 };
 
 export function BlogIndex({ paths, owner, repo }: BlogIndexProps) {
-  const documents = paths.map(toBlogDocument).filter((doc) => doc.kind !== "other");
+  const [activeCategory, setActiveCategory] = useState("all");
+  const rootFolders = useMemo(
+    () => [...new Set(paths.map(topLevelFolder).filter(Boolean))].sort(),
+    [paths],
+  );
+  const [visibleRoots] = useState(() => readVisibleRoots(rootFolders));
+
+  const categoryPaths =
+    activeCategory === "all"
+      ? filterPathsByVisibleRoots(paths, visibleRoots)
+      : paths.filter((path) => topLevelFolder(path) === activeCategory);
+  const documents = categoryPaths.map(toBlogDocument).filter((doc) => doc.kind !== "other");
   const notes = documents.filter((doc) => doc.kind === "note");
   const theory = documents.filter((doc) => doc.kind === "theory");
+  const categories = visibleRoots.length ? visibleRoots : rootFolders;
 
   return (
     <main className="min-h-screen bg-[#151611] text-[#f4efe4]">
@@ -59,6 +75,22 @@ export function BlogIndex({ paths, owner, repo }: BlogIndexProps) {
           </div>
         </header>
 
+        <div className="mt-8 flex flex-wrap gap-2">
+          <CategoryButton
+            label="전체"
+            active={activeCategory === "all"}
+            onClick={() => setActiveCategory("all")}
+          />
+          {categories.map((category) => (
+            <CategoryButton
+              key={category}
+              label={category}
+              active={activeCategory === category}
+              onClick={() => setActiveCategory(category)}
+            />
+          ))}
+        </div>
+
         <section className="mt-10 grid gap-5 lg:grid-cols-2">
           {documents.map((document) => (
             <Link
@@ -85,6 +117,41 @@ export function BlogIndex({ paths, owner, repo }: BlogIndexProps) {
         </section>
       </section>
     </main>
+  );
+}
+
+function readVisibleRoots(rootFolders: string[]) {
+  try {
+    const raw = window.localStorage.getItem(folderVisibilityStorageKey);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) && parsed.length
+      ? rootFolders.filter((root) => parsed.includes(root))
+      : rootFolders;
+  } catch {
+    return rootFolders;
+  }
+}
+
+function CategoryButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick(): void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "rounded-full px-4 py-2 text-sm font-semibold transition",
+        active ? "bg-[#d8c69a] text-[#1e2118]" : "bg-[#24281e] text-[#cec4ae] hover:bg-[#303629]",
+      ].join(" ")}
+    >
+      {label}
+    </button>
   );
 }
 
