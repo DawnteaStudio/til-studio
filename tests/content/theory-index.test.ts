@@ -4,12 +4,12 @@ import type { IndexedDocument } from "@/lib/content/types";
 
 const docs: IndexedDocument[] = [
   {
-    path: "cs/spring/theory/transaction.md",
-    title: "트랜잭션",
+    path: "cs/network/theory/network-layer.md",
+    title: "네트워크 계층",
     kind: "theory",
-    headings: ["롤백 기준", "주의할 점"],
-    body: "Spring @Transactional rollbackFor checked exception RuntimeException",
-    keywords: ["트랜잭션", "rollbackFor", "checked", "exception"],
+    headings: ["라우팅", "주의할 점"],
+    body: "network layer routing forwarding packet",
+    keywords: ["네트워크", "라우팅", "forwarding", "packet"],
   },
   {
     path: "cs/databases/theory/index.md",
@@ -23,17 +23,17 @@ const docs: IndexedDocument[] = [
 
 describe("theory index", () => {
   it("finds matching theory documents by editable query keywords", () => {
-    const results = searchTheory(docs, ["transactional", "checked", "rollbackFor"]);
+    const results = searchTheory(docs, ["network", "routing", "packet"]);
     expect(results[0]).toMatchObject({
-      path: "cs/spring/theory/transaction.md",
+      path: "cs/network/theory/network-layer.md",
       score: 3,
     });
   });
 
   it("searches title, headings, body, keywords, and path", () => {
-    expect(searchTheory(docs, ["트랜잭션"])[0].path).toBe("cs/spring/theory/transaction.md");
-    expect(searchTheory(docs, ["롤백"])[0].path).toBe("cs/spring/theory/transaction.md");
-    expect(searchTheory(docs, ["RuntimeException"])[0].path).toBe("cs/spring/theory/transaction.md");
+    expect(searchTheory(docs, ["네트워크"])[0].path).toBe("cs/network/theory/network-layer.md");
+    expect(searchTheory(docs, ["라우팅"])[0].path).toBe("cs/network/theory/network-layer.md");
+    expect(searchTheory(docs, ["forwarding"])[0].path).toBe("cs/network/theory/network-layer.md");
     expect(searchTheory(docs, ["databases"])[0].path).toBe("cs/databases/theory/index.md");
   });
 
@@ -42,17 +42,17 @@ describe("theory index", () => {
       [
         ...docs,
         {
-          path: "cs/spring/notes/db/transaction.md",
+          path: "cs/network/notes/book-network/network-layer.md",
           title: "note",
           kind: "note",
           headings: [],
-          body: "rollbackFor checked",
-          keywords: ["rollbackFor", "checked"],
+          body: "routing forwarding",
+          keywords: ["routing", "forwarding"],
         },
       ],
-      ["rollbackFor"],
+      ["routing"],
     );
 
-    expect(results.map((result) => result.path)).toEqual(["cs/spring/theory/transaction.md"]);
+    expect(results.map((result) => result.path)).toEqual(["cs/network/theory/network-layer.md"]);
   });
 });

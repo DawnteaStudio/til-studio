@@ -8,35 +8,35 @@ import {
 
 describe("content path helpers", () => {
   it("creates stable lowercase slugs", () => {
-    expect(makeSlug("@Transactional 롤백 기준")).toBe("transactional-rollback");
-    expect(makeSlug("BFS / DFS 기본")).toBe("bfs-dfs");
+    expect(makeSlug("Network Layer 정리")).toBe("network-layer-정리");
+    expect(makeSlug("BFS / DFS 메모")).toBe("bfs-dfs-메모");
   });
 
   it("builds topic-based note paths", () => {
     expect(
       buildNotePath({
         area: "cs",
-        topic: "spring",
-        source: "inflearn-spring-db",
-        title: "@Transactional 롤백 기준",
+        topic: "network",
+        source: "book-network",
+        title: "Network Layer 정리",
       }),
-    ).toBe("cs/spring/notes/inflearn-spring-db/transactional-rollback.md");
+    ).toBe("cs/network/notes/book-network/network-layer-정리.md");
   });
 
   it("builds theory paths under the selected topic", () => {
     expect(
       buildTheoryPath({
         area: "cs",
-        topic: "spring",
-        title: "트랜잭션",
+        topic: "network",
+        title: "Network Layer",
       }),
-    ).toBe("cs/spring/theory/transaction.md");
+    ).toBe("cs/network/theory/network-layer.md");
   });
 
   it("points nested documents to the nearest README", () => {
-    expect(
-      parentReadmePath("cs/spring/notes/inflearn-spring-db/transactional-rollback.md"),
-    ).toBe("../README.md");
-    expect(parentReadmePath("cs/spring/theory/transaction.md")).toBe("../README.md");
+    expect(parentReadmePath("cs/network/notes/book-network/network-layer.md")).toBe(
+      "../README.md",
+    );
+    expect(parentReadmePath("cs/network/theory/network-layer.md")).toBe("../README.md");
   });
 });

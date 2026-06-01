@@ -16,12 +16,12 @@ const fields: Array<{
   {
     field: "title",
     label: "제목",
-    placeholder: "@Transactional 롤백 기준을 공부하며 헷갈린 점",
+    placeholder: "오늘 공부한 내용을 한 문장으로 적어주세요.",
   },
   {
     field: "source",
     label: "학습 출처",
-    placeholder: "인프런 김영한 스프링 DB 1편",
+    placeholder: "강의, 책, 문서, 프로젝트 등 출처를 적어주세요.",
   },
   {
     field: "learned",

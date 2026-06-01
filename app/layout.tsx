@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "til-studio",
-  description: "A repository-aware TIL studio for DawnteaStudio/TIL.",
+  description: "A repository-aware TIL writing studio.",
 };
 
 export default function RootLayout({

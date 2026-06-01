@@ -1,4 +1,4 @@
-import { treeFromPaths } from "@/lib/content/indexer";
+import { indexMarkdownDocument, treeFromPaths } from "@/lib/content/indexer";
 import type { ContentNode } from "@/lib/content/types";
 import { createInstallationOctokit } from "./client";
 
@@ -41,4 +41,30 @@ export async function fetchRepositoryMarkdownSnapshot(): Promise<RepositoryMarkd
     paths,
     tree: treeFromPaths(paths),
   };
+}
+
+export async function fetchRepositoryMarkdownDocument(path: string) {
+  const owner = process.env.TIL_REPOSITORY_OWNER ?? "DawnteaStudio";
+  const repo = process.env.TIL_REPOSITORY_NAME ?? "TIL";
+  const octokit = await createInstallationOctokit();
+
+  const repository = await octokit.request("GET /repos/{owner}/{repo}", { owner, repo });
+  const branch = repository.data.default_branch;
+  const file = await octokit
+    .request("GET /repos/{owner}/{repo}/contents/{path}", {
+      owner,
+      repo,
+      path,
+      ref: branch,
+    })
+    .catch(() => null);
+
+  if (!file) return null;
+
+  if (Array.isArray(file.data) || file.data.type !== "file" || !file.data.content) {
+    return null;
+  }
+
+  const body = Buffer.from(file.data.content, "base64").toString("utf8");
+  return indexMarkdownDocument({ path, body });
 }

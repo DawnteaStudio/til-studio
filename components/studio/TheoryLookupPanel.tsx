@@ -18,7 +18,7 @@ export function TheoryLookupPanel({
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
         className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-4 focus:ring-zinc-100"
-        placeholder="transactional rollback checked exception"
+        placeholder="정리할 개념 키워드를 입력하세요"
       />
       <button
         type="button"

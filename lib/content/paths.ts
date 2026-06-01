@@ -1,26 +1,10 @@
 import type { NotePathInput, TheoryPathInput } from "./types";
 
-const romanized: Record<string, string> = {
-  "트랜잭션": "transaction",
-  "롤백": "rollback",
-  "기준": "",
-  "기본": "",
-};
-
 export function makeSlug(value: string): string {
-  const replaced = value
+  return value
     .replace(/@/g, "")
-    .replace(/Transactional/g, "transactional")
-    .replace(/BFS/gi, "bfs")
-    .replace(/DFS/gi, "dfs")
-    .split(/\s+/)
-    .map((part) => romanized[part] ?? part)
-    .filter(Boolean)
-    .join("-");
-
-  return replaced
-    .normalize("NFKD")
-    .replace(/[^\w\s-]/g, "-")
+    .normalize("NFKC")
+    .replace(/[^\p{L}\p{N}\s-]/gu, "-")
     .replace(/_/g, "-")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")

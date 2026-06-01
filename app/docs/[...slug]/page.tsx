@@ -1,4 +1,6 @@
 import { DocumentView } from "@/components/public/DocumentView";
+import { fetchRepositoryMarkdownDocument } from "@/lib/github/repository";
+import { notFound } from "next/navigation";
 
 export default async function DocumentPage({
   params,
@@ -7,16 +9,9 @@ export default async function DocumentPage({
 }) {
   const { slug } = await params;
   const path = slug.join("/");
-  return (
-    <DocumentView
-      document={{
-        path,
-        title: path.split("/").at(-1)?.replace(/\.md$/, "") ?? "Document",
-        kind: path.includes("/theory/") ? "theory" : "note",
-        headings: ["학습 출처", "오늘 배운 것", "헷갈린 점"],
-        body: `# ${path}\n\n동기화된 Markdown 문서가 여기에 렌더링됩니다.`,
-        keywords: [],
-      }}
-    />
-  );
+  const document = await fetchRepositoryMarkdownDocument(path);
+
+  if (!document) notFound();
+
+  return <DocumentView document={document} />;
 }

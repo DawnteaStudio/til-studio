@@ -21,50 +21,35 @@ const initialTree: ContentNode = {
   path: "",
   type: "directory",
   kind: "other",
-  children: [
-    { name: "cs", path: "cs", type: "directory", kind: "other", children: [] },
-    { name: "languages", path: "languages", type: "directory", kind: "other", children: [] },
-    { name: "projects", path: "projects", type: "directory", kind: "other", children: [] },
-    { name: "coding-test", path: "coding-test", type: "directory", kind: "other", children: [] },
-  ],
+  children: [],
 };
 
 export function StudioWorkspace() {
   const [tree, setTree] = useState(initialTree);
-  const [selectedPath, setSelectedPath] = useState("cs");
-  const [sourceName, setSourceName] = useState("inflearn-spring-db");
-  const [theoryTitle, setTheoryTitle] = useState("트랜잭션");
+  const [selectedPath, setSelectedPath] = useState("");
+  const [sourceName, setSourceName] = useState("");
+  const [theoryTitle, setTheoryTitle] = useState("");
   const [noteDraft, setNoteDraft] = useState<StructuredNoteDraft>({
-    title: "@Transactional 롤백 기준을 공부하면서 헷갈린 점",
-    source: "인프런 김영한 스프링 DB 1편",
-    learned: "@Transactional은 트랜잭션을 자동으로 시작하고 커밋/롤백해준다.",
-    confused: "처음에는 예외가 발생하면 무조건 롤백되는 줄 알았다.",
-    questions: "RuntimeException, checked exception, rollbackFor를 각각 테스트해보고 싶다.",
-    conclusion: "@Transactional은 예외 종류와 호출 구조까지 같이 봐야 한다.",
+    title: "",
+    source: "",
+    learned: "",
+    confused: "",
+    questions: "",
+    conclusion: "",
     experiments: "",
     parentHref: "../README.md",
   });
-  const [markdown, setMarkdown] = useState(() =>
-    draftToNoteMarkdown({
-      title: "@Transactional 롤백 기준을 공부하면서 헷갈린 점",
-      source: "인프런 김영한 스프링 DB 1편",
-      learned: "@Transactional은 트랜잭션을 자동으로 시작하고 커밋/롤백해준다.",
-      confused: "처음에는 예외가 발생하면 무조건 롤백되는 줄 알았다.",
-      questions: "RuntimeException, checked exception, rollbackFor를 각각 테스트해보고 싶다.",
-      conclusion: "@Transactional은 예외 종류와 호출 구조까지 같이 봐야 한다.",
-      experiments: "",
-      parentHref: "../README.md",
-    }),
-  );
+  const [markdown, setMarkdown] = useState("");
   const [isMarkdownEditing, setIsMarkdownEditing] = useState(false);
-  const [query, setQuery] = useState("transactional rollbackFor checked exception");
+  const [query, setQuery] = useState("");
   const [mode, setMode] = useState<SaveMode>("quick");
   const [draftKind, setDraftKind] = useState<DraftKind>("note");
   const [isBusy, setIsBusy] = useState(false);
-  const [status, setStatus] = useState("초안 작성 중");
+  const [status, setStatus] = useState("TIL 레포 구조를 불러오는 중");
   const target = useMemo(() => deriveStudyTarget(selectedPath), [selectedPath]);
   const notePath = useMemo(() => {
     if (!target) return "";
+    if (!sourceName.trim() || !noteDraft.title.trim()) return "";
     return buildNotePath({
       ...target,
       source: sourceName,
@@ -73,6 +58,7 @@ export function StudioWorkspace() {
   }, [noteDraft.title, sourceName, target]);
   const theoryPath = useMemo(() => {
     if (!target) return "";
+    if (!theoryTitle.trim()) return "";
     return buildTheoryPath({
       ...target,
       title: theoryTitle,
@@ -101,7 +87,7 @@ export function StudioWorkspace() {
           setStatus("TIL 레포 구조를 불러왔습니다");
         }
       } catch {
-        setStatus("샘플 트리로 시작합니다");
+        setStatus("TIL 레포 구조를 불러오지 못했습니다");
       }
     }
 
@@ -119,7 +105,7 @@ export function StudioWorkspace() {
 
   function prepareNotePublish() {
     if (!notePath) {
-      setStatus("cs/languages/projects 아래의 주제 폴더를 선택하세요");
+      setStatus("위치, 학습 자료 폴더, 제목을 먼저 입력하세요");
       return;
     }
 
@@ -172,7 +158,7 @@ export function StudioWorkspace() {
 
   function createTheory() {
     if (!theoryPath || !notePath) {
-      setStatus("theory를 만들 주제 폴더를 먼저 선택하세요");
+      setStatus("위치, note 제목, 학습 자료 폴더, theory 제목을 먼저 입력하세요");
       return;
     }
 

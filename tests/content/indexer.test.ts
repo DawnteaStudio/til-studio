@@ -3,34 +3,34 @@ import { classifyPath, indexMarkdownDocument, treeFromPaths } from "@/lib/conten
 
 describe("content indexer", () => {
   it("classifies notes, theory, readmes, and coding-test separately", () => {
-    expect(classifyPath("cs/spring/notes/db/transaction.md")).toBe("note");
-    expect(classifyPath("cs/spring/theory/transaction.md")).toBe("theory");
-    expect(classifyPath("cs/spring/README.md")).toBe("readme");
+    expect(classifyPath("cs/network/notes/book-network/network-layer.md")).toBe("note");
+    expect(classifyPath("cs/network/theory/network-layer.md")).toBe("theory");
+    expect(classifyPath("cs/network/README.md")).toBe("readme");
     expect(classifyPath("coding-test/programmers/a.md")).toBe("other");
   });
 
   it("extracts title and headings from Markdown", () => {
     const doc = indexMarkdownDocument({
-      path: "cs/spring/theory/transaction.md",
-      body: "# 트랜잭션\n\n## 개념\n\n본문\n\n## 주의할 점\n",
+      path: "cs/network/theory/network-layer.md",
+      body: "# 네트워크 계층\n\n## 개념\n\n본문\n\n## 주의할 점\n",
     });
 
-    expect(doc.title).toBe("트랜잭션");
+    expect(doc.title).toBe("네트워크 계층");
     expect(doc.kind).toBe("theory");
     expect(doc.headings).toEqual(["개념", "주의할 점"]);
-    expect(doc.keywords).toContain("트랜잭션");
+    expect(doc.keywords).toContain("네트워크");
   });
 
   it("builds a nested tree from repository paths", () => {
     const tree = treeFromPaths([
-      "cs/spring/README.md",
-      "cs/spring/notes/db/transaction.md",
-      "cs/spring/theory/transaction.md",
+      "cs/network/README.md",
+      "cs/network/notes/book-network/network-layer.md",
+      "cs/network/theory/network-layer.md",
       "coding-test/programmers/problem.md",
     ]);
 
     expect(tree.children?.map((node) => node.name)).toEqual(["coding-test", "cs"]);
     const cs = tree.children?.find((node) => node.name === "cs");
-    expect(cs?.children?.[0]?.name).toBe("spring");
+    expect(cs?.children?.[0]?.name).toBe("network");
   });
 });
