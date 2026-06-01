@@ -21,11 +21,15 @@ export async function saveToGitHub(request: SaveRequest): Promise<SaveResult> {
   const octokit = await createInstallationOctokit();
   const { owner, repo, defaultBranch } = request.repository;
   const targetBranch = request.mode === "quick" ? defaultBranch : branchName();
-  const baseRef = await octokit.git.getRef({ owner, repo, ref: `heads/${defaultBranch}` });
+  const baseRef = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
+    owner,
+    repo,
+    ref: `heads/${defaultBranch}`,
+  });
   const baseSha = baseRef.data.object.sha;
 
   if (request.mode === "review") {
-    await octokit.git.createRef({
+    await octokit.request("POST /repos/{owner}/{repo}/git/refs", {
       owner,
       repo,
       ref: `refs/heads/${targetBranch}`,
@@ -38,7 +42,7 @@ export async function saveToGitHub(request: SaveRequest): Promise<SaveResult> {
   for (const change of request.changes) {
     let existingSha: string | undefined;
     try {
-      const existing = await octokit.repos.getContent({
+      const existing = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", {
         owner,
         repo,
         path: change.path,
@@ -51,7 +55,7 @@ export async function saveToGitHub(request: SaveRequest): Promise<SaveResult> {
       existingSha = undefined;
     }
 
-    const updated = await octokit.repos.createOrUpdateFileContents({
+    const updated = await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
       owner,
       repo,
       branch: targetBranch,
@@ -65,7 +69,7 @@ export async function saveToGitHub(request: SaveRequest): Promise<SaveResult> {
   }
 
   if (request.mode === "review") {
-    const pr = await octokit.pulls.create({
+    const pr = await octokit.request("POST /repos/{owner}/{repo}/pulls", {
       owner,
       repo,
       head: targetBranch,

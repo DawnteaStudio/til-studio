@@ -8,10 +8,14 @@ export async function GET() {
   const repo = process.env.TIL_REPOSITORY_NAME ?? "TIL";
   const octokit = await createInstallationOctokit();
 
-  const repository = await octokit.repos.get({ owner, repo });
+  const repository = await octokit.request("GET /repos/{owner}/{repo}", { owner, repo });
   const branch = repository.data.default_branch;
-  const ref = await octokit.git.getRef({ owner, repo, ref: `heads/${branch}` });
-  const tree = await octokit.git.getTree({
+  const ref = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
+    owner,
+    repo,
+    ref: `heads/${branch}`,
+  });
+  const tree = await octokit.request("GET /repos/{owner}/{repo}/git/trees/{tree_sha}", {
     owner,
     repo,
     tree_sha: ref.data.object.sha,

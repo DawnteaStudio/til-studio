@@ -1,5 +1,4 @@
 import { App } from "@octokit/app";
-import { Octokit } from "@octokit/rest";
 
 export interface GitHubClientConfig {
   appId: string;
@@ -19,14 +18,15 @@ export function githubConfigFromEnv(): GitHubClientConfig {
   return { appId, privateKey, installationId };
 }
 
+export type InstallationOctokit = Awaited<ReturnType<App["getInstallationOctokit"]>>;
+
 export async function createInstallationOctokit(
   config = githubConfigFromEnv(),
-): Promise<Octokit> {
+): Promise<InstallationOctokit> {
   const app = new App({
     appId: config.appId,
     privateKey: config.privateKey,
   });
 
-  const octokit = await app.getInstallationOctokit(Number(config.installationId));
-  return octokit as Octokit;
+  return app.getInstallationOctokit(Number(config.installationId));
 }

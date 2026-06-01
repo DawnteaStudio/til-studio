@@ -9,10 +9,14 @@ export async function POST() {
   const owner = process.env.TIL_REPOSITORY_OWNER ?? "DawnteaStudio";
   const repo = process.env.TIL_REPOSITORY_NAME ?? "TIL";
   const octokit = await createInstallationOctokit();
-  const repository = await octokit.repos.get({ owner, repo });
+  const repository = await octokit.request("GET /repos/{owner}/{repo}", { owner, repo });
   const branch = repository.data.default_branch;
-  const ref = await octokit.git.getRef({ owner, repo, ref: `heads/${branch}` });
-  const tree = await octokit.git.getTree({
+  const ref = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
+    owner,
+    repo,
+    ref: `heads/${branch}`,
+  });
+  const tree = await octokit.request("GET /repos/{owner}/{repo}/git/trees/{tree_sha}", {
     owner,
     repo,
     tree_sha: ref.data.object.sha,
@@ -26,7 +30,12 @@ export async function POST() {
 
   const documents = [];
   for (const path of paths) {
-    const file = await octokit.repos.getContent({ owner, repo, path, ref: branch });
+    const file = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", {
+      owner,
+      repo,
+      path,
+      ref: branch,
+    });
     if (!Array.isArray(file.data) && file.data.type === "file" && file.data.content) {
       const body = Buffer.from(file.data.content, "base64").toString("utf8");
       documents.push(indexMarkdownDocument({ path, body }));
