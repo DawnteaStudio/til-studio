@@ -1,50 +1,20 @@
 import { LearningMap } from "@/components/public/LearningMap";
-import type { ContentNode } from "@/lib/content/types";
+import { fetchRepositoryMarkdownSnapshot } from "@/lib/github/repository";
 
-const sampleTree: ContentNode = {
-  name: "TIL",
-  path: "",
-  type: "directory",
-  kind: "other",
-  children: [
-    {
-      name: "cs",
-      path: "cs",
-      type: "directory",
-      kind: "other",
-      children: [
-        {
-          name: "spring",
-          path: "cs/spring",
-          type: "directory",
-          kind: "other",
-          children: [
-            {
-              name: "notes",
-              path: "cs/spring/notes",
-              type: "directory",
-              kind: "other",
-              children: [],
-            },
-            {
-              name: "theory",
-              path: "cs/spring/theory",
-              type: "directory",
-              kind: "other",
-              children: [],
-            },
-          ],
-        },
-      ],
-    },
-  ],
-};
+export const dynamic = "force-dynamic";
 
-export default function MapPage() {
+export default async function MapPage() {
+  const snapshot = await fetchRepositoryMarkdownSnapshot();
+
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10 text-zinc-950">
-      <h1 className="mb-6 text-2xl font-semibold">Learning Map</h1>
-      <LearningMap node={sampleTree} />
+    <main className="min-h-screen bg-zinc-50 text-zinc-950">
+      <LearningMap
+        tree={snapshot.tree}
+        paths={snapshot.paths}
+        owner={snapshot.owner}
+        repo={snapshot.repo}
+        branch={snapshot.branch}
+      />
     </main>
   );
 }

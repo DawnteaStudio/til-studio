@@ -1,31 +1,9 @@
 import { NextResponse } from "next/server";
-import { createInstallationOctokit } from "@/lib/github/client";
+import { fetchRepositoryMarkdownSnapshot } from "@/lib/github/repository";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const owner = process.env.TIL_REPOSITORY_OWNER ?? "DawnteaStudio";
-  const repo = process.env.TIL_REPOSITORY_NAME ?? "TIL";
-  const octokit = await createInstallationOctokit();
-
-  const repository = await octokit.request("GET /repos/{owner}/{repo}", { owner, repo });
-  const branch = repository.data.default_branch;
-  const ref = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
-    owner,
-    repo,
-    ref: `heads/${branch}`,
-  });
-  const tree = await octokit.request("GET /repos/{owner}/{repo}/git/trees/{tree_sha}", {
-    owner,
-    repo,
-    tree_sha: ref.data.object.sha,
-    recursive: "true",
-  });
-
-  const paths = tree.data.tree
-    .filter((item) => item.type === "blob" && item.path?.endsWith(".md"))
-    .map((item) => item.path)
-    .filter((path): path is string => Boolean(path));
-
+  const { owner, repo, branch, paths } = await fetchRepositoryMarkdownSnapshot();
   return NextResponse.json({ owner, repo, branch, paths });
 }
