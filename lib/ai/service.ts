@@ -23,9 +23,19 @@ function client(): OpenAI {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
 
+export function getOpenAIModel(): string {
+  return process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini-2024-07-18";
+}
+
+export function parseModelJson(value: string): unknown {
+  const trimmed = value.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return JSON.parse(fenced?.[1] ?? trimmed);
+}
+
 export async function cleanupNote(markdown: string): Promise<string> {
   const response = await client().responses.create({
-    model: "gpt-4.1-mini",
+    model: getOpenAIModel(),
     input: [
       { role: "system", content: noteCleanupSystemPrompt },
       { role: "user", content: markdown },
@@ -37,7 +47,7 @@ export async function cleanupNote(markdown: string): Promise<string> {
 
 export async function researchTheory(keyword: string): Promise<TheoryResearchResult> {
   const response = await client().responses.create({
-    model: "gpt-4.1-mini",
+    model: getOpenAIModel(),
     tools: [{ type: "web_search" }] as never,
     input: [
       { role: "system", content: theoryResearchSystemPrompt },
@@ -45,5 +55,5 @@ export async function researchTheory(keyword: string): Promise<TheoryResearchRes
     ],
   });
 
-  return theoryResearchSchema.parse(JSON.parse(response.output_text));
+  return theoryResearchSchema.parse(parseModelJson(response.output_text));
 }
