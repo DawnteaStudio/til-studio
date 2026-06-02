@@ -203,6 +203,13 @@ MVP AI actions:
 
 AI does not silently publish content. The user must approve final title, path, content, and save mode.
 
+AI provider selection is environment-driven:
+
+- `AI_PROVIDER=openai` uses the OpenAI Responses API provider.
+- `AI_PROVIDER=gemini` uses the Gemini `generateContent` provider.
+- Both providers must implement the same Studio contract: note cleanup returns Markdown, and theory research returns `title`, `concept`, `keyPoints`, `cautions`, and `sources`.
+- Studio UI should call only the shared AI service functions, not provider-specific clients.
+
 ## Theory Research And Creation
 
 Theory creation in MVP is research-first.

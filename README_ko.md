@@ -246,15 +246,20 @@ GITHUB_APP_WEBHOOK_SECRET=
 GITHUB_INSTALLATION_ID=
 TIL_REPOSITORY_OWNER=DawnteaStudio
 TIL_REPOSITORY_NAME=TIL
+AI_PROVIDER=openai
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4o-mini-2024-07-18
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 참고:
 
 - `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_INSTALLATION_ID`는 GitHub 저장소를 읽는 화면에 필요합니다.
 - `GITHUB_APP_PRIVATE_KEY`는 줄바꿈을 `\n`으로 저장해도 됩니다. 앱이 GitHub client를 만들 때 실제 줄바꿈으로 변환합니다.
-- `OPENAI_API_KEY`는 AI note 정리와 theory 조사에 필요합니다.
+- `AI_PROVIDER`는 `openai` 또는 `gemini`를 사용할 수 있으며 기본값은 `openai`입니다.
+- `OPENAI_API_KEY`는 `AI_PROVIDER=openai`일 때 필요합니다.
+- `GEMINI_API_KEY`는 `AI_PROVIDER=gemini`일 때 필요합니다.
 - `TIL_REPOSITORY_OWNER`, `TIL_REPOSITORY_NAME`을 생략하면 기본값은 `DawnteaStudio`, `TIL`입니다.
 
 ## 검증

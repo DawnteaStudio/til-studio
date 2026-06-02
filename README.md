@@ -245,15 +245,20 @@ GITHUB_APP_WEBHOOK_SECRET=
 GITHUB_INSTALLATION_ID=
 TIL_REPOSITORY_OWNER=DawnteaStudio
 TIL_REPOSITORY_NAME=TIL
+AI_PROVIDER=openai
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4o-mini-2024-07-18
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 Notes:
 
 - `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_INSTALLATION_ID` are required for pages that read the GitHub repository.
 - `GITHUB_APP_PRIVATE_KEY` can store newlines as escaped `\n`; the app converts them before creating the GitHub client.
-- `OPENAI_API_KEY` is required for AI note cleanup and theory research.
+- `AI_PROVIDER` can be `openai` or `gemini`; it defaults to `openai`.
+- `OPENAI_API_KEY` is required when `AI_PROVIDER=openai`.
+- `GEMINI_API_KEY` is required when `AI_PROVIDER=gemini`.
 - `TIL_REPOSITORY_OWNER` and `TIL_REPOSITORY_NAME` default to `DawnteaStudio` and `TIL` when omitted.
 
 ## Verification
