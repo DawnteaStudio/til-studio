@@ -2,42 +2,119 @@
 
 [English](README.md) | [한국어](README_ko.md)
 
-til-studio는 개인 TIL 저장소를 기반으로 동작하는 GitHub 연동 학습 기록 워크스페이스입니다.
+til-studio는 개인 TIL 저장소를 GitHub와 연결해 글을 작성하고, 같은 저장소를 공개 학습 사이트처럼 보여주는 워크스페이스입니다. Studio에서 학습 기록을 작성하고 GitHub에 저장한 뒤, 홈, 블로그, 학습 지도, 문서 화면에서 읽을 수 있습니다.
 
-이 프로젝트는 다음 흐름을 중심으로 만들어지고 있습니다.
+첫 대상 저장소는 [`DawnteaStudio/TIL`](https://github.com/DawnteaStudio/TIL)입니다. 다만 저장소 owner/name을 환경변수로 바꿀 수 있도록 구성되어 있어, 다른 GitHub 기반 TIL 저장소에도 맞춰갈 수 있습니다.
 
-1. TIL 저장소 안에서 기록할 위치를 선택합니다.
-2. 강의, 책, 프로젝트를 공부하면서 날것에 가까운 학습 노트를 작성합니다.
-3. AI가 작성자의 의도를 유지한 채 노트 구조를 정리합니다.
-4. 새 theory 문서를 만들기 전에 기존 theory 문서를 키워드로 조회합니다.
-5. 변경 내용을 GitHub에 직접 저장하거나 리뷰용 pull request로 저장합니다.
-6. 같은 저장소를 공개 학습 사이트로 렌더링합니다.
+## 목차
 
-첫 대상 저장소는 [`DawnteaStudio/TIL`](https://github.com/DawnteaStudio/TIL)입니다. 장기적으로는 다른 GitHub 기반 TIL 저장소에서도 사용할 수 있는 앱을 목표로 합니다.
+- [할 수 있는 일](#할-수-있는-일)
+- [화면 안내](#화면-안내)
+- [추천 사용 흐름](#추천-사용-흐름)
+- [폴더 공개 규칙](#폴더-공개-규칙)
+- [저장소 구조](#저장소-구조)
+- [Markdown 이미지 자산](#markdown-이미지-자산)
+- [로컬 개발](#로컬-개발)
+- [GitHub App 설정](#github-app-설정)
+- [환경 변수](#환경-변수)
+- [검증](#검증)
+- [문제 해결](#문제-해결)
+- [로드맵](#로드맵)
+- [라이선스](#라이선스)
 
-## 핵심 개념
+## 할 수 있는 일
 
-### notes
+- GitHub App으로 TIL 저장소에 접근합니다.
+- 저장소를 홈, 블로그, 학습 지도, 문서 화면으로 탐색합니다.
+- Studio에서 공개할 최상위 폴더를 선택합니다.
+- README 파일은 최근 글 목록과 글 목록에서 기본적으로 숨깁니다.
+- Markdown 구조를 직접 만들지 않고도 note 초안을 작성합니다.
+- 선택한 area, topic, source, title로 note 저장 경로를 자동 생성합니다.
+- theory 키워드를 조사하고 리뷰용 theory 초안을 만듭니다.
+- Quick Save로 직접 커밋하거나 Review Save로 pull request를 만듭니다.
 
-`notes/`는 날것에 가까운 학습 기록을 넣는 공간입니다.
+## 화면 안내
 
-- 강의나 책을 보며 작성한 기록
-- 아직 완전히 정제되지 않은 내용
-- 헷갈린 점, 실험하고 싶은 점, 현재 이해한 결론
-- 출처가 중요한 글
+### 홈: `/`
 
-### theory
+연결된 저장소의 요약과 최근 공개 문서를 보여줍니다. Studio에서 저장한 공개 폴더 설정을 따르며, README 파일은 최근 목록에 표시하지 않습니다.
 
-`theory/`는 정제된 개념 문서를 넣는 공간입니다.
+빠르게 전체 상태를 보거나 포트폴리오형 첫 화면으로 사용할 수 있습니다.
 
-- 결론 중심의 개념 정리
-- 나중에 다시 보기 좋은 참고 문서
-- 하나 이상의 note를 종합해 만든 문서
-- 복습, 면접 준비, 개념 조회에 유용한 글
+### 블로그: `/blog`
 
-### 저장소 구조
+note와 theory 문서를 블로그 글 목록처럼 보여줍니다. README 안내 문서는 제외하고 실제 학습 기록만 보여줍니다. 왼쪽 폴더 트리에서 area, topic, 하위 폴더 단위로 목록을 좁힐 수 있습니다.
 
-til-studio는 단순한 주제 기반 구조를 가정합니다.
+저장소를 글 목록처럼 읽고 싶을 때 사용합니다.
+
+### 학습 지도: `/map`
+
+문서를 최상위 영역별로 묶어 보여줍니다.
+
+- `cs`
+- `languages`
+- `projects`
+- `coding-test`
+
+notes/theory 개수, topic 카드, repository index를 제공합니다. README 안내 파일은 article map에서 제외됩니다.
+
+저장소 전체 구조와 공부 범위를 한눈에 보고 싶을 때 사용합니다.
+
+### 문서 읽기: `/docs/<path>`
+
+GitHub 저장소의 Markdown 파일을 렌더링합니다. 왼쪽에는 홈, 글 목록, 학습 지도 링크와 문서 heading 목차가 표시됩니다.
+
+개별 note나 theory 문서를 읽을 때 사용합니다.
+
+### Studio: `/studio`
+
+Studio는 작성 작업 공간입니다.
+
+- 왼쪽 패널: 공개 폴더 선택, 작성 위치 선택, Notes/Theory 전환
+- 가운데 패널: note 초안 작성, Markdown 미리보기, 원문 수정
+- 오른쪽 패널: Quick/Review 저장 선택, theory concept 조사
+
+새 학습 기록을 만들거나 GitHub에 저장할 때 사용합니다.
+
+## 추천 사용 흐름
+
+1. `/studio`를 엽니다.
+2. "공개 표시 폴더"에서 공개할 최상위 폴더만 체크합니다.
+3. 왼쪽 폴더 트리에서 area와 topic을 선택합니다.
+4. note를 쓸 때는 제목, 학습 출처, 오늘 배운 것, 질문, 결론, 실험 메모를 채웁니다.
+5. "Markdown 만들기"를 눌러 note 초안을 Markdown으로 정리합니다.
+6. 생성된 저장 경로와 Markdown 미리보기를 확인합니다.
+7. 직접 커밋하려면 Quick, pull request로 검토하려면 Review를 선택합니다.
+8. GitHub에 저장합니다.
+9. `/blog`, `/map`, `/docs/<path>`에서 공개 화면을 확인합니다.
+
+theory를 작성할 때는 다음 흐름을 사용합니다.
+
+1. Studio에서 Theory로 전환합니다.
+2. 저장할 topic을 선택합니다.
+3. 오른쪽 패널에서 concept 키워드를 검색합니다.
+4. 조사 결과로 초안을 만듭니다.
+5. Markdown을 확인합니다.
+6. Review 모드로 저장합니다.
+
+## 폴더 공개 규칙
+
+폴더 공개 설정은 Studio에서 관리하며 local storage와 cookie에 저장됩니다.
+
+- 체크 해제한 최상위 폴더의 문서는 공개 화면에서 숨겨집니다.
+- 모든 폴더가 체크되어 있으면 README가 아닌 공개 문서가 표시될 수 있습니다.
+- README 파일은 안내/index 파일로 보고 최근 글 목록과 article 목록에서 기본적으로 숨깁니다.
+- `README.md`, `README_ko.md`, `README.en.md`, 중첩된 `.../README.md` 같은 README 변형도 README로 처리합니다.
+- 최소 하나의 최상위 폴더는 공개 상태로 남아 있어야 합니다.
+
+즉 문서가 보이려면 두 조건을 모두 만족해야 합니다.
+
+1. 문서의 최상위 폴더가 체크되어 있어야 합니다.
+2. 문서가 README 안내 파일이 아니어야 합니다.
+
+## 저장소 구조
+
+til-studio는 주제 기반 TIL 구조를 가정합니다.
 
 ```text
 TIL/
@@ -56,9 +133,28 @@ TIL/
 └── README.md
 ```
 
-`coding-test/`는 학습 노트 작성 흐름과 의도적으로 분리합니다.
+### notes
 
-### Markdown 이미지 자산
+`notes/`는 날것에 가까운 학습 기록을 넣는 공간입니다.
+
+- 강의나 책을 보며 작성한 기록
+- 아직 완전히 정리되지 않은 이해
+- 헷갈린 점과 질문
+- 실험 메모와 현재 결론
+- 출처가 중요한 글
+
+### theory
+
+`theory/`는 정제된 개념 문서를 넣는 공간입니다.
+
+- 결론 중심의 개념 정리
+- 나중에 다시 보기 좋은 참고 문서
+- 하나 이상의 note를 종합한 문서
+- 복습, 면접 준비, 개념 조회에 유용한 글
+
+`coding-test/`는 note/theory 작성 흐름과 분리되어 있지만, 최상위 폴더 공개 설정으로 보이거나 숨겨질 수 있습니다.
+
+## Markdown 이미지 자산
 
 글에서 사용하는 이미지는 그 Markdown 문서 옆에 둡니다. 이렇게 하면 GitHub 렌더링, til-studio 렌더링, 로컬 편집 기준이 모두 같아집니다.
 
@@ -70,7 +166,7 @@ TIL/
 - 이미지 파일명은 문서에 등장하는 순서대로 `<article-slug>-NN.<ext>` 형식을 사용합니다.
 - 번호는 `01`, `02`, `03`처럼 두 자리로 씁니다.
 - Markdown 링크는 글 기준 상대 경로를 사용합니다. 예: `./kmp_images/kmp-01.png`
-- 모든 경로의 대소문자를 정확히 맞춥니다. GitHub와 배포 환경은 대소문자를 구분할 수 있습니다.
+- 모든 경로의 대소문자를 정확히 맞춥니다.
 - 의미가 꼭 필요할 때만 짧은 소문자 suffix를 붙입니다. 예: `kmp-05-failure.png`
 - 여러 문서가 함께 쓰는 이미지는 의도적으로 공유할 때만 `../shared_images/` 같은 공유 폴더에 둡니다.
 
@@ -89,26 +185,14 @@ cs/algorithms/theory/
 ![KMP 비교](./kmp_images/kmp-01.png)
 ```
 
-## 현재 MVP
-
-- GitHub App 기반 TIL 저장소 접근
-- 저장소 트리 불러오기
-- TIL 위치를 선택하는 Studio 화면
-- 선택한 주제, 학습 자료 폴더, 제목을 기반으로 note 경로 생성
-- 선택한 주제와 제목을 기반으로 theory 경로 생성
-- note와 theory 마크다운 템플릿
-- AI 기반 note 정리 및 빠진 섹션 확인
-- 직접 커밋하는 Quick Save
-- pull request로 저장하는 Review Save
-- 향후 양방향 동기화를 위한 webhook 엔드포인트
-- 공개 지도와 문서 라우트
-
 ## 로컬 개발
 
-의존성을 설치합니다.
+Node.js `22.12.0` 이상을 사용합니다. 저장소에는 `.nvmrc`와 `.node-version`이 포함되어 있습니다.
 
 ```bash
-npm install
+nvm install
+nvm use
+npm ci
 ```
 
 로컬 환경 변수 파일을 만듭니다.
@@ -117,20 +201,7 @@ npm install
 cp .env.example .env.local
 ```
 
-`.env.local` 값을 채웁니다.
-
-```env
-GITHUB_APP_ID=
-GITHUB_APP_PRIVATE_KEY=
-GITHUB_APP_WEBHOOK_SECRET=
-GITHUB_INSTALLATION_ID=
-TIL_REPOSITORY_OWNER=DawnteaStudio
-TIL_REPOSITORY_NAME=TIL
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4o-mini-2024-07-18
-```
-
-개발 서버를 실행합니다.
+`.env.local` 값을 채운 뒤 개발 서버를 실행합니다.
 
 ```bash
 npm run dev
@@ -138,9 +209,10 @@ npm run dev
 
 접속 경로:
 
-- 공개 사이트: `http://localhost:3000`
-- Studio: `http://localhost:3000/studio`
+- 홈: `http://localhost:3000`
+- 블로그: `http://localhost:3000/blog`
 - 학습 지도: `http://localhost:3000/map`
+- Studio: `http://localhost:3000/studio`
 
 ## GitHub App 설정
 
@@ -163,15 +235,54 @@ GitHub App을 만들고 TIL 저장소에 설치합니다.
 http://localhost:3000/api/github/webhook
 ```
 
-Webhook secret은 충분히 강한 임의의 값을 사용하면 됩니다. GitHub App 설정과 `.env.local`에 같은 값을 넣어야 합니다.
+Webhook secret은 GitHub App 설정과 `.env.local`에 같은 값을 넣어야 합니다.
+
+## 환경 변수
+
+```env
+GITHUB_APP_ID=
+GITHUB_APP_PRIVATE_KEY=
+GITHUB_APP_WEBHOOK_SECRET=
+GITHUB_INSTALLATION_ID=
+TIL_REPOSITORY_OWNER=DawnteaStudio
+TIL_REPOSITORY_NAME=TIL
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o-mini-2024-07-18
+```
+
+참고:
+
+- `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_INSTALLATION_ID`는 GitHub 저장소를 읽는 화면에 필요합니다.
+- `GITHUB_APP_PRIVATE_KEY`는 줄바꿈을 `\n`으로 저장해도 됩니다. 앱이 GitHub client를 만들 때 실제 줄바꿈으로 변환합니다.
+- `OPENAI_API_KEY`는 AI note 정리와 theory 조사에 필요합니다.
+- `TIL_REPOSITORY_OWNER`, `TIL_REPOSITORY_NAME`을 생략하면 기본값은 `DawnteaStudio`, `TIL`입니다.
 
 ## 검증
 
-단위 테스트를 실행합니다.
+단위/컴포넌트 테스트를 실행합니다.
 
 ```bash
 npm run test
 ```
+
+린트를 실행합니다.
+
+```bash
+npm run lint
+```
+
+브라우저 e2e 테스트를 실행합니다.
+
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
+
+현재 e2e는 다음 화면을 탐색합니다.
+
+- Studio 작업 화면 컨트롤
+- Learning Map 저장소 구조
+- Blog 글 목록
 
 프로덕션 빌드를 실행합니다.
 
@@ -179,11 +290,41 @@ npm run test
 npm run build
 ```
 
-브라우저 테스트를 실행합니다.
+## 문제 해결
+
+### "GitHub App environment variables are missing"
+
+앱이 GitHub App 인증 정보 없이 저장소를 읽으려고 한 상황입니다. `.env.local`을 만들고 다음 값을 채웁니다.
+
+- `GITHUB_APP_ID`
+- `GITHUB_APP_PRIVATE_KEY`
+- `GITHUB_INSTALLATION_ID`
+
+`.env.local`을 바꾼 뒤에는 개발 서버를 다시 시작합니다.
+
+### 한 Mac에서는 npm install이 되고 다른 Mac에서는 실패할 때
+
+두 Mac 모두 프로젝트 Node 버전을 사용합니다.
 
 ```bash
-npm run test:e2e
+nvm install
+nvm use
+npm ci
 ```
+
+앱에서 직접 import하지 않는 x64 전용 native binding 같은 플랫폼 전용 패키지를 직접 의존성으로 추가하지 않습니다.
+
+### Playwright 브라우저 실행 파일이 없다고 나올 때
+
+브라우저를 한 번 설치합니다.
+
+```bash
+npx playwright install chromium
+```
+
+### Next.js가 `allowedDevOrigins` 경고를 보여줄 때
+
+e2e 테스트가 `127.0.0.1`을 사용할 때 개발 리소스 origin 경고가 나올 수 있습니다. 테스트를 반드시 실패시키는 경고는 아닙니다. 경고를 없애고 싶다면 `next.config.ts`의 `allowedDevOrigins`에 `127.0.0.1`을 추가합니다.
 
 ## 로드맵
 
@@ -198,4 +339,4 @@ npm run test:e2e
 
 아직 오픈소스 라이선스를 선택하지 않았습니다.
 
-라이선스가 추가되기 전까지는 기본 저작권 규칙이 적용됩니다. 다른 사람이 이 프로젝트를 사용, 수정, 배포할 수 있게 열 계획이라면 라이선스를 명시적으로 추가해야 합니다. 재사용과 확장을 가볍게 허용하려는 앱이라면 MIT License가 좋은 기본 선택일 가능성이 높지만, 최종 선택은 원하는 기여 방식과 배포 모델에 맞춰 결정해야 합니다.
+라이선스가 추가되기 전까지는 기본 저작권 규칙이 적용됩니다. 다른 사람이 이 프로젝트를 사용, 수정, 배포할 수 있게 열 계획이라면 라이선스를 명시적으로 추가해야 합니다.

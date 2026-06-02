@@ -2,8 +2,8 @@ import { extractHeadings, extractKeywords, extractTitle } from "./markdown";
 import type { ContentKind, ContentNode, IndexedDocument } from "./types";
 
 export function classifyPath(path: string): ContentKind {
-  if (path.startsWith("coding-test/")) return "other";
   if (isReadmePath(path)) return "readme";
+  if (path.startsWith("coding-test/")) return "other";
   if (path.includes("/notes/") && path.endsWith(".md")) return "note";
   if (path.includes("/theory/") && path.endsWith(".md")) return "theory";
   return "other";
@@ -11,7 +11,7 @@ export function classifyPath(path: string): ContentKind {
 
 function isReadmePath(path: string): boolean {
   const filename = path.split("/").at(-1)?.replace(/[\u0000-\u001f]/g, "");
-  return filename?.toLowerCase() === "readme.md";
+  return /^readme(?:[._-].*)?\.md$/i.test(filename ?? "");
 }
 
 export function indexMarkdownDocument(input: { path: string; body: string }): IndexedDocument {

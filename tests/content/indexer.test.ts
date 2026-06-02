@@ -6,6 +6,10 @@ describe("content indexer", () => {
     expect(classifyPath("cs/network/notes/book-network/network-layer.md")).toBe("note");
     expect(classifyPath("cs/network/theory/network-layer.md")).toBe("theory");
     expect(classifyPath("cs/network/README.md")).toBe("readme");
+    expect(classifyPath("README_ko.md")).toBe("readme");
+    expect(classifyPath("cs/network/README.en.md")).toBe("readme");
+    expect(classifyPath("coding-test/code_tree/250827/README.md")).toBe("readme");
+    expect(classifyPath("coding-test/code_tree/250827/연속되는 수 2/README.md")).toBe("readme");
     expect(classifyPath("languages/python/notes/jump_to_python/\bREADME.md")).toBe("readme");
     expect(classifyPath("coding-test/programmers/a.md")).toBe("other");
   });
