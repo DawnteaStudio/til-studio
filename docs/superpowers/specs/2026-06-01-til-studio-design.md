@@ -171,7 +171,7 @@ The left panel is a guided workspace picker, not a generic file browser:
 
 The right panel changes by draft kind:
 
-- `Notes`: show `Note Tools` with note cleanup and `Save` with Quick or Review mode.
+- `Notes`: show `Save` with Quick or Review mode. Note Markdown generation happens from the center panel's `Markdown 만들기` action.
 - `Theory`: show `Concept Research`, the reviewed research result, and `Save` in Review mode.
 - The missing-section checker is not part of the current Studio surface.
 - `Theory Lookup` and standalone `Theory Title` inputs should not appear as separate concepts. Theory title is derived from reviewed concept research and may be edited later only if a dedicated title-editing flow is added.
@@ -184,7 +184,7 @@ Required MVP actions:
 - create topic note file
 - generate note template
 - generate table of contents and parent navigation
-- run AI note cleanup
+- run AI note cleanup through `Markdown 만들기`
 - edit the final Markdown before saving
 - Quick Save
 - Review Save
@@ -197,7 +197,7 @@ AI is included in MVP, but with constrained authority.
 
 MVP AI actions:
 
-- `notes 형식으로 다듬기`: organize rough study text into the notes template while preserving learning context.
+- `Markdown 만들기`: validate note workspace, title, and learned content, then organize the note into Markdown while preserving learning context.
 - `웹에서 조사하기`: research a concept keyword for a theory document and return a user-reviewable summary with sources.
 - `Theory 초안 만들기`: after the user reviews the research result, create a Markdown theory draft that follows the theory template.
 

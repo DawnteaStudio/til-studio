@@ -4,7 +4,6 @@ test("studio loads workspace controls", async ({ page }) => {
   await page.goto("/studio");
 
   await expect(page.getByRole("link", { name: "til-studio" })).toBeVisible();
-  await expect(page.getByText("Note Tools")).toBeVisible();
   await expect(page.getByRole("button", { name: "Quick" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Review" })).toBeVisible();
   await expect(page.getByLabel("학습 출처")).toBeVisible();

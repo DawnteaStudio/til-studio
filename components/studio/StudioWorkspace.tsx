@@ -14,7 +14,6 @@ import {
   folderVisibilityStorageKey,
   topLevelFolder,
 } from "@/lib/content/visibility";
-import { AiPanel } from "./AiPanel";
 import { FileEditor } from "./FileEditor";
 import { FolderTree } from "./FolderTree";
 import { NoteComposer } from "./NoteComposer";
@@ -164,36 +163,40 @@ export function StudioWorkspace() {
     setDraftKind("note");
   }
 
-  function prepareNotePublish() {
-    if (!notePath) {
-      setStatus("위치, 학습 자료 폴더, 제목을 먼저 입력하세요");
+  function missingNoteMarkdownFields() {
+    const missing = [];
+    if (!target) missing.push("작업 위치");
+    if (!noteDraft.title.trim()) missing.push("제목");
+    if (!noteDraft.learned.trim()) missing.push("오늘 배운 것");
+    return missing;
+  }
+
+  async function createNoteMarkdown() {
+    const missing = missingNoteMarkdownFields();
+    if (missing.length) {
+      setStatus(`${missing.join(", ")}을 먼저 입력하세요`);
       return;
     }
 
-    setMarkdown(generatedNoteMarkdown);
-    setMode("quick");
-    setDraftKind("note");
-    setIsMarkdownEditing(false);
-    setStatus(`publish 준비: ${notePath}`);
-  }
-
-  async function cleanup() {
     setIsBusy(true);
-    setStatus("AI가 notes 형식으로 다듬는 중");
+    setStatus("Markdown을 notes 형식으로 만드는 중");
     try {
       const response = await fetch("/api/ai/note-cleanup", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ markdown: publishMarkdown }),
+        body: JSON.stringify({ markdown: generatedNoteMarkdown }),
       });
+      if (!response.ok) throw new Error("Note cleanup failed");
       const data = (await response.json()) as { markdown?: string };
       if (data.markdown) {
         setMarkdown(data.markdown);
         setIsMarkdownEditing(true);
       }
-      setStatus("AI 정리 완료");
+      setMode("quick");
+      setDraftKind("note");
+      setStatus("Markdown 생성 완료");
     } catch {
-      setStatus("AI 정리에 실패했습니다");
+      setStatus("Markdown 생성에 실패했습니다");
     } finally {
       setIsBusy(false);
     }
@@ -201,7 +204,7 @@ export function StudioWorkspace() {
 
   function createTheoryFromResearch(result: TheoryResearchResult) {
     if (!target) {
-      setStatus("Theory를 저장할 area와 topic을 먼저 선택하세요");
+      setStatus("먼저 왼쪽에서 Theory를 저장할 area와 topic을 선택하세요");
       return;
     }
 
@@ -327,10 +330,11 @@ export function StudioWorkspace() {
             {draftKind === "note" ? (
               <button
                 type="button"
-                onClick={prepareNotePublish}
-                className="self-end rounded-2xl bg-[#31513a] px-5 py-3 text-sm font-semibold text-[#f6efe2] shadow-[0_14px_30px_rgba(38,57,40,0.25)] transition hover:bg-[#294632]"
+                onClick={createNoteMarkdown}
+                disabled={isBusy}
+                className="self-end rounded-2xl bg-[#31513a] px-5 py-3 text-sm font-semibold text-[#f6efe2] shadow-[0_14px_30px_rgba(38,57,40,0.25)] transition hover:bg-[#294632] disabled:opacity-60"
               >
-                Markdown 만들기
+                {isBusy ? "Markdown 생성 중" : "Markdown 만들기"}
               </button>
             ) : null}
           </div>
@@ -380,10 +384,7 @@ export function StudioWorkspace() {
       <aside className="bg-[#24281e] p-5 text-[#f4efe4] lg:min-h-screen lg:border-l lg:border-[#34382b]">
         <div className="sticky top-5 space-y-5">
         {draftKind === "note" ? (
-          <>
-            <AiPanel onCleanup={cleanup} isBusy={isBusy} />
-            <SaveControls mode={mode} onModeChange={setMode} onSave={save} />
-          </>
+          <SaveControls mode={mode} onModeChange={setMode} onSave={save} />
         ) : (
           <>
             <TheoryResearchPanel
