@@ -4,9 +4,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { treeFromPaths } from "@/lib/content/indexer";
 import { draftToNoteMarkdown, type StructuredNoteDraft } from "@/lib/content/note-draft";
-import { buildNotePath, buildTheoryPath, parentReadmePath } from "@/lib/content/paths";
+import { buildNotePath, buildTheoryPath, makeSlug, parentReadmePath } from "@/lib/content/paths";
 import { deriveStudyTarget } from "@/lib/content/studio-target";
-import { defaultSaveModeForDraft, type StudioDraftKind } from "@/lib/content/studio-workspace";
+import {
+  buildStudioWorkspace,
+  defaultSaveModeForDraft,
+  type StudioDraftKind,
+  type StudioSourceOption,
+} from "@/lib/content/studio-workspace";
 import { createTheoryTemplate } from "@/lib/content/templates";
 import type { ContentNode, SaveMode } from "@/lib/content/types";
 import {
@@ -52,6 +57,80 @@ function persistVisibleRootPaths(paths: string[]) {
   )}; path=/; max-age=31536000; SameSite=Lax`;
 }
 
+function SourceFolderPicker({
+  selectedPath,
+  sourceName,
+  sources,
+  onSourceNameChange,
+}: {
+  selectedPath: string;
+  sourceName: string;
+  sources: StudioSourceOption[];
+  onSourceNameChange(source: string): void;
+}) {
+  const slug = makeSlug(sourceName);
+
+  return (
+    <section className="mt-5 rounded-3xl bg-[#d8cebd] p-4 text-[#302c24] shadow-inner">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#756b5e]">Source</p>
+          <h2 className="mt-1 text-base font-semibold text-[#25221c]">저장 source 폴더</h2>
+        </div>
+        <p className="rounded-full bg-[#27251f] px-3 py-1.5 text-xs font-medium text-[#efe7d8]">
+          {sourceName ? `선택된 source: ${sourceName}` : "source를 선택하세요"}
+        </p>
+      </div>
+
+      {!selectedPath ? (
+        <p className="mt-4 rounded-2xl bg-[#cfc2af] px-4 py-3 text-sm text-[#5a5045]">
+          먼저 topic을 선택하면 source 폴더를 고를 수 있습니다.
+        </p>
+      ) : (
+        <div className="mt-4 grid gap-4">
+          {sources.length ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {sources.map((source) => (
+                <button
+                  key={source.path}
+                  type="button"
+                  onClick={() => onSourceNameChange(source.name)}
+                  className={[
+                    "rounded-2xl px-4 py-3 text-left text-sm font-semibold transition",
+                    sourceName === source.name
+                      ? "bg-[#31513a] text-[#f6efe2] shadow-[0_12px_24px_rgba(49,81,58,0.22)]"
+                      : "bg-[#e8dfd0] text-[#3c362d] hover:bg-[#f3ebdf]",
+                  ].join(" ")}
+                >
+                  {source.name}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-2xl bg-[#cfc2af] px-4 py-3 text-sm text-[#5a5045]">
+              아직 source 폴더가 없습니다. 새 source를 만들어 시작하세요.
+            </p>
+          )}
+
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-[#3f3a31]">새 source 이름</span>
+            <input
+              value={sourceName}
+              onChange={(event) => onSourceNameChange(event.target.value)}
+              placeholder="예: Software Maestro, Clean Code, Inflearn Spring"
+              className="h-12 rounded-2xl bg-[#f3ebdf] px-4 text-sm text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:ring-4 focus:ring-[#c7ad6d]/30"
+            />
+          </label>
+
+          <div className="rounded-2xl bg-[#2b2923] px-4 py-3 font-mono text-xs text-[#e8dcc7]">
+            {slug ? `저장 폴더: ${slug}` : "source 이름을 입력하면 저장 폴더가 표시됩니다"}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function StudioWorkspace() {
   const [tree, setTree] = useState(initialTree);
   const [selectedPath, setSelectedPath] = useState("");
@@ -79,7 +158,16 @@ export function StudioWorkspace() {
   const [visibleRootPaths, setVisibleRootPaths] = useState<string[]>([]);
   const [status, setStatus] = useState("TIL 레포 구조를 불러오는 중");
   const [notice, setNotice] = useState<StudioNotice | null>(null);
+  const workspace = useMemo(() => buildStudioWorkspace(tree, visibleRootPaths), [tree, visibleRootPaths]);
   const target = useMemo(() => deriveStudyTarget(selectedPath), [selectedPath]);
+  const selectedTopicSources = useMemo<StudioSourceOption[]>(() => {
+    if (!selectedPath) return [];
+    return (
+      workspace.areas
+        .flatMap((area) => area.topics)
+        .find((topic) => topic.path === selectedPath)?.sources ?? []
+    );
+  }, [selectedPath, workspace]);
   const notePath = useMemo(() => {
     if (!target) return "";
     if (!sourceName.trim() || !noteDraft.title.trim()) return "";
@@ -393,10 +481,8 @@ export function StudioWorkspace() {
           tree={tree}
           selectedPath={selectedPath}
           draftKind={draftKind}
-          sourceName={sourceName}
           visibleRootPaths={visibleRootPaths}
           onDraftKindChange={updateDraftKind}
-          onSourceNameChange={setSourceName}
           onVisibleRootPathsChange={updateVisibleRootPaths}
           onSelectPath={setSelectedPath}
           isLoading={isTreeLoading}
@@ -444,6 +530,14 @@ export function StudioWorkspace() {
               ? "Theory는 오른쪽에서 concept을 조사하고 확인한 뒤, 선택한 topic 아래 theory 폴더로 저장됩니다."
               : "Notes는 선택한 topic과 source 아래 notes 폴더로 자동 저장됩니다."}
           </p>
+          {draftKind === "note" ? (
+            <SourceFolderPicker
+              selectedPath={selectedPath}
+              sourceName={sourceName}
+              sources={selectedTopicSources}
+              onSourceNameChange={setSourceName}
+            />
+          ) : null}
         </div>
         {draftKind === "note" ? (
           <NoteComposer draft={noteDraft} onChange={updateNoteDraft} />

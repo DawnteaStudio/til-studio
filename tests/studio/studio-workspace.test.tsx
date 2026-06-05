@@ -98,6 +98,22 @@ describe("StudioWorkspace note and theory actions", () => {
     expect(screen.getByDisplayValue(/# Cleaned Note/)).toBeTruthy();
   });
 
+  it("guides source folder selection in the center workspace", async () => {
+    mockFetch();
+    render(<StudioWorkspace />);
+
+    expect(await screen.findByText("먼저 topic을 선택하면 source 폴더를 고를 수 있습니다.")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("algorithms").closest("button")!);
+
+    expect(screen.getByRole("heading", { name: "저장 source 폴더" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "APSS" }));
+    expect(screen.getByText("선택된 source: APSS")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("새 source 이름"), { target: { value: "Software Maestro" } });
+    expect(screen.getByText("저장 폴더: software-maestro")).toBeTruthy();
+  });
+
   it("shows themed progress and completion notices while drafting a note", async () => {
     const noteResponse = deferred<Response>();
     vi.stubGlobal(

@@ -169,6 +169,8 @@ The left panel is a guided workspace picker, not a generic file browser:
 - `Source` is shown only for `Notes`, lists existing source folders under the selected topic's `notes` folder, and supports entering a new lecture, book, course, or project source.
 - Public visibility preferences remain separate from the write-location selector.
 
+Source selection belongs in the center writing workspace near the save-path preview, not in the left navigation. The left navigation chooses only draft kind, area, and topic. The center source picker must clearly separate existing source folders from creating a new source, show the selected source, and preview the slugged folder name that will be written under `notes/<source>/`.
+
 The right panel changes by draft kind:
 
 - `Notes`: show `Save` with Quick or Review mode. Reflective note drafting happens from the center panel's `글 초안 만들기` action.
@@ -219,6 +221,8 @@ AI provider selection is environment-driven:
 - `AI_PROVIDER=gemini` uses the Gemini `generateContent` provider.
 - Both providers must implement the same Studio contract: note cleanup returns Markdown, and theory research returns `title`, `concept`, `keyPoints`, `cautions`, and `sources`.
 - Studio UI should call only the shared AI service functions, not provider-specific clients.
+
+Saving a note or theory must also update the selected topic's `README.md`. The save API should enrich the requested file changes with a til-studio-managed README index block that lists notes grouped by source and theory documents. Existing prose outside the managed block must be preserved. Quick saves update the README in the same commit; review saves include the README in the same draft PR.
 
 ## Theory Research And Creation
 

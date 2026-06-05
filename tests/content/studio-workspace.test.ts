@@ -12,15 +12,17 @@ describe("studio workspace selection", () => {
     "cs/algorithms/theory/kmp.md",
     "cs/algorithms/notes/APSS/ch6.md",
     "cs/networks/README.md",
+    "software-engineering/etc/README.md",
+    "software-engineering/etc/notes/mentoring/solid.md",
     "languages/javascript/theory/prototype.md",
     "languages/javascript/notes/book-a/ch1.md",
     "coding-test/programmers/problem.md",
   ]);
 
   it("lists publishable areas and topics without exposing notes or theory internals", () => {
-    const workspace = buildStudioWorkspace(tree, ["cs", "languages"]);
+    const workspace = buildStudioWorkspace(tree, ["cs", "languages", "software-engineering"]);
 
-    expect(workspace.areas.map((area) => area.path)).toEqual(["cs", "languages"]);
+    expect(workspace.areas.map((area) => area.path)).toEqual(["cs", "languages", "software-engineering"]);
     expect(workspace.areas[0].topics.map((topic) => topic.path)).toEqual([
       "cs/algorithms",
       "cs/networks",

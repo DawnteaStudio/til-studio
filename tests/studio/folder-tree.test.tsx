@@ -13,19 +13,16 @@ describe("FolderTree workspace picker", () => {
     "languages/javascript/theory/prototype.md",
   ]);
 
-  it("selects a new note topic and source without exposing raw notes/theory folders", () => {
+  it("selects a new note topic without exposing source controls or raw notes/theory folders", () => {
     const onSelectPath = vi.fn();
-    const onSourceNameChange = vi.fn();
 
     render(
       <FolderTree
         tree={tree}
         selectedPath=""
         draftKind="note"
-        sourceName=""
         visibleRootPaths={["cs", "languages"]}
         onDraftKindChange={vi.fn()}
-        onSourceNameChange={onSourceNameChange}
         onVisibleRootPathsChange={vi.fn()}
         onSelectPath={onSelectPath}
       />,
@@ -34,10 +31,10 @@ describe("FolderTree workspace picker", () => {
     fireEvent.click(screen.getByRole("button", { name: "cs" }));
     fireEvent.click(screen.getByRole("button", { name: "새 토픽" }));
     fireEvent.change(screen.getByLabelText("새 토픽 이름"), { target: { value: "Graph Theory" } });
-    fireEvent.change(screen.getByLabelText("새 자료 폴더"), { target: { value: "Algorithm Book" } });
 
     expect(onSelectPath).toHaveBeenLastCalledWith("cs/graph-theory");
-    expect(onSourceNameChange).toHaveBeenLastCalledWith("Algorithm Book");
+    expect(screen.queryByText("Source")).toBeNull();
+    expect(screen.queryByLabelText("새 자료 폴더")).toBeNull();
     expect(screen.queryByRole("button", { name: "notes" })).toBeNull();
     expect(screen.queryByRole("button", { name: "theory" })).toBeNull();
   });
@@ -50,10 +47,8 @@ describe("FolderTree workspace picker", () => {
         tree={tree}
         selectedPath="cs/algorithms"
         draftKind="note"
-        sourceName=""
         visibleRootPaths={["cs", "languages"]}
         onDraftKindChange={onDraftKindChange}
-        onSourceNameChange={vi.fn()}
         onVisibleRootPathsChange={vi.fn()}
         onSelectPath={vi.fn()}
       />,

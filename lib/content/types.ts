@@ -1,4 +1,4 @@
-export type ContentArea = "cs" | "languages" | "projects" | "coding-test";
+export type ContentArea = "cs" | "languages" | "projects" | "software-engineering" | "coding-test";
 
 export type ContentKind = "note" | "theory" | "readme" | "other";
 

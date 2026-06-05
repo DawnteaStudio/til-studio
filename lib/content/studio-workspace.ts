@@ -24,7 +24,7 @@ export interface StudioWorkspaceModel {
   areas: StudioAreaOption[];
 }
 
-const publishableAreas = new Set(["cs", "languages", "projects"]);
+const publishableAreas = new Set(["cs", "languages", "projects", "software-engineering"]);
 
 export function defaultSaveModeForDraft(kind: StudioDraftKind): SaveMode {
   return kind === "theory" ? "review" : "quick";

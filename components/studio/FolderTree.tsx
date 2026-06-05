@@ -12,10 +12,8 @@ interface FolderTreeProps {
   tree: ContentNode;
   selectedPath: string;
   draftKind: StudioDraftKind;
-  sourceName: string;
   visibleRootPaths: string[];
   onDraftKindChange(kind: StudioDraftKind): void;
-  onSourceNameChange(source: string): void;
   onVisibleRootPathsChange(paths: string[]): void;
   onSelectPath(path: string): void;
   isLoading?: boolean;
@@ -25,10 +23,8 @@ export function FolderTree({
   tree,
   selectedPath,
   draftKind,
-  sourceName,
   visibleRootPaths,
   onDraftKindChange,
-  onSourceNameChange,
   onVisibleRootPathsChange,
   onSelectPath,
   isLoading = false,
@@ -45,7 +41,6 @@ export function FolderTree({
     workspace.areas.find((area) => area.path === selectedPath.split("/")[0]) ??
     workspace.areas.find((area) => area.path === selectedAreaPath) ??
     workspace.areas[0];
-  const selectedTopic = selectedArea?.topics.find((topic) => topic.path === selectedPath);
 
   return (
     <nav className="space-y-4 text-sm">
@@ -171,37 +166,6 @@ export function FolderTree({
                 />
               </label>
             ) : null}
-          </div>
-        </section>
-      ) : null}
-
-      {draftKind === "note" && selectedArea ? (
-        <section className="overflow-hidden rounded-3xl bg-[#171b14] p-3 transition-all duration-300">
-          <p className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#8d9a7b]">Source</p>
-          <div className="mt-3 grid gap-2">
-            {selectedTopic?.sources.map((source) => (
-              <button
-                key={source.path}
-                type="button"
-                onClick={() => onSourceNameChange(source.name)}
-                className={[
-                  "rounded-2xl px-3 py-2 text-left transition-all duration-300",
-                  sourceName === source.name
-                    ? "bg-[#d8c69a] text-[#1e2118] shadow-[0_12px_28px_rgba(0,0,0,0.2)]"
-                    : "text-[#d8d0bd] hover:bg-[#24291d]",
-                ].join(" ")}
-              >
-                {source.name}
-              </button>
-            ))}
-            <label className="grid gap-2 rounded-2xl bg-[#24291d] p-3 text-xs text-[#d8d0bd]">
-              <span className="font-semibold">새 자료 폴더</span>
-              <input
-                value={sourceName}
-                onChange={(event) => onSourceNameChange(event.target.value)}
-                className="h-10 rounded-xl bg-[#34382b] px-3 text-sm text-[#f4efe4] outline-none focus:ring-4 focus:ring-[#d8c69a]/25"
-              />
-            </label>
           </div>
         </section>
       ) : null}
