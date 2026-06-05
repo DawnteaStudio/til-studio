@@ -1,6 +1,7 @@
 import { createInstallationOctokit } from "./client";
+import { readmePathForContentPath, topicPathForReadme, upsertTopicReadmeIndex } from "@/lib/content/topic-readme";
 import type { SaveMode } from "@/lib/content/types";
-import type { SaveRequest, SaveResult } from "./types";
+import type { FileChange, SaveRequest, SaveResult } from "./types";
 
 export function recommendSaveMode(paths: string[]): SaveMode {
   const requiresReview = paths.some((path) => {
@@ -11,6 +12,29 @@ export function recommendSaveMode(paths: string[]): SaveMode {
   });
 
   return requiresReview ? "review" : "quick";
+}
+
+export function buildTopicReadmeChanges(input: {
+  existingPaths: string[];
+  incomingChanges: FileChange[];
+  existingReadmes: Record<string, string | null | undefined>;
+}): FileChange[] {
+  const incomingMarkdownPaths = input.incomingChanges
+    .map((change) => change.path)
+    .filter((path) => path.endsWith(".md"));
+  const readmePaths = [...new Set(incomingMarkdownPaths.map(readmePathForContentPath).filter(Boolean))];
+  const nextPaths = [...new Set([...input.existingPaths, ...incomingMarkdownPaths])];
+
+  return readmePaths
+    .filter((path): path is string => typeof path === "string")
+    .map((readmePath) => ({
+      path: readmePath,
+      content: upsertTopicReadmeIndex({
+        topicPath: topicPathForReadme(readmePath),
+        existingContent: input.existingReadmes[readmePath],
+        documentPaths: nextPaths,
+      }),
+    }));
 }
 
 function branchName(): string {
