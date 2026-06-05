@@ -203,6 +203,10 @@ MVP AI actions:
 
 Note drafting should feel closer to a readable Inpa Tistory-style learning post than a mechanical formatter. It should preserve the user's confusion and thinking trail, make the "처음엔 이렇게 헷갈렸다" learning arc visible, and add general background explanation where it helps the reader. It should not create an "확인할 점" section; unresolved confusion should be clarified inside the article when possible, without inventing personal experiences or unsupported specifics.
 
+Notes should read like the user's own study reflection, not a formal `습니다/합니다` explanation. The AI should split long ideas into readable short paragraphs, carry material from `헷갈린 점` into `현재 이해한 결론` even when the user did not manually repeat it there, and expand examples around the user's own examples first. A `참고자료` section belongs at the end only when the AI actually used or received references; otherwise it should be omitted.
+
+The center preview defaults to a rendered article preview. Raw Markdown appears only when `Markdown 직접 수정` is checked, and saving should use the same Markdown content that is currently being previewed or edited.
+
 AI does not silently publish content. The user must approve final title, path, content, and save mode.
 
 AI provider selection is environment-driven:

@@ -14,6 +14,7 @@ import {
   folderVisibilityStorageKey,
   topLevelFolder,
 } from "@/lib/content/visibility";
+import { MarkdownArticle } from "@/components/public/MarkdownArticle";
 import { FileEditor } from "./FileEditor";
 import { FolderTree } from "./FolderTree";
 import { NoteComposer } from "./NoteComposer";
@@ -104,7 +105,7 @@ export function StudioWorkspace() {
       }),
     [noteDraft, notePath],
   );
-  const publishMarkdown = draftKind === "note" && !isMarkdownEditing ? generatedNoteMarkdown : markdown;
+  const publishMarkdown = draftKind === "note" ? markdown || generatedNoteMarkdown : markdown;
 
   function updateDraftKind(kind: StudioDraftKind) {
     setDraftKind(kind);
@@ -202,14 +203,14 @@ export function StudioWorkspace() {
       const data = (await response.json()) as { markdown?: string };
       if (data.markdown) {
         setMarkdown(data.markdown);
-        setIsMarkdownEditing(true);
+        setIsMarkdownEditing(false);
       }
       setMode("quick");
       setDraftKind("note");
       setStatus("글 초안 생성 완료");
       setNotice({
         title: "글 초안 생성 완료",
-        message: "초안이 완성되었습니다. Markdown Preview에서 확인하세요.",
+        message: "초안이 완성되었습니다. 미리보기에서 확인하세요.",
         tone: "success",
       });
     } catch {
@@ -407,7 +408,7 @@ export function StudioWorkspace() {
         <section className="mt-8 border-t border-[#c8bba7] pt-7">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-base font-semibold text-[#24221d]">Markdown Preview</h2>
+              <h2 className="text-base font-semibold text-[#24221d]">미리보기</h2>
               <p className="mt-1 text-sm text-[#6b6257]">
                 Publish 시점에는 이 내용이 GitHub에 저장됩니다.
               </p>
@@ -422,15 +423,15 @@ export function StudioWorkspace() {
                 }}
                 className="size-4 rounded border-[#968b78]"
               />
-              Markdown 원문 수정
+              Markdown 직접 수정
             </label>
           </div>
           {isMarkdownEditing ? (
             <FileEditor value={markdown} onChange={setMarkdown} />
           ) : (
-            <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap rounded-3xl bg-[#d9d0c0] p-5 font-mono text-sm leading-7 text-[#343027] shadow-inner">
-              {publishMarkdown}
-            </pre>
+            <div className="max-h-[520px] overflow-auto rounded-3xl bg-[#f3ebdf] p-6 shadow-inner">
+              <MarkdownArticle markdown={publishMarkdown} />
+            </div>
           )}
         </section>
         </div>

@@ -73,7 +73,27 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/ai/note-cleanup", expect.any(Object)));
     expect(await screen.findByRole("status", { name: "글 초안 생성 완료" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Cleaned Note" })).toBeTruthy();
+    expect(screen.queryByDisplayValue(/# Cleaned Note/)).toBeNull();
     expect(screen.queryByRole("button", { name: "notes 형식으로 다듬기" })).toBeNull();
+  });
+
+  it("switches between rendered preview and markdown source editing", async () => {
+    mockFetch();
+    render(<StudioWorkspace />);
+
+    await screen.findByText("algorithms");
+    fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
+    fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
+    fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
+
+    expect(await screen.findByRole("heading", { name: "Cleaned Note" })).toBeTruthy();
+    expect(screen.queryByDisplayValue(/# Cleaned Note/)).toBeNull();
+
+    fireEvent.click(screen.getByLabelText("Markdown 직접 수정"));
+
+    expect(screen.getByDisplayValue(/# Cleaned Note/)).toBeTruthy();
   });
 
   it("shows themed progress and completion notices while drafting a note", async () => {
@@ -101,7 +121,7 @@ describe("StudioWorkspace note and theory actions", () => {
     noteResponse.resolve(Response.json({ markdown: "# Cleaned Note\n\n## 오늘 배운 것\nKMP" }));
 
     expect(await screen.findByRole("status", { name: "글 초안 생성 완료" })).toBeTruthy();
-    expect(screen.getByText("초안이 완성되었습니다. Markdown Preview에서 확인하세요.")).toBeTruthy();
+    expect(screen.getByText("초안이 완성되었습니다. 미리보기에서 확인하세요.")).toBeTruthy();
   });
 
   it("asks for a theory workspace before creating a theory draft", async () => {
