@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { noteCleanupSystemPrompt } from "@/lib/ai/prompts";
+import { createNoteCleanupUserPrompt, noteCleanupSystemPrompt } from "@/lib/ai/prompts";
 
 describe("AI prompts", () => {
   it("asks note drafting to write a reflective readable study article", () => {
@@ -19,5 +19,22 @@ describe("AI prompts", () => {
     expect(noteCleanupSystemPrompt).toContain("오해나 막히는 질문에서 시작");
     expect(noteCleanupSystemPrompt).toContain("상황 예시");
     expect(noteCleanupSystemPrompt).toContain("전후 비교");
+  });
+
+  it("wraps note markdown with strict drafting and quality checks", () => {
+    const prompt = createNoteCleanupUserPrompt(`# SOLID 원칙
+
+## 헷갈린 점
+개방 폐쇄의 원칙과 의존 역전의 법칙의 차이점이 헷갈렸다.
+의존 역전에서 '역전'이라는 단어의 의미를 혼동했다.
+`);
+
+    expect(prompt).toContain("원본 메모를 그대로 복사하지 마세요");
+    expect(prompt).toContain("헷갈린 점의 각 문장");
+    expect(prompt).toContain("현재 이해한 결론");
+    expect(prompt).toContain("의존 역전에서 '역전'이라는 단어의 의미를 혼동했다");
+    expect(prompt).toContain("전후 비교");
+    expect(prompt).toContain("코드 예시");
+    expect(prompt).toContain("최종 제출 전에");
   });
 });

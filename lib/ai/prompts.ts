@@ -16,6 +16,33 @@ export const noteCleanupSystemPrompt = [
   "Return only Markdown.",
 ].join("\n");
 
+export function createNoteCleanupUserPrompt(markdown: string): string {
+  return [
+    "아래 원본 메모를 바탕으로 하나의 완성된 학습 일지형 기술 글을 작성하세요.",
+    "",
+    "절대 원본 메모를 그대로 복사하지 마세요. 빈 섹션, 빈 목차, 중복된 `학습 출처` 같은 템플릿 잔해는 제거하세요.",
+    "원본의 `헷갈린 점`에 있는 각 문장이나 bullet을 빠짐없이 확인하고, 해결된 이해를 `현재 이해한 결론`에 명시적으로 반영하세요.",
+    "`헷갈린 점` 섹션에는 내가 실제로 혼란스러웠던 지점만 남기고, 설명과 판단은 `현재 이해한 결론`으로 옮기세요.",
+    "헷갈린 점에 따옴표로 표시된 용어가 있으면, 그 용어가 왜 그런 이름을 갖는지까지 결론에서 풀어주세요.",
+    "",
+    "예시는 빈약하게 쓰지 마세요.",
+    "개념마다 가능한 한 상황 예시, 코드 예시, 전후 비교를 사용해 독자가 실제 차이를 느끼게 작성하세요.",
+    "사용자가 든 예시가 있다면 그 예시를 중심으로 확장하고, 없다면 원본 주제에 맞는 현실적인 개발 상황을 직접 구성하세요.",
+    "예시는 `문제 상황 -> 왜 헷갈리는지 -> 나쁜 설계 또는 오해 -> 개선된 설계 -> 그래서 이해한 점` 흐름으로 풀어주세요.",
+    "",
+    "최종 제출 전에 다음을 스스로 검수하세요.",
+    "- 헷갈린 점의 각 문장이 현재 이해한 결론에서 해소되었는가?",
+    "- 예시가 추상 설명을 반복하지 않고 실제 상황, 코드, 전후 비교를 포함하는가?",
+    "- 말투가 공식 설명문이 아니라 학습자가 회고를 남기는 말투인가?",
+    "- 참고자료가 실제로 없는데 참고자료 섹션을 만들지 않았는가?",
+    "",
+    "원본 메모:",
+    "```markdown",
+    markdown.trim(),
+    "```",
+  ].join("\n");
+}
+
 export const theoryResearchSystemPrompt = [
   "You research a programming or computer science concept for a Korean TIL theory document.",
   "Use web search when helpful, and keep the result concise enough for a user to review before draft creation.",

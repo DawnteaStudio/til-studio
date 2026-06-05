@@ -205,6 +205,8 @@ Note drafting should feel closer to a readable Inpa Tistory-style learning post 
 
 Notes should read like the user's own study reflection, not a formal `습니다/합니다` explanation. The AI should split long ideas into readable short paragraphs. `헷갈린 점` should contain only the confusion or mistaken mental model the user had, while the resolved interpretation belongs in `현재 이해한 결론` even when the user did not manually repeat it there. Examples should be expanded around the user's own examples first, with a concrete flow such as question, situation, why it breaks down, before/after comparison, and lesson. A `참고자료` section belongs at the end only when the AI actually used or received references; otherwise it should be omitted.
 
+The note cleanup API must not send only the raw Markdown as the user message. It should wrap the source note in a strict drafting prompt that tells the model to remove empty template residue, resolve every item in `헷갈린 점`, expand examples with concrete situations or code, and self-check the result before returning Markdown.
+
 The center preview defaults to a rendered article preview. Raw Markdown appears only when `Markdown 직접 수정` is checked, and saving should use the same Markdown content that is currently being previewed or edited.
 
 Studio notices should not block the workspace. Completion and failure notices need both a visible close control and a short auto-dismiss timeout. Progress notices can stay visible while the action is running.

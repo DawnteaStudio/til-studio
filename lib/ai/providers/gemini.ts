@@ -1,4 +1,4 @@
-import { noteCleanupSystemPrompt, theoryResearchSystemPrompt } from "../prompts";
+import { createNoteCleanupUserPrompt, noteCleanupSystemPrompt, theoryResearchSystemPrompt } from "../prompts";
 import { theoryResearchSchema, type TheoryResearchResult } from "../schema";
 import { parseModelJson } from "../utils";
 import type { AIProvider } from "./types";
@@ -82,7 +82,7 @@ export const geminiProvider: AIProvider = {
   async cleanupNote(markdown: string): Promise<string> {
     const response = await generateContent({
       systemInstruction: noteCleanupSystemPrompt,
-      userText: markdown,
+      userText: createNoteCleanupUserPrompt(markdown),
     });
 
     return geminiText(response);

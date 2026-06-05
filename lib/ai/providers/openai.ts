@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { noteCleanupSystemPrompt, theoryResearchSystemPrompt } from "../prompts";
+import { createNoteCleanupUserPrompt, noteCleanupSystemPrompt, theoryResearchSystemPrompt } from "../prompts";
 import { theoryResearchSchema, type TheoryResearchResult } from "../schema";
 import { parseModelJson } from "../utils";
 import type { AIProvider } from "./types";
@@ -22,7 +22,7 @@ export const openAIProvider: AIProvider = {
       model: getOpenAIModel(),
       input: [
         { role: "system", content: noteCleanupSystemPrompt },
-        { role: "user", content: markdown },
+        { role: "user", content: createNoteCleanupUserPrompt(markdown) },
       ],
     });
 
