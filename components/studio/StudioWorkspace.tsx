@@ -158,6 +158,16 @@ export function StudioWorkspace() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!notice || notice.tone === "progress") return;
+
+    const timeoutId = window.setTimeout(() => {
+      setNotice(null);
+    }, 4500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [notice]);
+
   function updateVisibleRootPaths(paths: string[]) {
     setVisibleRootPaths(paths);
     persistVisibleRootPaths(paths);
@@ -331,6 +341,14 @@ export function StudioWorkspace() {
               <p className="text-sm font-semibold text-[#f3ecd8]">{notice.title}</p>
               <p className="mt-1 text-sm leading-5 text-[#d8d0bd]">{notice.message}</p>
             </div>
+            <button
+              type="button"
+              aria-label="알림 닫기"
+              onClick={() => setNotice(null)}
+              className="ml-auto flex size-7 shrink-0 items-center justify-center rounded-full text-[#d8d0bd] transition hover:bg-[#f4efe4]/10 hover:text-[#f4efe4]"
+            >
+              ×
+            </button>
           </div>
         </div>
       ) : null}

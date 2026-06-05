@@ -14,5 +14,10 @@ describe("AI prompts", () => {
     expect(noteCleanupSystemPrompt).toContain("짧은 문단");
     expect(noteCleanupSystemPrompt).toContain("참고자료가 실제로 있었을 때만");
     expect(noteCleanupSystemPrompt).toContain("사용자가 든 예시가 있다면 그 예시를 중심");
+    expect(noteCleanupSystemPrompt).toContain("현재 이해한 결론");
+    expect(noteCleanupSystemPrompt).toContain("헷갈린 점 섹션에는 혼란스러웠던 지점만");
+    expect(noteCleanupSystemPrompt).toContain("오해나 막히는 질문에서 시작");
+    expect(noteCleanupSystemPrompt).toContain("상황 예시");
+    expect(noteCleanupSystemPrompt).toContain("전후 비교");
   });
 });

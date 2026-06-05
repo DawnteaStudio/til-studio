@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StudioWorkspace } from "@/components/studio/StudioWorkspace";
 
@@ -45,10 +45,12 @@ function deferred<T>() {
 describe("StudioWorkspace note and theory actions", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    vi.useRealTimers();
   });
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -122,6 +124,35 @@ describe("StudioWorkspace note and theory actions", () => {
 
     expect(await screen.findByRole("status", { name: "글 초안 생성 완료" })).toBeTruthy();
     expect(screen.getByText("초안이 완성되었습니다. 미리보기에서 확인하세요.")).toBeTruthy();
+  });
+
+  it("lets completion notices be dismissed and hides them automatically", async () => {
+    mockFetch();
+    render(<StudioWorkspace />);
+
+    await screen.findByText("algorithms");
+    fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
+    fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
+    fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
+
+    expect(await screen.findByRole("status", { name: "글 초안 생성 완료" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "알림 닫기" }));
+    expect(screen.queryByRole("status", { name: "글 초안 생성 완료" })).toBeNull();
+
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByRole("status", { name: "글 초안 생성 완료" })).toBeTruthy();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    expect(screen.queryByRole("status", { name: "글 초안 생성 완료" })).toBeNull();
   });
 
   it("asks for a theory workspace before creating a theory draft", async () => {
