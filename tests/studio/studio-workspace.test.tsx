@@ -34,6 +34,14 @@ function mockFetch() {
   return fetchMock;
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
 describe("StudioWorkspace note and theory actions", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -64,8 +72,36 @@ describe("StudioWorkspace note and theory actions", () => {
     fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/ai/note-cleanup", expect.any(Object)));
-    expect(await screen.findByText("글 초안 생성 완료")).toBeTruthy();
+    expect(await screen.findByRole("status", { name: "글 초안 생성 완료" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "notes 형식으로 다듬기" })).toBeNull();
+  });
+
+  it("shows themed progress and completion notices while drafting a note", async () => {
+    const noteResponse = deferred<Response>();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === "/api/github/tree") return Response.json(treeResponse);
+        if (url === "/api/ai/note-cleanup") return noteResponse.promise;
+        return Response.json({}, { status: 404 });
+      }),
+    );
+    render(<StudioWorkspace />);
+
+    await screen.findByText("algorithms");
+    fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
+    fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
+    fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
+
+    expect(await screen.findByRole("status", { name: "글 초안 생성 중" })).toBeTruthy();
+    expect(screen.getByText("AI가 메모를 학습 글로 다듬는 중입니다")).toBeTruthy();
+
+    noteResponse.resolve(Response.json({ markdown: "# Cleaned Note\n\n## 오늘 배운 것\nKMP" }));
+
+    expect(await screen.findByRole("status", { name: "글 초안 생성 완료" })).toBeTruthy();
+    expect(screen.getByText("초안이 완성되었습니다. Markdown Preview에서 확인하세요.")).toBeTruthy();
   });
 
   it("asks for a theory workspace before creating a theory draft", async () => {

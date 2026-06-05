@@ -28,6 +28,12 @@ const initialTree: ContentNode = {
   children: [],
 };
 
+type StudioNotice = {
+  title: string;
+  message: string;
+  tone: "progress" | "success" | "error";
+};
+
 function readVisibleRootPaths(): string[] {
   try {
     const raw = window.localStorage.getItem(folderVisibilityStorageKey);
@@ -71,6 +77,7 @@ export function StudioWorkspace() {
   const [isTreeLoading, setIsTreeLoading] = useState(true);
   const [visibleRootPaths, setVisibleRootPaths] = useState<string[]>([]);
   const [status, setStatus] = useState("TIL 레포 구조를 불러오는 중");
+  const [notice, setNotice] = useState<StudioNotice | null>(null);
   const target = useMemo(() => deriveStudyTarget(selectedPath), [selectedPath]);
   const notePath = useMemo(() => {
     if (!target) return "";
@@ -180,6 +187,11 @@ export function StudioWorkspace() {
 
     setIsBusy(true);
     setStatus("학습 글 초안을 만드는 중");
+    setNotice({
+      title: "글 초안 생성 중",
+      message: "AI가 메모를 학습 글로 다듬는 중입니다",
+      tone: "progress",
+    });
     try {
       const response = await fetch("/api/ai/note-cleanup", {
         method: "POST",
@@ -195,8 +207,18 @@ export function StudioWorkspace() {
       setMode("quick");
       setDraftKind("note");
       setStatus("글 초안 생성 완료");
+      setNotice({
+        title: "글 초안 생성 완료",
+        message: "초안이 완성되었습니다. Markdown Preview에서 확인하세요.",
+        tone: "success",
+      });
     } catch {
       setStatus("글 초안 생성에 실패했습니다");
+      setNotice({
+        title: "글 초안 생성 실패",
+        message: "잠시 뒤 다시 시도하거나 API 설정을 확인하세요.",
+        tone: "error",
+      });
     } finally {
       setIsBusy(false);
     }
@@ -279,6 +301,38 @@ export function StudioWorkspace() {
 
   return (
     <main className="grid min-h-screen grid-cols-1 bg-[#151611] text-[#f4efe4] lg:grid-cols-[300px_minmax(0,1fr)_340px]">
+      {notice ? (
+        <div className="fixed right-4 top-4 z-50 w-[min(calc(100vw-2rem),380px)]">
+          <div
+            role="status"
+            aria-label={notice.title}
+            className={[
+              "flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-[0_18px_45px_rgba(0,0,0,0.35)] backdrop-blur",
+              notice.tone === "progress"
+                ? "border-[#d8c69a]/35 bg-[#1d2118]/95 text-[#f4efe4]"
+                : "",
+              notice.tone === "success"
+                ? "border-[#8d9a7b]/45 bg-[#243124]/95 text-[#f4efe4]"
+                : "",
+              notice.tone === "error" ? "border-[#c78269]/45 bg-[#33211d]/95 text-[#f4efe4]" : "",
+            ].join(" ")}
+          >
+            <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-[#d8c69a]/15 text-[#d8c69a]">
+              {notice.tone === "progress" ? (
+                <span className="size-4 rounded-full border-2 border-[#d8c69a]/35 border-t-[#d8c69a] animate-spin" />
+              ) : notice.tone === "success" ? (
+                <span className="text-sm font-bold">✓</span>
+              ) : (
+                <span className="text-sm font-bold">!</span>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[#f3ecd8]">{notice.title}</p>
+              <p className="mt-1 text-sm leading-5 text-[#d8d0bd]">{notice.message}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <aside className="border-b border-[#2a2d22] bg-[#1d2118] p-5 lg:min-h-screen lg:border-b-0 lg:border-r">
         <div className="mb-6 flex items-center justify-between gap-3">
           <Link href="/" className="text-lg font-semibold text-[#f3ecd8]">
