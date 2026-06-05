@@ -171,7 +171,7 @@ The left panel is a guided workspace picker, not a generic file browser:
 
 The right panel changes by draft kind:
 
-- `Notes`: show `Save` with Quick or Review mode. Note Markdown generation happens from the center panel's `Markdown 만들기` action.
+- `Notes`: show `Save` with Quick or Review mode. Reflective note drafting happens from the center panel's `글 초안 만들기` action.
 - `Theory`: show `Concept Research`, the reviewed research result, and `Save` in Review mode.
 - The missing-section checker is not part of the current Studio surface.
 - `Theory Lookup` and standalone `Theory Title` inputs should not appear as separate concepts. Theory title is derived from reviewed concept research and may be edited later only if a dedicated title-editing flow is added.
@@ -184,7 +184,7 @@ Required MVP actions:
 - create topic note file
 - generate note template
 - generate table of contents and parent navigation
-- run AI note cleanup through `Markdown 만들기`
+- run AI note drafting through `글 초안 만들기`
 - edit the final Markdown before saving
 - Quick Save
 - Review Save
@@ -197,9 +197,11 @@ AI is included in MVP, but with constrained authority.
 
 MVP AI actions:
 
-- `Markdown 만들기`: validate note workspace, title, and learned content, then organize the note into Markdown while preserving learning context.
+- `글 초안 만들기`: validate note workspace, title, and learned content, then turn rough notes into a readable Korean study article that follows the notes template.
 - `웹에서 조사하기`: research a concept keyword for a theory document and return a user-reviewable summary with sources.
 - `Theory 초안 만들기`: after the user reviews the research result, create a Markdown theory draft that follows the theory template.
+
+Note drafting should feel closer to a readable Inpa Tistory-style learning post than a mechanical formatter. It should preserve the user's confusion and thinking trail, make the "처음엔 이렇게 헷갈렸다" learning arc visible, and add general background explanation where it helps the reader. It should not create an "확인할 점" section; unresolved confusion should be clarified inside the article when possible, without inventing personal experiences or unsupported specifics.
 
 AI does not silently publish content. The user must approve final title, path, content, and save mode.
 

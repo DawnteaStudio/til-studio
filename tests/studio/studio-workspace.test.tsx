@@ -48,12 +48,12 @@ describe("StudioWorkspace note and theory actions", () => {
     mockFetch();
     render(<StudioWorkspace />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Markdown 만들기" }));
+    fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
 
     expect(await screen.findByText("작업 위치, 제목, 오늘 배운 것을 먼저 입력하세요")).toBeTruthy();
   });
 
-  it("runs note cleanup from Markdown 만들기 after required fields are filled", async () => {
+  it("runs note drafting from 글 초안 만들기 after required fields are filled", async () => {
     const fetchMock = mockFetch();
     render(<StudioWorkspace />);
 
@@ -61,10 +61,10 @@ describe("StudioWorkspace note and theory actions", () => {
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
-    fireEvent.click(screen.getByRole("button", { name: "Markdown 만들기" }));
+    fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/ai/note-cleanup", expect.any(Object)));
-    expect(await screen.findByText("Markdown 생성 완료")).toBeTruthy();
+    expect(await screen.findByText("글 초안 생성 완료")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "notes 형식으로 다듬기" })).toBeNull();
   });
 

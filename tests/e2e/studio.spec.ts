@@ -7,7 +7,7 @@ test("studio loads workspace controls", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Quick" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Review" })).toBeVisible();
   await expect(page.getByLabel("학습 출처")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Markdown 만들기" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "글 초안 만들기" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Notes", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Theory", exact: true })).toBeVisible();
 });

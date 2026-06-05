@@ -179,7 +179,7 @@ export function StudioWorkspace() {
     }
 
     setIsBusy(true);
-    setStatus("Markdown을 notes 형식으로 만드는 중");
+    setStatus("학습 글 초안을 만드는 중");
     try {
       const response = await fetch("/api/ai/note-cleanup", {
         method: "POST",
@@ -194,9 +194,9 @@ export function StudioWorkspace() {
       }
       setMode("quick");
       setDraftKind("note");
-      setStatus("Markdown 생성 완료");
+      setStatus("글 초안 생성 완료");
     } catch {
-      setStatus("Markdown 생성에 실패했습니다");
+      setStatus("글 초안 생성에 실패했습니다");
     } finally {
       setIsBusy(false);
     }
@@ -334,7 +334,7 @@ export function StudioWorkspace() {
                 disabled={isBusy}
                 className="self-end rounded-2xl bg-[#31513a] px-5 py-3 text-sm font-semibold text-[#f6efe2] shadow-[0_14px_30px_rgba(38,57,40,0.25)] transition hover:bg-[#294632] disabled:opacity-60"
               >
-                {isBusy ? "Markdown 생성 중" : "Markdown 만들기"}
+                {isBusy ? "글 초안 생성 중" : "글 초안 만들기"}
               </button>
             ) : null}
           </div>
