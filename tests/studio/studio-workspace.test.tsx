@@ -167,4 +167,64 @@ describe("StudioWorkspace note and theory actions", () => {
 
     expect(await screen.findByText("먼저 왼쪽에서 Theory를 저장할 area와 topic을 선택하세요")).toBeTruthy();
   });
+
+  it("shows a themed notice when saving cannot build a path", async () => {
+    mockFetch();
+    render(<StudioWorkspace />);
+
+    fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
+
+    expect(await screen.findByRole("status", { name: "저장할 수 없습니다" })).toBeTruthy();
+    expect(screen.getByText("저장할 경로를 만들 수 없습니다. 작업 위치, 출처, 제목을 확인하세요.")).toBeTruthy();
+  });
+
+  it("shows progress and failure notices for GitHub save requests", async () => {
+    const saveResponse = deferred<Response>();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === "/api/github/tree") return Response.json(treeResponse);
+        if (url === "/api/github/save") return saveResponse.promise;
+        return Response.json({}, { status: 404 });
+      }),
+    );
+    render(<StudioWorkspace />);
+
+    await screen.findByText("algorithms");
+    fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByText("APSS").closest("button")!);
+    fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
+    fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
+    fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
+
+    expect(await screen.findByRole("status", { name: "GitHub 저장 중" })).toBeTruthy();
+
+    saveResponse.resolve(Response.json({ error: "save failed" }, { status: 500 }));
+
+    expect(await screen.findByRole("status", { name: "GitHub 저장 실패" })).toBeTruthy();
+    expect(screen.getByText("GitHub 저장 요청이 실패했습니다. 설정과 권한을 확인하세요.")).toBeTruthy();
+  });
+
+  it("shows a completion notice after a successful GitHub save", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/github/tree") return Response.json(treeResponse);
+      if (url === "/api/github/save") return Response.json({ mode: "quick", commitSha: "abc123" });
+      return Response.json({}, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<StudioWorkspace />);
+
+    await screen.findByText("algorithms");
+    fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByText("APSS").closest("button")!);
+    fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
+    fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
+    fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/save", expect.any(Object)));
+    expect(await screen.findByRole("status", { name: "GitHub 저장 완료" })).toBeTruthy();
+    expect(screen.getByText("GitHub에 바로 저장되었습니다.")).toBeTruthy();
+  });
 });

@@ -289,25 +289,50 @@ export function StudioWorkspace() {
     const path = draftKind === "theory" ? theoryPath : notePath;
     if (!path) {
       setStatus("저장할 경로를 만들 수 없습니다");
+      setNotice({
+        title: "저장할 수 없습니다",
+        message: "저장할 경로를 만들 수 없습니다. 작업 위치, 출처, 제목을 확인하세요.",
+        tone: "error",
+      });
       return;
     }
 
     setStatus("GitHub 저장 요청 중");
-    await fetch("/api/github/save", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        mode,
-        message: "Add TIL note from til-studio",
-        changes: [
-          {
-            path,
-            content: publishMarkdown,
-          },
-        ],
-      }),
+    setNotice({
+      title: "GitHub 저장 중",
+      message: "선택한 저장 모드로 GitHub에 변경 사항을 보내는 중입니다.",
+      tone: "progress",
     });
-    setStatus(`GitHub 저장 요청 완료: ${path}`);
+    try {
+      const response = await fetch("/api/github/save", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          mode,
+          message: "Add TIL note from til-studio",
+          changes: [
+            {
+              path,
+              content: publishMarkdown,
+            },
+          ],
+        }),
+      });
+      if (!response.ok) throw new Error("GitHub save failed");
+      setStatus(`GitHub 저장 요청 완료: ${path}`);
+      setNotice({
+        title: "GitHub 저장 완료",
+        message: mode === "review" ? "Draft PR 생성 요청이 완료되었습니다." : "GitHub에 바로 저장되었습니다.",
+        tone: "success",
+      });
+    } catch {
+      setStatus("GitHub 저장 요청에 실패했습니다");
+      setNotice({
+        title: "GitHub 저장 실패",
+        message: "GitHub 저장 요청이 실패했습니다. 설정과 권한을 확인하세요.",
+        tone: "error",
+      });
+    }
   }
 
   return (
