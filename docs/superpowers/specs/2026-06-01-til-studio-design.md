@@ -222,6 +222,15 @@ AI provider selection is environment-driven:
 - Both providers must implement the same Studio contract: note cleanup returns Markdown, and theory research returns `title`, `concept`, `keyPoints`, `cautions`, and `sources`.
 - Studio UI should call only the shared AI service functions, not provider-specific clients.
 
+Studio must also support changing local runtime settings from a gear-shaped settings panel, without creating a separate settings page. The settings panel can update non-secret values such as AI provider, model names, and repository owner/name, and can accept API keys as password-style secret inputs.
+
+Secret handling rules:
+
+- The browser may submit a new API key to the server when the user saves settings, but the server must never return stored secret values to the browser.
+- Settings reads expose only whether each secret is configured, for example `openAIKeyConfigured: true`.
+- Stored runtime settings are kept in a gitignored local file and are read server-side before falling back to `.env.local` / `process.env`.
+- AI and GitHub clients must read settings through a shared server-side settings helper, so changing settings does not require editing `.env.local` for normal local usage.
+
 Saving a note or theory must also update the selected topic's `README.md`. The save API should enrich the requested file changes with a til-studio-managed README index block that lists notes grouped by source and theory documents. Existing prose outside the managed block must be preserved. Quick saves update the README in the same commit; review saves include the README in the same draft PR.
 
 ## Theory Research And Creation

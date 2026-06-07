@@ -261,6 +261,8 @@ Notes:
 - `GEMINI_API_KEY` is required when `AI_PROVIDER=gemini`.
 - `TIL_REPOSITORY_OWNER` and `TIL_REPOSITORY_NAME` default to `DawnteaStudio` and `TIL` when omitted.
 
+You can also change these local runtime settings from Studio's gear button. Values saved there are written to `.til-studio/settings.local.json`, which is gitignored and read server-side before `.env.local`. Stored API keys and GitHub secrets are never returned to the browser; the settings panel only shows whether each secret is configured.
+
 ## Verification
 
 Run unit and component tests:

@@ -262,6 +262,8 @@ GEMINI_MODEL=gemini-2.5-flash
 - `GEMINI_API_KEY`는 `AI_PROVIDER=gemini`일 때 필요합니다.
 - `TIL_REPOSITORY_OWNER`, `TIL_REPOSITORY_NAME`을 생략하면 기본값은 `DawnteaStudio`, `TIL`입니다.
 
+Studio의 톱니바퀴 버튼에서도 이 로컬 런타임 설정을 바꿀 수 있습니다. 여기서 저장한 값은 gitignore된 `.til-studio/settings.local.json`에 저장되며, 서버에서 `.env.local`보다 먼저 읽습니다. 저장된 API key와 GitHub secret은 브라우저로 다시 내려주지 않고, 설정 화면에는 각 secret의 설정 여부만 표시합니다.
+
 ## 검증
 
 단위/컴포넌트 테스트를 실행합니다.
