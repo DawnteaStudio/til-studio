@@ -28,6 +28,21 @@ function mockFetch() {
         sources: [{ title: "KMP", url: "https://example.com/kmp" }],
       });
     }
+    if (url === "/api/settings") {
+      return Response.json({
+        aiProvider: "openai",
+        openAIModel: "gpt-4o-mini-2024-07-18",
+        geminiModel: "gemini-2.5-flash",
+        repositoryOwner: "DawnteaStudio",
+        repositoryName: "TIL",
+        githubAppId: "",
+        githubInstallationId: "",
+        openAIKeyConfigured: true,
+        geminiKeyConfigured: false,
+        githubPrivateKeyConfigured: false,
+        githubWebhookSecretConfigured: false,
+      });
+    }
     return Response.json({}, { status: 404 });
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -61,6 +76,71 @@ describe("StudioWorkspace note and theory actions", () => {
     fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
 
     expect(await screen.findByText("작업 위치, 제목, 오늘 배운 것을 먼저 입력하세요")).toBeTruthy();
+  });
+
+  it("opens settings from the gear button and saves without showing stored secrets", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "/api/github/tree") return Response.json(treeResponse);
+      if (url === "/api/settings" && !init) {
+        return Response.json({
+          aiProvider: "openai",
+          openAIModel: "gpt-4o-mini-2024-07-18",
+          geminiModel: "gemini-2.5-flash",
+          repositoryOwner: "DawnteaStudio",
+          repositoryName: "TIL",
+          githubAppId: "12345",
+          githubInstallationId: "999",
+          openAIKeyConfigured: true,
+          geminiKeyConfigured: false,
+          githubPrivateKeyConfigured: true,
+          githubWebhookSecretConfigured: false,
+        });
+      }
+      if (url === "/api/settings" && init?.method === "POST") {
+        return Response.json({
+          aiProvider: "gemini",
+          openAIModel: "gpt-4.1-mini",
+          geminiModel: "gemini-2.5-flash",
+          repositoryOwner: "DawnteaStudio",
+          repositoryName: "TIL",
+          githubAppId: "12345",
+          githubInstallationId: "999",
+          openAIKeyConfigured: true,
+          geminiKeyConfigured: true,
+          githubPrivateKeyConfigured: true,
+          githubWebhookSecretConfigured: false,
+        });
+      }
+      return Response.json({}, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<StudioWorkspace />);
+
+    fireEvent.click(screen.getByRole("button", { name: "설정 열기" }));
+
+    expect(await screen.findByRole("heading", { name: "설정" })).toBeTruthy();
+    expect(screen.getByText("OpenAI API key 저장됨")).toBeTruthy();
+    expect(screen.queryByDisplayValue("sk-stored-secret")).toBeNull();
+    expect(screen.getByLabelText("OpenAI API key").getAttribute("type")).toBe("password");
+    expect(screen.getByLabelText("Gemini API key").getAttribute("type")).toBe("password");
+    expect(screen.getByLabelText("GitHub private key").getAttribute("type")).toBe("password");
+
+    fireEvent.change(screen.getByLabelText("AI provider"), { target: { value: "gemini" } });
+    fireEvent.change(screen.getByLabelText("OpenAI model"), { target: { value: "gpt-4.1-mini" } });
+    fireEvent.change(screen.getByLabelText("Gemini API key"), { target: { value: "gemini-new-secret" } });
+    fireEvent.click(screen.getByRole("button", { name: "설정 저장" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/settings", expect.any(Object)));
+    const settingsPost = fetchMock.mock.calls.find(
+      ([url, init]) => String(url) === "/api/settings" && (init as RequestInit | undefined)?.method === "POST",
+    );
+    expect(JSON.parse(String((settingsPost?.[1] as RequestInit).body))).toMatchObject({
+      aiProvider: "gemini",
+      openAIModel: "gpt-4.1-mini",
+      geminiKey: "gemini-new-secret",
+    });
+    expect(await screen.findByText("설정 저장 완료")).toBeTruthy();
   });
 
   it("runs note drafting from 글 초안 만들기 after required fields are filled", async () => {

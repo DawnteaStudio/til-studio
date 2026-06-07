@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { verifyGitHubSignature } from "@/lib/github/webhook";
+import { getRuntimeSetting } from "@/lib/settings/runtime-settings";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   const body = await request.text();
-  const secret = process.env.GITHUB_APP_WEBHOOK_SECRET;
+  const secret = getRuntimeSetting("GITHUB_APP_WEBHOOK_SECRET");
 
   if (!secret) {
     return NextResponse.json({ error: "Webhook secret is not configured" }, { status: 500 });

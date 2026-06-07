@@ -1,6 +1,7 @@
 import { indexMarkdownDocument, treeFromPaths } from "@/lib/content/indexer";
 import { documentPathCandidates } from "@/lib/content/document-path";
 import type { ContentNode } from "@/lib/content/types";
+import { getRuntimeSetting } from "@/lib/settings/runtime-settings";
 import { createInstallationOctokit } from "./client";
 
 export interface RepositoryMarkdownSnapshot {
@@ -12,8 +13,8 @@ export interface RepositoryMarkdownSnapshot {
 }
 
 export async function fetchRepositoryMarkdownSnapshot(): Promise<RepositoryMarkdownSnapshot> {
-  const owner = process.env.TIL_REPOSITORY_OWNER ?? "DawnteaStudio";
-  const repo = process.env.TIL_REPOSITORY_NAME ?? "TIL";
+  const owner = getRuntimeSetting("TIL_REPOSITORY_OWNER") ?? "DawnteaStudio";
+  const repo = getRuntimeSetting("TIL_REPOSITORY_NAME") ?? "TIL";
   const octokit = await createInstallationOctokit();
 
   const repository = await octokit.request("GET /repos/{owner}/{repo}", { owner, repo });
@@ -46,8 +47,8 @@ export async function fetchRepositoryMarkdownSnapshot(): Promise<RepositoryMarkd
 }
 
 export async function fetchRepositoryMarkdownDocument(path: string) {
-  const owner = process.env.TIL_REPOSITORY_OWNER ?? "DawnteaStudio";
-  const repo = process.env.TIL_REPOSITORY_NAME ?? "TIL";
+  const owner = getRuntimeSetting("TIL_REPOSITORY_OWNER") ?? "DawnteaStudio";
+  const repo = getRuntimeSetting("TIL_REPOSITORY_NAME") ?? "TIL";
   const octokit = await createInstallationOctokit();
 
   const repository = await octokit.request("GET /repos/{owner}/{repo}", { owner, repo });

@@ -1,20 +1,29 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { getAIProviderName, parseModelJson } from "@/lib/ai/service";
 import { getGeminiModel } from "@/lib/ai/providers/gemini";
 import { getOpenAIModel } from "@/lib/ai/providers/openai";
+import { saveRuntimeSettings } from "@/lib/settings/runtime-settings";
 
 describe("OpenAI service configuration", () => {
+  const originalSettingsFile = process.env.TIL_STUDIO_SETTINGS_FILE;
   const originalModel = process.env.OPENAI_MODEL;
   const originalGeminiModel = process.env.GEMINI_MODEL;
   const originalProvider = process.env.AI_PROVIDER;
+  let tempDir = "";
 
   afterEach(() => {
+    if (originalSettingsFile === undefined) delete process.env.TIL_STUDIO_SETTINGS_FILE;
+    else process.env.TIL_STUDIO_SETTINGS_FILE = originalSettingsFile;
     if (originalModel === undefined) delete process.env.OPENAI_MODEL;
     else process.env.OPENAI_MODEL = originalModel;
     if (originalGeminiModel === undefined) delete process.env.GEMINI_MODEL;
     else process.env.GEMINI_MODEL = originalGeminiModel;
     if (originalProvider === undefined) delete process.env.AI_PROVIDER;
     else process.env.AI_PROVIDER = originalProvider;
+    if (tempDir) return rm(tempDir, { recursive: true, force: true });
   });
 
   it("uses OpenAI as the default AI provider", () => {
@@ -47,6 +56,23 @@ describe("OpenAI service configuration", () => {
 
     process.env.GEMINI_MODEL = "gemini-custom";
     expect(getGeminiModel()).toBe("gemini-custom");
+  });
+
+  it("uses saved runtime settings before process env values", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "til-studio-ai-settings-"));
+    process.env.TIL_STUDIO_SETTINGS_FILE = join(tempDir, "settings.json");
+    process.env.AI_PROVIDER = "openai";
+    process.env.OPENAI_MODEL = "gpt-env";
+
+    saveRuntimeSettings({
+      aiProvider: "gemini",
+      openAIModel: "gpt-runtime",
+      geminiModel: "gemini-runtime",
+    });
+
+    expect(getAIProviderName()).toBe("gemini");
+    expect(getOpenAIModel()).toBe("gpt-runtime");
+    expect(getGeminiModel()).toBe("gemini-runtime");
   });
 
   it("parses JSON returned inside a markdown code fence", () => {

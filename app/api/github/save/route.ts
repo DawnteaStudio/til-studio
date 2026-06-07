@@ -3,6 +3,7 @@ import { z } from "zod";
 import { readmePathForContentPath } from "@/lib/content/topic-readme";
 import { fetchRepositoryMarkdownDocument, fetchRepositoryMarkdownSnapshot } from "@/lib/github/repository";
 import { buildTopicReadmeChanges, saveToGitHub } from "@/lib/github/save";
+import { getRuntimeSetting } from "@/lib/settings/runtime-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -46,8 +47,8 @@ export async function POST(request: Request) {
   });
   const result = await saveToGitHub({
     repository: {
-      owner: process.env.TIL_REPOSITORY_OWNER ?? "DawnteaStudio",
-      repo: process.env.TIL_REPOSITORY_NAME ?? "TIL",
+      owner: getRuntimeSetting("TIL_REPOSITORY_OWNER") ?? "DawnteaStudio",
+      repo: getRuntimeSetting("TIL_REPOSITORY_NAME") ?? "TIL",
       defaultBranch: "main",
     },
     mode: body.mode,

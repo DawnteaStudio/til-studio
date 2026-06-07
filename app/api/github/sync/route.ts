@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { indexMarkdownDocument, treeFromPaths } from "@/lib/content/indexer";
 import { memoryDataAdapter } from "@/lib/db/memory";
 import { createInstallationOctokit } from "@/lib/github/client";
+import { getRuntimeSetting } from "@/lib/settings/runtime-settings";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
-  const owner = process.env.TIL_REPOSITORY_OWNER ?? "DawnteaStudio";
-  const repo = process.env.TIL_REPOSITORY_NAME ?? "TIL";
+  const owner = getRuntimeSetting("TIL_REPOSITORY_OWNER") ?? "DawnteaStudio";
+  const repo = getRuntimeSetting("TIL_REPOSITORY_NAME") ?? "TIL";
   const octokit = await createInstallationOctokit();
   const repository = await octokit.request("GET /repos/{owner}/{repo}", { owner, repo });
   const branch = repository.data.default_branch;

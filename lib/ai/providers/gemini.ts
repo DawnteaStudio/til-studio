@@ -2,6 +2,7 @@ import { createNoteCleanupUserPrompt, noteCleanupSystemPrompt, theoryResearchSys
 import { theoryResearchSchema, type TheoryResearchResult } from "../schema";
 import { parseModelJson } from "../utils";
 import type { AIProvider } from "./types";
+import { getRuntimeSetting } from "@/lib/settings/runtime-settings";
 
 interface GeminiResponse {
   candidates?: Array<{
@@ -20,15 +21,16 @@ interface GeminiResponse {
 }
 
 export function getGeminiModel(): string {
-  return process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+  return getRuntimeSetting("GEMINI_MODEL") || "gemini-2.5-flash";
 }
 
 function getGeminiApiKey(): string {
-  if (!process.env.GEMINI_API_KEY) {
+  const apiKey = getRuntimeSetting("GEMINI_API_KEY");
+  if (!apiKey) {
     throw new Error("GEMINI_API_KEY is missing");
   }
 
-  return process.env.GEMINI_API_KEY;
+  return apiKey;
 }
 
 function geminiText(response: GeminiResponse): string {

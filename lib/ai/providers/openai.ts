@@ -3,17 +3,19 @@ import { createNoteCleanupUserPrompt, noteCleanupSystemPrompt, theoryResearchSys
 import { theoryResearchSchema, type TheoryResearchResult } from "../schema";
 import { parseModelJson } from "../utils";
 import type { AIProvider } from "./types";
+import { getRuntimeSetting } from "@/lib/settings/runtime-settings";
 
 function client(): OpenAI {
-  if (!process.env.OPENAI_API_KEY) {
+  const apiKey = getRuntimeSetting("OPENAI_API_KEY");
+  if (!apiKey) {
     throw new Error("OPENAI_API_KEY is missing");
   }
 
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return new OpenAI({ apiKey });
 }
 
 export function getOpenAIModel(): string {
-  return process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini-2024-07-18";
+  return getRuntimeSetting("OPENAI_MODEL") || "gpt-4o-mini-2024-07-18";
 }
 
 export const openAIProvider: AIProvider = {

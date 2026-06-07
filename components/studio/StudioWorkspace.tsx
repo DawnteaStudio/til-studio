@@ -24,6 +24,7 @@ import { FileEditor } from "./FileEditor";
 import { FolderTree } from "./FolderTree";
 import { NoteComposer } from "./NoteComposer";
 import { SaveControls } from "./SaveControls";
+import { SettingsPanel } from "./SettingsPanel";
 import { TheoryResearchPanel, type TheoryResearchResult } from "./TheoryResearchPanel";
 
 const initialTree: ContentNode = {
@@ -158,6 +159,7 @@ export function StudioWorkspace() {
   const [visibleRootPaths, setVisibleRootPaths] = useState<string[]>([]);
   const [status, setStatus] = useState("TIL 레포 구조를 불러오는 중");
   const [notice, setNotice] = useState<StudioNotice | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const workspace = useMemo(() => buildStudioWorkspace(tree, visibleRootPaths), [tree, visibleRootPaths]);
   const target = useMemo(() => deriveStudyTarget(selectedPath), [selectedPath]);
   const selectedTopicSources = useMemo<StudioSourceOption[]>(() => {
@@ -465,17 +467,28 @@ export function StudioWorkspace() {
           </div>
         </div>
       ) : null}
+      <SettingsPanel isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       <aside className="border-b border-[#2a2d22] bg-[#1d2118] p-5 lg:min-h-screen lg:border-b-0 lg:border-r">
         <div className="mb-6 flex items-center justify-between gap-3">
           <Link href="/" className="text-lg font-semibold text-[#f3ecd8]">
             til-studio
           </Link>
-          <Link
-            href="/blog"
-            className="rounded-full bg-[#2a2f22] px-3 py-1.5 text-xs font-medium text-[#d8d0bd] hover:bg-[#343b2a]"
-          >
-            Blog
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/blog"
+              className="rounded-full bg-[#2a2f22] px-3 py-1.5 text-xs font-medium text-[#d8d0bd] hover:bg-[#343b2a]"
+            >
+              Blog
+            </Link>
+            <button
+              type="button"
+              aria-label="설정 열기"
+              onClick={() => setIsSettingsOpen(true)}
+              className="flex size-8 items-center justify-center rounded-full bg-[#2a2f22] text-sm text-[#d8d0bd] transition hover:bg-[#343b2a] hover:text-[#f4efe4]"
+            >
+              ⚙
+            </button>
+          </div>
         </div>
         <FolderTree
           tree={tree}
