@@ -8,6 +8,7 @@ export interface RepositoryMarkdownSnapshot {
   owner: string;
   repo: string;
   branch: string;
+  allPaths: string[];
   paths: string[];
   tree: ContentNode;
 }
@@ -31,16 +32,19 @@ export async function fetchRepositoryMarkdownSnapshot(): Promise<RepositoryMarkd
     recursive: "true",
   });
 
-  const paths = gitTree.data.tree
-    .filter((item) => item.type === "blob" && item.path?.endsWith(".md"))
+  const allPaths = gitTree.data.tree
+    .filter((item) => item.type === "blob")
     .map((item) => item.path)
-    .filter((path): path is string => Boolean(path))
+    .filter((path): path is string => Boolean(path));
+  const paths = allPaths
+    .filter((path) => path.endsWith(".md"))
     .filter(shouldIndexMarkdownPath);
 
   return {
     owner,
     repo,
     branch,
+    allPaths,
     paths,
     tree: treeFromPaths(paths),
   };

@@ -1,4 +1,11 @@
 import { createInstallationOctokit } from "./client";
+import {
+  parseSourceNote,
+  sourcePathForNote,
+  sourceReadmePathForNote,
+  upsertSourceReadme,
+  type SourceMetadata,
+} from "@/lib/content/source-readme";
 import { readmePathForContentPath, topicPathForReadme, upsertTopicReadmeIndex } from "@/lib/content/topic-readme";
 import type { SaveMode } from "@/lib/content/types";
 import type { FileChange, SaveRequest, SaveResult } from "./types";
@@ -35,6 +42,65 @@ export function buildTopicReadmeChanges(input: {
         documentPaths: nextPaths,
       }),
     }));
+}
+
+export function buildSourceReadmeChanges(input: {
+  existingPaths: string[];
+  incomingChanges: FileChange[];
+  existingReadmes: Record<string, string | null | undefined>;
+  noteContents: Record<string, string | null | undefined>;
+  sourceMetadata?: SourceMetadata;
+}): FileChange[] {
+  const incomingNotes = input.incomingChanges.filter((change) =>
+    Boolean(sourceReadmePathForNote(change.path)),
+  );
+  const affectedSourcePaths = [
+    ...new Set(
+      incomingNotes
+        .map((change) => sourcePathForNote(change.path))
+        .filter((path): path is string => Boolean(path)),
+    ),
+  ];
+  const incomingContent = Object.fromEntries(
+    incomingNotes.map((change) => [change.path, change.content]),
+  );
+  const nextPaths = [...new Set([...input.existingPaths, ...incomingNotes.map((change) => change.path)])];
+
+  return affectedSourcePaths.map((sourcePath) => {
+    const readmePath = `${sourcePath}/README.md`;
+    const notePaths = nextPaths.filter(
+      (path) => path.startsWith(`${sourcePath}/note/`) && path.endsWith(".md"),
+    );
+    const notes = notePaths
+      .map((path) => {
+        const content = incomingContent[path] ?? input.noteContents[path];
+        return content ? parseSourceNote({ path, content }) : null;
+      })
+      .filter((note): note is NonNullable<typeof note> => Boolean(note));
+    const srcSlugs = [
+      ...new Set(
+        nextPaths
+          .filter((path) => path.startsWith(`${sourcePath}/src/`))
+          .map((path) => path.slice(`${sourcePath}/src/`.length).split("/")[0])
+          .filter(Boolean),
+      ),
+    ];
+    const sourceSlug = sourcePath.split("/").at(-1) ?? "source";
+
+    return {
+      path: readmePath,
+      content: upsertSourceReadme({
+        sourcePath,
+        metadata: input.sourceMetadata ?? {
+          name: sourceSlug,
+          type: "etc",
+        },
+        existingContent: input.existingReadmes[readmePath],
+        notes,
+        srcSlugs,
+      }),
+    };
+  });
 }
 
 function branchName(): string {
