@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { getAIProviderName, parseModelJson } from "@/lib/ai/service";
 import { getGeminiModel } from "@/lib/ai/providers/gemini";
 import { getOpenAIModel } from "@/lib/ai/providers/openai";
@@ -14,7 +14,12 @@ describe("OpenAI service configuration", () => {
   const originalProvider = process.env.AI_PROVIDER;
   let tempDir = "";
 
-  afterEach(() => {
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "til-studio-ai-settings-"));
+    process.env.TIL_STUDIO_SETTINGS_FILE = join(tempDir, "settings.json");
+  });
+
+  afterEach(async () => {
     if (originalSettingsFile === undefined) delete process.env.TIL_STUDIO_SETTINGS_FILE;
     else process.env.TIL_STUDIO_SETTINGS_FILE = originalSettingsFile;
     if (originalModel === undefined) delete process.env.OPENAI_MODEL;
@@ -23,7 +28,7 @@ describe("OpenAI service configuration", () => {
     else process.env.GEMINI_MODEL = originalGeminiModel;
     if (originalProvider === undefined) delete process.env.AI_PROVIDER;
     else process.env.AI_PROVIDER = originalProvider;
-    if (tempDir) return rm(tempDir, { recursive: true, force: true });
+    if (tempDir) await rm(tempDir, { recursive: true, force: true });
   });
 
   it("uses OpenAI as the default AI provider", () => {
@@ -59,8 +64,6 @@ describe("OpenAI service configuration", () => {
   });
 
   it("uses saved runtime settings before process env values", async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "til-studio-ai-settings-"));
-    process.env.TIL_STUDIO_SETTINGS_FILE = join(tempDir, "settings.json");
     process.env.AI_PROVIDER = "openai";
     process.env.OPENAI_MODEL = "gpt-env";
 
