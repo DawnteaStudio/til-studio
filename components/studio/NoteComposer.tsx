@@ -1,6 +1,6 @@
 import type { StructuredNoteDraft } from "@/lib/content/note-draft";
 
-type NoteDraftField = Exclude<keyof StructuredNoteDraft, "parentHref">;
+type NoteDraftField = Exclude<keyof StructuredNoteDraft, "created" | "parentHref">;
 
 interface NoteComposerProps {
   draft: StructuredNoteDraft;

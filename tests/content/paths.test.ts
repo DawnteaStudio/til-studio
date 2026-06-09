@@ -20,7 +20,7 @@ describe("content path helpers", () => {
         source: "book-network",
         title: "Network Layer 정리",
       }),
-    ).toBe("cs/network/notes/book-network/network-layer-정리.md");
+    ).toBe("cs/network/notes/book-network/note/network-layer-정리.md");
   });
 
   it("builds theory paths under the selected topic", () => {
@@ -34,7 +34,7 @@ describe("content path helpers", () => {
   });
 
   it("points nested documents to the nearest README", () => {
-    expect(parentReadmePath("cs/network/notes/book-network/network-layer.md")).toBe(
+    expect(parentReadmePath("cs/network/notes/book-network/note/network-layer.md")).toBe(
       "../README.md",
     );
     expect(parentReadmePath("cs/network/theory/network-layer.md")).toBe("../README.md");

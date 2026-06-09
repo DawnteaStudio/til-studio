@@ -18,6 +18,7 @@ export function buildNotePath(input: NotePathInput): string {
     input.topic,
     "notes",
     makeSlug(input.source),
+    "note",
     `${makeSlug(input.title)}.md`,
   ].join("/");
 }
@@ -31,6 +32,10 @@ export function parentReadmePath(path: string): string {
   const kindIndex = segments.findIndex((segment) => segment === "notes" || segment === "theory");
   if (kindIndex === -1) {
     return "./README.md";
+  }
+
+  if (segments[kindIndex] === "notes" && segments[kindIndex + 2] === "note") {
+    return "../README.md";
   }
 
   const depthBelowKind = segments.length - kindIndex - 2;

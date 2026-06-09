@@ -139,6 +139,7 @@ export function StudioWorkspace() {
   const [theoryTitle, setTheoryTitle] = useState("");
   const [noteDraft, setNoteDraft] = useState<StructuredNoteDraft>({
     title: "",
+    created: "",
     source: "",
     learned: "",
     confused: "",
@@ -266,7 +267,10 @@ export function StudioWorkspace() {
     }
   }
 
-  function updateNoteDraft(field: Exclude<keyof StructuredNoteDraft, "parentHref">, value: string) {
+  function updateNoteDraft(
+    field: Exclude<keyof StructuredNoteDraft, "created" | "parentHref">,
+    value: string,
+  ) {
     setNoteDraft((current) => ({ ...current, [field]: value }));
     setDraftKind("note");
   }

@@ -1,5 +1,6 @@
 export interface StructuredNoteDraft {
   title: string;
+  created: string;
   source: string;
   learned: string;
   confused: string;
@@ -26,7 +27,14 @@ export function draftToNoteMarkdown(draft: StructuredNoteDraft): string {
     .map(([section]) => `- [${section}](#${section.trim().replace(/\s+/g, "-").toLowerCase()})`)
     .join("\n");
 
-  return [`[상위로 이동](${draft.parentHref})`, `# ${draft.title.trim()}`, "## 목차", toc, sections]
+  return [
+    `---\ncreated: ${draft.created}\n---`,
+    `[상위로 이동](${draft.parentHref})`,
+    `# ${draft.title.trim()}`,
+    "## 목차",
+    toc,
+    sections,
+  ]
     .filter(Boolean)
     .join("\n\n")
     .concat("\n");
