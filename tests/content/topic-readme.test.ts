@@ -46,4 +46,18 @@ describe("topic README index generation", () => {
     expect(readme).not.toContain("old");
     expect(readme).toContain("- [tcp](theory/tcp.md)");
   });
+
+  it("encodes parentheses in source links for Markdown compatibility", () => {
+    const readme = upsertTopicReadmeIndex({
+      topicPath: "cs/networks",
+      existingContent: "# Networks",
+      documentPaths: [
+        "cs/networks/notes/TCP_IP(윤성우의 열혈)/README.md",
+      ],
+    });
+
+    expect(readme).toContain(
+      "- [TCP_IP(윤성우의 열혈)](notes/TCP_IP%28%EC%9C%A4%EC%84%B1%EC%9A%B0%EC%9D%98%20%EC%97%B4%ED%98%88%29/)",
+    );
+  });
 });

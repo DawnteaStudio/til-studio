@@ -1,3 +1,5 @@
+import { encodeMarkdownPath } from "./markdown-path";
+
 const indexStart = "<!-- til-studio:index:start -->";
 const indexEnd = "<!-- til-studio:index:end -->";
 
@@ -50,7 +52,7 @@ function renderIndexBlock(topicPath: string, documentPaths: string[]): string {
   const lines = [indexStart, "## Notes"];
   if (noteSources.size) {
     for (const source of [...noteSources].sort()) {
-      lines.push(`- [${source}](${encodeURI(`notes/${source}/`)})`);
+      lines.push(`- [${source}](${encodeMarkdownPath(`notes/${source}/`)})`);
     }
   } else {
     lines.push("", "아직 등록된 note가 없습니다.");
@@ -59,7 +61,7 @@ function renderIndexBlock(topicPath: string, documentPaths: string[]): string {
   lines.push("", "## Theory");
   if (theories.length) {
     for (const path of theories.sort()) {
-      lines.push(`- [${titleFromFilePath(path)}](${encodeURI(path)})`);
+      lines.push(`- [${titleFromFilePath(path)}](${encodeMarkdownPath(path)})`);
     }
   } else {
     lines.push("", "아직 등록된 theory가 없습니다.");
