@@ -3,6 +3,17 @@ import { describe, expect, it } from "vitest";
 import { MarkdownArticle } from "@/components/public/MarkdownArticle";
 
 describe("MarkdownArticle", () => {
+  it("hides YAML frontmatter from the rendered article", () => {
+    render(
+      <MarkdownArticle
+        markdown={"---\ncreated: 2026-06-10\n---\n\n# 배열과 포인터\n\n본문"}
+      />,
+    );
+
+    expect(screen.queryByText("created: 2026-06-10")).toBeNull();
+    expect(screen.getByRole("heading", { name: "배열과 포인터" })).toBeTruthy();
+  });
+
   it("renders inline markdown instead of showing raw markers", () => {
     render(<MarkdownArticle markdown={"# 제목\n\n**강조**와 `코드`를 읽기 좋게 표시한다."} />);
 

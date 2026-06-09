@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { treeFromPaths } from "@/lib/content/indexer";
 import { draftToNoteMarkdown, type StructuredNoteDraft } from "@/lib/content/note-draft";
-import { buildNotePath, buildTheoryPath, makeSlug, parentReadmePath } from "@/lib/content/paths";
+import { buildNotePath, buildTheoryPath, parentReadmePath } from "@/lib/content/paths";
 import { deriveStudyTarget } from "@/lib/content/studio-target";
 import {
   buildStudioWorkspace,
@@ -25,6 +25,10 @@ import { FolderTree } from "./FolderTree";
 import { NoteComposer } from "./NoteComposer";
 import { SaveControls } from "./SaveControls";
 import { SettingsPanel } from "./SettingsPanel";
+import {
+  SourceFolderPicker,
+  type SourceMetadataForm,
+} from "./SourceFolderPicker";
 import { TheoryResearchPanel, type TheoryResearchResult } from "./TheoryResearchPanel";
 
 const initialTree: ContentNode = {
@@ -58,88 +62,35 @@ function persistVisibleRootPaths(paths: string[]) {
   )}; path=/; max-age=31536000; SameSite=Lax`;
 }
 
-function SourceFolderPicker({
-  selectedPath,
-  sourceName,
-  sources,
-  onSourceNameChange,
-}: {
-  selectedPath: string;
-  sourceName: string;
-  sources: StudioSourceOption[];
-  onSourceNameChange(source: string): void;
-}) {
-  const slug = makeSlug(sourceName);
+function seoulDate(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
 
-  return (
-    <section className="mt-5 rounded-3xl bg-[#d8cebd] p-4 text-[#302c24] shadow-inner">
-      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#756b5e]">Source</p>
-          <h2 className="mt-1 text-base font-semibold text-[#25221c]">저장 source 폴더</h2>
-        </div>
-        <p className="rounded-full bg-[#27251f] px-3 py-1.5 text-xs font-medium text-[#efe7d8]">
-          {sourceName ? `선택된 source: ${sourceName}` : "source를 선택하세요"}
-        </p>
-      </div>
-
-      {!selectedPath ? (
-        <p className="mt-4 rounded-2xl bg-[#cfc2af] px-4 py-3 text-sm text-[#5a5045]">
-          먼저 topic을 선택하면 source 폴더를 고를 수 있습니다.
-        </p>
-      ) : (
-        <div className="mt-4 grid gap-4">
-          {sources.length ? (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {sources.map((source) => (
-                <button
-                  key={source.path}
-                  type="button"
-                  onClick={() => onSourceNameChange(source.name)}
-                  className={[
-                    "rounded-2xl px-4 py-3 text-left text-sm font-semibold transition",
-                    sourceName === source.name
-                      ? "bg-[#31513a] text-[#f6efe2] shadow-[0_12px_24px_rgba(49,81,58,0.22)]"
-                      : "bg-[#e8dfd0] text-[#3c362d] hover:bg-[#f3ebdf]",
-                  ].join(" ")}
-                >
-                  {source.name}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="rounded-2xl bg-[#cfc2af] px-4 py-3 text-sm text-[#5a5045]">
-              아직 source 폴더가 없습니다. 새 source를 만들어 시작하세요.
-            </p>
-          )}
-
-          <label className="grid gap-2">
-            <span className="text-sm font-semibold text-[#3f3a31]">새 source 이름</span>
-            <input
-              value={sourceName}
-              onChange={(event) => onSourceNameChange(event.target.value)}
-              placeholder="예: Software Maestro, Clean Code, Inflearn Spring"
-              className="h-12 rounded-2xl bg-[#f3ebdf] px-4 text-sm text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:ring-4 focus:ring-[#c7ad6d]/30"
-            />
-          </label>
-
-          <div className="rounded-2xl bg-[#2b2923] px-4 py-3 font-mono text-xs text-[#e8dcc7]">
-            {slug ? `저장 폴더: ${slug}` : "source 이름을 입력하면 저장 폴더가 표시됩니다"}
-          </div>
-        </div>
-      )}
-    </section>
-  );
+function ensureCreatedFrontmatter(markdown: string, created: string): string {
+  if (/^---\s*\n[\s\S]*?^created:\s*/m.test(markdown)) return markdown;
+  return `---\ncreated: ${created}\n---\n\n${markdown.trimStart()}`;
 }
 
 export function StudioWorkspace() {
   const [tree, setTree] = useState(initialTree);
   const [selectedPath, setSelectedPath] = useState("");
   const [sourceName, setSourceName] = useState("");
+  const [isCreatingSource, setIsCreatingSource] = useState(true);
+  const [sourceMetadata, setSourceMetadata] = useState<SourceMetadataForm>({
+    type: "",
+    overview: "",
+    technologies: "",
+    reference: "",
+  });
   const [theoryTitle, setTheoryTitle] = useState("");
   const [noteDraft, setNoteDraft] = useState<StructuredNoteDraft>({
     title: "",
-    created: "",
+    created: seoulDate(),
     source: "",
     learned: "",
     confused: "",
@@ -306,7 +257,7 @@ export function StudioWorkspace() {
       if (!response.ok) throw new Error("Note cleanup failed");
       const data = (await response.json()) as { markdown?: string };
       if (data.markdown) {
-        setMarkdown(data.markdown);
+        setMarkdown(ensureCreatedFrontmatter(data.markdown, noteDraft.created));
         setIsMarkdownEditing(false);
       }
       setMode("quick");
@@ -390,6 +341,15 @@ export function StudioWorkspace() {
       });
       return;
     }
+    if (draftKind === "note" && isCreatingSource && !sourceMetadata.type) {
+      setStatus("새 source의 자료 유형을 선택하세요");
+      setNotice({
+        title: "자료 유형이 필요합니다",
+        message: "책, 강의, 멘토링, 코스, 기타 중 하나를 선택하세요.",
+        tone: "error",
+      });
+      return;
+    }
 
     setStatus("GitHub 저장 요청 중");
     setNotice({
@@ -404,6 +364,21 @@ export function StudioWorkspace() {
         body: JSON.stringify({
           mode,
           message: "Add TIL note from til-studio",
+          sourceMetadata:
+            draftKind === "note" && isCreatingSource && sourceMetadata.type
+              ? {
+                  name: sourceName.trim(),
+                  type: sourceMetadata.type,
+                  overview: sourceMetadata.overview.trim() || undefined,
+                  technologies: sourceMetadata.technologies
+                    .split(",")
+                    .map((technology) => technology.trim())
+                    .filter(Boolean),
+                  references: sourceMetadata.reference.trim()
+                    ? [sourceMetadata.reference.trim()]
+                    : [],
+                }
+              : undefined,
           changes: [
             {
               path,
@@ -552,7 +527,24 @@ export function StudioWorkspace() {
               selectedPath={selectedPath}
               sourceName={sourceName}
               sources={selectedTopicSources}
+              isCreating={isCreatingSource}
+              metadata={sourceMetadata}
+              onSelectExisting={(source) => {
+                setSourceName(source);
+                setIsCreatingSource(false);
+              }}
+              onStartCreating={() => {
+                setSourceName("");
+                setIsCreatingSource(true);
+                setSourceMetadata({
+                  type: "",
+                  overview: "",
+                  technologies: "",
+                  reference: "",
+                });
+              }}
               onSourceNameChange={setSourceName}
+              onMetadataChange={setSourceMetadata}
             />
           ) : null}
         </div>

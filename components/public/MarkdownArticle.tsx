@@ -57,7 +57,7 @@ type MarkdownNode =
 const parser = unified().use(remarkParse).use(remarkGfm);
 
 export function MarkdownArticle({ markdown, imageSource }: MarkdownArticleProps) {
-  const tree = parser.parse(markdown) as Root;
+  const tree = parser.parse(stripFrontmatter(markdown)) as Root;
   const slugger = new GithubSlugger();
 
   return (
@@ -65,6 +65,10 @@ export function MarkdownArticle({ markdown, imageSource }: MarkdownArticleProps)
       {renderChildren(tree.children, "root", slugger, imageSource)}
     </div>
   );
+}
+
+function stripFrontmatter(markdown: string): string {
+  return markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
 }
 
 function renderNode(

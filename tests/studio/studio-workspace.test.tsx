@@ -6,7 +6,7 @@ const treeResponse = {
   paths: [
     "cs/algorithms/README.md",
     "cs/algorithms/theory/kmp.md",
-    "cs/algorithms/notes/APSS/ch6.md",
+    "cs/algorithms/notes/APSS/note/ch6.md",
   ],
 };
 
@@ -190,8 +190,46 @@ describe("StudioWorkspace note and theory actions", () => {
     fireEvent.click(screen.getByRole("button", { name: "APSS" }));
     expect(screen.getByText("선택된 source: APSS")).toBeTruthy();
 
+    fireEvent.click(screen.getByRole("button", { name: "새 source 만들기" }));
     fireEvent.change(screen.getByLabelText("새 source 이름"), { target: { value: "Software Maestro" } });
     expect(screen.getByText("저장 폴더: software-maestro")).toBeTruthy();
+  });
+
+  it("sends metadata when saving the first note for a new source", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/github/tree") return Response.json(treeResponse);
+      if (url === "/api/github/save") return Response.json({ mode: "quick", commitSha: "abc123" });
+      return Response.json({}, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<StudioWorkspace />);
+
+    await screen.findByText("algorithms");
+    fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByRole("button", { name: "새 source 만들기" }));
+    fireEvent.change(screen.getByLabelText("새 source 이름"), { target: { value: "혼자 공부하는 C" } });
+    fireEvent.change(screen.getByLabelText("자료 유형"), { target: { value: "book" } });
+    fireEvent.change(screen.getByLabelText("학습 개요"), { target: { value: "C 문법과 실습" } });
+    fireEvent.change(screen.getByLabelText("언어 및 기술"), { target: { value: "C, GCC" } });
+    fireEvent.change(screen.getByLabelText("참고 자료"), { target: { value: "https://example.com/book" } });
+    fireEvent.change(screen.getByLabelText("제목"), { target: { value: "배열과 포인터" } });
+    fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "배열과 포인터 관계를 배웠다." } });
+    fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/save", expect.any(Object)));
+    const saveCall = fetchMock.mock.calls.find(([url]) => String(url) === "/api/github/save");
+    const body = JSON.parse(String((saveCall?.[1] as RequestInit).body));
+
+    expect(body.sourceMetadata).toEqual({
+      name: "혼자 공부하는 C",
+      type: "book",
+      overview: "C 문법과 실습",
+      technologies: ["C", "GCC"],
+      references: ["https://example.com/book"],
+    });
+    expect(body.changes[0].path).toContain("/notes/혼자-공부하는-c/note/");
+    expect(body.changes[0].content).toContain("created:");
   });
 
   it("shows themed progress and completion notices while drafting a note", async () => {
