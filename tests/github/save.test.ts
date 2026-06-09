@@ -21,10 +21,10 @@ describe("save mode recommendation", () => {
 
   it("adds topic README updates for note and theory changes", () => {
     const changes = buildTopicReadmeChanges({
-      existingPaths: ["cs/network/notes/book-network/network-layer.md"],
+      existingPaths: ["cs/network/notes/book-network/note/network-layer.md"],
       incomingChanges: [
         {
-          path: "cs/network/notes/etc/tcp.md",
+          path: "cs/network/notes/etc/note/tcp.md",
           content: "# TCP",
         },
         {
@@ -39,8 +39,9 @@ describe("save mode recommendation", () => {
 
     expect(changes).toHaveLength(1);
     expect(changes[0].path).toBe("cs/network/README.md");
-    expect(changes[0].content).toContain("- [network-layer](notes/book-network/network-layer.md)");
-    expect(changes[0].content).toContain("- [tcp](notes/etc/tcp.md)");
+    expect(changes[0].content).toContain("- [book-network](notes/book-network/)");
+    expect(changes[0].content).toContain("- [etc](notes/etc/)");
+    expect(changes[0].content).not.toContain("notes/etc/note/tcp.md");
     expect(changes[0].content).toContain("- [udp](theory/udp.md)");
   });
 

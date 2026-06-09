@@ -30,31 +30,27 @@ export function upsertTopicReadmeIndex(input: {
 }
 
 function renderIndexBlock(topicPath: string, documentPaths: string[]): string {
-  const notesBySource = new Map<string, string[]>();
+  const noteSources = new Set<string>();
   const theories: string[] = [];
 
   for (const path of documentPaths) {
-    if (!path.startsWith(`${topicPath}/`) || path.endsWith("README.md")) continue;
+    if (!path.startsWith(`${topicPath}/`)) continue;
     const relative = path.slice(topicPath.length + 1);
     const segments = relative.split("/");
 
-    if (segments[0] === "notes" && segments.length >= 3) {
-      const source = segments[1];
-      notesBySource.set(source, [...(notesBySource.get(source) ?? []), relative]);
+    if (segments[0] === "notes" && segments.length >= 2) {
+      noteSources.add(segments[1]);
     }
 
-    if (segments[0] === "theory" && segments.length >= 2) {
+    if (segments[0] === "theory" && segments.length >= 2 && !path.endsWith("README.md")) {
       theories.push(relative);
     }
   }
 
   const lines = [indexStart, "## Notes"];
-  if (notesBySource.size) {
-    for (const [source, paths] of [...notesBySource.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-      lines.push("", `### ${source}`);
-      for (const path of paths.sort()) {
-        lines.push(`- [${titleFromFilePath(path)}](${encodeURI(path)})`);
-      }
+  if (noteSources.size) {
+    for (const source of [...noteSources].sort()) {
+      lines.push(`- [${source}](${encodeURI(`notes/${source}/`)})`);
     }
   } else {
     lines.push("", "아직 등록된 note가 없습니다.");

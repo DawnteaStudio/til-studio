@@ -16,8 +16,9 @@ describe("topic README index generation", () => {
       topicPath: "software-engineering/design",
       existingContent: "# Design\n\nHand-written intro.",
       documentPaths: [
-        "software-engineering/design/notes/etc/solid.md",
-        "software-engineering/design/notes/mentoring/oop.md",
+        "software-engineering/design/notes/etc/note/solid.md",
+        "software-engineering/design/notes/etc/note/ocp.md",
+        "software-engineering/design/notes/mentoring/note/oop.md",
         "software-engineering/design/theory/srp.md",
       ],
     });
@@ -25,10 +26,9 @@ describe("topic README index generation", () => {
     expect(readme).toContain("Hand-written intro.");
     expect(readme).toContain("<!-- til-studio:index:start -->");
     expect(readme).toContain("## Notes");
-    expect(readme).toContain("### etc");
-    expect(readme).toContain("- [solid](notes/etc/solid.md)");
-    expect(readme).toContain("### mentoring");
-    expect(readme).toContain("- [oop](notes/mentoring/oop.md)");
+    expect(readme).toContain("- [etc](notes/etc/)");
+    expect(readme).toContain("- [mentoring](notes/mentoring/)");
+    expect(readme).not.toContain("notes/etc/note/solid.md");
     expect(readme).toContain("## Theory");
     expect(readme).toContain("- [srp](theory/srp.md)");
   });
