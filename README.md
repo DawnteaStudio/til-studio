@@ -30,6 +30,7 @@ The first target repository is [`DawnteaStudio/TIL`](https://github.com/DawnteaS
 - Hide README files from public recent lists and article lists.
 - Write notes without hand-crafting the final Markdown structure.
 - Generate note paths from area, topic, source, and title.
+- Create a source README and keep its learning log synchronized with notes and source code.
 - Research a theory keyword and create a review-ready theory draft.
 - Save changes directly with Quick Save or through a pull request with Review Save.
 
@@ -81,12 +82,13 @@ Use this page when you want to create or update content in the TIL repository.
 1. Open `/studio`.
 2. In "Public folders", keep only the top-level folders you want to show publicly.
 3. Pick an area and topic from the folder tree.
-4. For a note, fill in title, source, learned content, questions, conclusion, and experiments.
-5. Click "Markdown 만들기" to turn the note draft into Markdown.
-6. Review the generated path and Markdown preview.
-7. Choose Quick for a direct commit or Review for a pull request.
-8. Save to GitHub.
-9. Open `/blog`, `/map`, or `/docs/<path>` to read the published result.
+4. For a note, choose an existing source or create one with its type and optional metadata.
+5. Fill in the title, learning source, learned content, confusion, conclusion, and experiments.
+6. Click "Markdown 만들기" to turn the note draft into Markdown.
+7. Review the generated path and Markdown preview.
+8. Choose Quick for a direct commit or Review for a pull request.
+9. Save to GitHub.
+10. Open `/blog`, `/map`, or `/docs/<path>` to read the published result.
 
 For theory writing:
 
@@ -123,6 +125,12 @@ TIL/
 │       ├── README.md
 │       ├── theory/
 │       └── notes/
+│           └── <source>/
+│               ├── README.md
+│               ├── note/
+│               │   └── <slug>.md
+│               └── src/
+│                   └── <slug>/
 ├── languages/
 │   └── <language>/
 │       ├── README.md
@@ -142,6 +150,26 @@ TIL/
 - Confusing points and questions
 - Experiments and current conclusions
 - Source-aware writing
+
+Each book, lecture, course, mentoring series, or miscellaneous source uses the same layout:
+
+```text
+notes/<source>/
+├── README.md
+├── note/
+│   └── <slug>.md
+└── src/
+    └── <slug>/
+```
+
+- Studio writes learning records to `note/<slug>.md`.
+- Practice code belongs in `src/<slug>/`; Studio does not upload or edit it.
+- A note and source directory are paired only when their slugs match exactly, including case.
+- The note frontmatter stores `created: YYYY-MM-DD`.
+- The source README contains source metadata, structure guidance, and an automatically managed learning log.
+- A note without matching source code is listed with `-`. Source code without a matching note is listed as pending.
+- Do not manually edit content between the `til-studio:learning-log` markers.
+- Git does not track empty directories, so `note/` and `src/` appear when their first file is committed.
 
 ### theory
 

@@ -131,7 +131,7 @@ The main writing flow is workspace-first:
 1. Choose the draft kind in the left workspace panel: `Notes` or `Theory`.
 2. Select a repository area such as `cs`, `languages`, or `projects`.
 3. Select or create a topic folder such as `algorithms`, `spring`, or `javascript`.
-4. For `Notes`, select or create a source folder under `notes`, using only a simple folder name.
+4. For `Notes`, select an existing source or create one with a name, type, and optional metadata.
 5. In `Notes`, write the study note and optionally use AI to organize it into the default note template.
 6. In `Theory`, enter a concept keyword and run web research.
 7. Review the web research result, including definition, key points, cautions, and sources.
@@ -140,15 +140,15 @@ The main writing flow is workspace-first:
 
 The Studio workspace selector must not expose raw repository implementation folders such as `notes` and `theory` as places the user manually chooses. The selected draft kind determines the destination folder:
 
-- `Notes` writes to `<area>/<topic>/notes/<source>/<slug>.md`.
+- `Notes` writes to `<area>/<topic>/notes/<source>/note/<slug>.md`.
 - `Theory` writes to `<area>/<topic>/theory/<concept-slug>.md`.
 
 The note file unit is chapter/topic based, not daily. Examples:
 
 ```text
-cs/algorithms/notes/inflearn-algorithm/01-time-complexity.md
-cs/algorithms/notes/inflearn-algorithm/02-sorting.md
-cs/spring/notes/inflearn-spring-db/transactional-rollback.md
+cs/algorithms/notes/inflearn-algorithm/note/01-time-complexity.md
+cs/algorithms/notes/inflearn-algorithm/note/02-sorting.md
+cs/spring/notes/inflearn-spring-db/note/transactional-rollback.md
 ```
 
 ## Studio UI
@@ -169,7 +169,7 @@ The left panel is a guided workspace picker, not a generic file browser:
 - `Source` is shown only for `Notes`, lists existing source folders under the selected topic's `notes` folder, and supports entering a new lecture, book, course, or project source.
 - Public visibility preferences remain separate from the write-location selector.
 
-Source selection belongs in the center writing workspace near the save-path preview, not in the left navigation. The left navigation chooses only draft kind, area, and topic. The center source picker must clearly separate existing source folders from creating a new source, show the selected source, and preview the slugged folder name that will be written under `notes/<source>/`.
+Source selection belongs in the center writing workspace near the save-path preview, not in the left navigation. The left navigation chooses only draft kind, area, and topic. The center source picker must clearly separate existing source folders from creating a new source, show the selected source, collect required source type and optional overview/technology/reference metadata for a new source, and preview the slugged folder name that will be written under `notes/<source>/`.
 
 The right panel changes by draft kind:
 
