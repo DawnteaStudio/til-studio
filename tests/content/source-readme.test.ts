@@ -95,4 +95,33 @@ describe("source README generation", () => {
     expect(readme).toContain("| - | Ch06 | [src](./src/Ch06/) | - |");
     expect(readme).not.toContain("## 연결 대기");
   });
+
+  it("renders technology badges and plain text technologies", () => {
+    const readme = upsertSourceReadme({
+      sourcePath: "languages/java/notes/java-intro",
+      metadata: {
+        name: "Java Intro",
+        type: "lecture",
+        technologies: [
+          {
+            name: "Java",
+            badge: {
+              label: "Java",
+              color: "ED8B00",
+              logo: "openjdk",
+              logoColor: "white",
+            },
+          },
+          { name: "JVM internals" },
+        ],
+      },
+      notes: [],
+      srcSlugs: [],
+    });
+
+    expect(readme).toContain(
+      "![Java](https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=white&style=plastic)",
+    );
+    expect(readme).toContain("- JVM internals");
+  });
 });

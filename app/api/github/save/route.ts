@@ -26,7 +26,24 @@ const saveSchema = z.object({
       name: z.string().min(1),
       type: z.enum(["book", "lecture", "mentoring", "course", "etc"]),
       overview: z.string().optional(),
-      technologies: z.array(z.string()).optional(),
+      technologies: z
+        .array(
+          z.union([
+            z.string(),
+            z.object({
+              name: z.string().min(1),
+              badge: z
+                .object({
+                  label: z.string(),
+                  color: z.string(),
+                  logo: z.string(),
+                  logoColor: z.string(),
+                })
+                .optional(),
+            }),
+          ]),
+        )
+        .optional(),
       references: z.array(z.string()).optional(),
     })
     .optional(),

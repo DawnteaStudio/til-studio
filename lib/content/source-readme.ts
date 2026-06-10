@@ -1,4 +1,8 @@
 import { extractTitle } from "./markdown";
+import {
+  technologyBadgeMarkdown,
+  type TechnologyMetadata,
+} from "./technology-badges";
 
 const learningLogStart = "<!-- til-studio:learning-log:start -->";
 const learningLogEnd = "<!-- til-studio:learning-log:end -->";
@@ -9,7 +13,7 @@ export type SourceMetadata = {
   name: string;
   type: SourceType;
   overview?: string;
-  technologies?: string[];
+  technologies?: Array<string | TechnologyMetadata>;
   references?: string[];
 };
 
@@ -78,7 +82,11 @@ export function upsertSourceReadme(input: {
 function createSourceReadmeBase(sourcePath: string, metadata: SourceMetadata): string {
   const sourceSlug = sourcePath.split("/").at(-1) ?? "source";
   const overview = metadata.overview?.trim() || `${metadata.name} 학습 내용을 정리합니다.`;
-  const technologies = (metadata.technologies ?? []).filter(Boolean);
+  const technologies = (metadata.technologies ?? [])
+    .map((technology) =>
+      typeof technology === "string" ? { name: technology } : technology,
+    )
+    .filter((technology) => technology.name.trim());
   const references = (metadata.references ?? []).filter(Boolean);
 
   return [
@@ -102,7 +110,13 @@ function createSourceReadmeBase(sourcePath: string, metadata: SourceMetadata): s
     "- `build/`, `.gradle/`, `node_modules/`, 바이너리와 IDE 캐시는 커밋하지 않습니다.",
     "- 학습 기록 관리 블록은 자동 생성되므로 직접 수정하지 않습니다.",
     ...(technologies.length
-      ? ["## 언어 및 기술", ...technologies.map((technology) => `- ${technology}`)]
+      ? [
+          "## 언어 및 기술",
+          ...technologies.map(
+            (technology) =>
+              technologyBadgeMarkdown(technology) ?? `- ${technology.name}`,
+          ),
+        ]
       : []),
     ...(references.length
       ? ["## 참고 자료", ...references.map((reference) => `- ${reference}`)]
