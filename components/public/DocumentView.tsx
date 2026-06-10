@@ -3,6 +3,7 @@ import type { IndexedDocument } from "@/lib/content/types";
 import { extractHeadingAnchors } from "@/lib/content/markdown";
 import { HashLink } from "./HashLink";
 import { MarkdownArticle } from "./MarkdownArticle";
+import { NoteDeleteControl } from "./NoteDeleteControl";
 
 interface DocumentViewProps {
   document: IndexedDocument & {
@@ -30,6 +31,9 @@ export function DocumentView({ document }: DocumentViewProps) {
             학습 지도
           </Link>
         </div>
+        {document.kind === "note" ? (
+          <NoteDeleteControl title={document.title} path={document.path} />
+        ) : null}
         <div className="space-y-2 border-l border-[#c8bba7] pl-4">
           {headings.map((heading) => (
             <HashLink
