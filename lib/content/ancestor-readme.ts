@@ -21,6 +21,8 @@ export function isRemovableAncestorReadme(input: {
   directoryPath: string;
   content: string;
 }): boolean {
+  if (!input.directoryPath) return false;
+
   const base = removeManagedBlock(normalizeReadme(input.content));
   return base === createMinimalReadme(input.directoryPath);
 }

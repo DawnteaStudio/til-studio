@@ -156,6 +156,17 @@ describe("ancestor README generation", () => {
     expect(isRemovableAncestorReadme({ directoryPath, content })).toBe(true);
   });
 
+  it("never classifies the generated root README as removable", () => {
+    const directoryPath = "";
+    const content = upsertAncestorReadme({
+      directoryPath,
+      existingContent: null,
+      repositoryPaths: [],
+    });
+
+    expect(isRemovableAncestorReadme({ directoryPath, content })).toBe(false);
+  });
+
   it("preserves a generated ancestor README with user prose outside its managed block", () => {
     const directoryPath = "new-area";
     const content = `${upsertAncestorReadme({
