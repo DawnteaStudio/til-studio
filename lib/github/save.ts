@@ -145,15 +145,38 @@ export async function saveToGitHub(request: SaveRequest): Promise<SaveResult> {
       existingSha = undefined;
     }
 
-    const updated = await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
-      owner,
-      repo,
-      branch: targetBranch,
-      path: change.path,
-      message: request.message,
-      content: Buffer.from(change.content, "utf8").toString("base64"),
-      sha: existingSha,
-    });
+    if (change.operation === "delete") {
+      if (!existingSha) {
+        throw new Error(`GitHub deletion target does not exist: ${change.path}`);
+      }
+
+      const deleted = await octokit.request(
+        "DELETE /repos/{owner}/{repo}/contents/{path}",
+        {
+          owner,
+          repo,
+          branch: targetBranch,
+          path: change.path,
+          message: request.message,
+          sha: existingSha,
+        },
+      );
+      latestCommitSha = deleted.data.commit.sha ?? latestCommitSha;
+      continue;
+    }
+
+    const updated = await octokit.request(
+      "PUT /repos/{owner}/{repo}/contents/{path}",
+      {
+        owner,
+        repo,
+        branch: targetBranch,
+        path: change.path,
+        message: request.message,
+        content: Buffer.from(change.content, "utf8").toString("base64"),
+        sha: existingSha,
+      },
+    );
 
     latestCommitSha = updated.data.commit.sha ?? latestCommitSha;
   }

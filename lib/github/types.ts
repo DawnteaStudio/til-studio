@@ -7,15 +7,27 @@ export interface RepositoryRef {
 }
 
 export interface FileChange {
+  operation?: "upsert";
   path: string;
   content: string;
 }
+
+export type RepositoryChange =
+  | {
+      operation: "upsert";
+      path: string;
+      content: string;
+    }
+  | {
+      operation: "delete";
+      path: string;
+    };
 
 export interface SaveRequest {
   repository: RepositoryRef;
   mode: SaveMode;
   message: string;
-  changes: FileChange[];
+  changes: RepositoryChange[];
 }
 
 export interface SaveResult {

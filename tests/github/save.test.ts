@@ -1,9 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildSourceReadmeChanges,
   buildTopicReadmeChanges,
   recommendSaveMode,
+  saveToGitHub,
 } from "@/lib/github/save";
+
+const requestMock = vi.fn();
+
+vi.mock("@/lib/github/client", () => ({
+  createInstallationOctokit: vi.fn(async () => ({
+    request: requestMock,
+  })),
+}));
+
+beforeEach(() => {
+  requestMock.mockReset();
+});
 
 describe("save mode recommendation", () => {
   it("quick-saves ordinary notes", () => {
@@ -70,5 +83,105 @@ describe("save mode recommendation", () => {
     expect(changes[0].content).toContain(
       "| 2026-06-10 | 배열과 포인터 | [src](./src/array-pointer/) | [note](./note/array-pointer.md) |",
     );
+  });
+});
+
+describe("GitHub change publication", () => {
+  it("publishes upserts and deletions to the selected branch", async () => {
+    requestMock.mockImplementation(async (route: string, parameters: Record<string, unknown>) => {
+      if (route === "GET /repos/{owner}/{repo}/git/ref/{ref}") {
+        return { data: { object: { sha: "base-sha" } } };
+      }
+      if (route === "POST /repos/{owner}/{repo}/git/refs") {
+        return { data: {} };
+      }
+      if (route === "GET /repos/{owner}/{repo}/contents/{path}") {
+        return {
+          data: {
+            type: "file",
+            sha: parameters.path === "languages/java/README.md" ? "readme-sha" : "note-sha",
+          },
+        };
+      }
+      if (route === "PUT /repos/{owner}/{repo}/contents/{path}") {
+        return { data: { commit: { sha: "upsert-commit" } } };
+      }
+      if (route === "DELETE /repos/{owner}/{repo}/contents/{path}") {
+        return { data: { commit: { sha: "delete-commit" } } };
+      }
+      if (route === "POST /repos/{owner}/{repo}/pulls") {
+        return { data: { html_url: "https://github.com/example/repo/pull/1" } };
+      }
+      throw new Error(`Unexpected route: ${route}`);
+    });
+
+    const result = await saveToGitHub({
+      repository: {
+        owner: "example",
+        repo: "repo",
+        defaultBranch: "main",
+      },
+      mode: "review",
+      message: "Update TIL",
+      changes: [
+        {
+          operation: "upsert",
+          path: "languages/java/README.md",
+          content: "# Java",
+        },
+        {
+          operation: "delete",
+          path: "languages/java/notes/java-intro/note/test.md",
+        },
+      ],
+    });
+
+    expect(requestMock).toHaveBeenCalledWith(
+      "PUT /repos/{owner}/{repo}/contents/{path}",
+      expect.objectContaining({
+        branch: expect.stringMatching(/^til-studio\//),
+        path: "languages/java/README.md",
+        sha: "readme-sha",
+      }),
+    );
+    expect(requestMock).toHaveBeenCalledWith(
+      "DELETE /repos/{owner}/{repo}/contents/{path}",
+      expect.objectContaining({
+        branch: expect.stringMatching(/^til-studio\//),
+        path: "languages/java/notes/java-intro/note/test.md",
+        sha: "note-sha",
+      }),
+    );
+    expect(result.pullRequestUrl).toBe("https://github.com/example/repo/pull/1");
+  });
+
+  it("rejects deletion when the target file no longer exists", async () => {
+    requestMock.mockImplementation(async (route: string) => {
+      if (route === "GET /repos/{owner}/{repo}/git/ref/{ref}") {
+        return { data: { object: { sha: "base-sha" } } };
+      }
+      if (route === "GET /repos/{owner}/{repo}/contents/{path}") {
+        throw new Error("Not found");
+      }
+      throw new Error(`Unexpected route: ${route}`);
+    });
+
+    await expect(
+      saveToGitHub({
+        repository: {
+          owner: "example",
+          repo: "repo",
+          defaultBranch: "main",
+        },
+        mode: "quick",
+        message: "Delete TIL note",
+        changes: [
+          {
+            operation: "delete",
+            path: "languages/java/notes/java-intro/note/test.md",
+          },
+        ],
+      }),
+    ).rejects.toThrow("GitHub deletion target does not exist");
   });
 });
