@@ -131,7 +131,7 @@ The main writing flow is workspace-first:
 1. Choose the draft kind in the left workspace panel: `Notes` or `Theory`.
 2. Select a repository area such as `cs`, `languages`, or `projects`.
 3. Select or create a topic folder such as `algorithms`, `spring`, or `javascript`.
-4. For `Notes`, select an existing source or create one with a name, type, and optional metadata.
+4. For `Notes`, select an existing learning material or create one with a name, type, and optional metadata.
 5. In `Notes`, write the study note and optionally use AI to organize it into the default note template.
 6. In `Theory`, enter a concept keyword and run web research.
 7. Review the web research result, including definition, key points, cautions, and sources.
@@ -155,7 +155,7 @@ cs/spring/notes/inflearn-spring-db/note/transactional-rollback.md
 
 The writing screen uses a workspace layout:
 
-- left panel: draft kind, area, topic, source, and visibility preferences
+- left panel: draft kind, area, topic, and visibility preferences
 - center panel: Markdown editor and preview
 - right panel: mode-specific tools and save controls
 
@@ -166,10 +166,10 @@ The left panel is a guided workspace picker, not a generic file browser:
 - `Notes` and `Theory` are mode controls.
 - `Area` shows publishable top-level roots.
 - `Topic` shows existing topics and supports creating a new topic by slugging the entered name.
-- `Source` is shown only for `Notes`, lists existing source folders under the selected topic's `notes` folder, and supports entering a new lecture, book, course, or project source.
+- The center `학습 자료` picker is shown only for `Notes`. It uses mutually exclusive existing-material and new-material modes.
 - Public visibility preferences remain separate from the write-location selector.
 
-Source selection belongs in the center writing workspace near the save-path preview, not in the left navigation. The left navigation chooses only draft kind, area, and topic. The center source picker must clearly separate existing source folders from creating a new source, show the selected source, collect required source type and optional overview/technology/reference metadata for a new source, and preview the slugged folder name that will be written under `notes/<source>/`.
+Learning-material selection belongs in the center writing workspace near the save-path preview, not in the left navigation. The left navigation chooses only draft kind, area, and topic. The picker must hide existing materials while new-material creation is active, hide creation fields while existing-material selection is active, show the selected material, collect required material type and optional overview/technology/reference metadata, and preview the final note path. Known technologies receive editable Shields/Simple Icons badge recommendations; unknown technologies remain plain text.
 
 The right panel changes by draft kind:
 
@@ -180,9 +180,9 @@ The right panel changes by draft kind:
 
 Required MVP actions:
 
-- select existing area, topic, and source
+- select existing area, topic, and learning material
 - create new topic
-- create new source
+- create new learning material
 - create topic note file
 - generate note template
 - generate table of contents and parent navigation
@@ -231,7 +231,7 @@ Secret handling rules:
 - Stored runtime settings are kept in a gitignored local file and are read server-side before falling back to `.env.local` / `process.env`.
 - AI and GitHub clients must read settings through a shared server-side settings helper, so changing settings does not require editing `.env.local` for normal local usage.
 
-Saving a note or theory must also update the selected topic's `README.md`. The save API should enrich the requested file changes with a til-studio-managed README index block that lists notes grouped by source and theory documents. Existing prose outside the managed block must be preserved. Quick saves update the README in the same commit; review saves include the README in the same draft PR.
+Saving or deleting a note and saving a theory must regenerate every affected managed README from the changed document through the repository root. For notes this includes the learning-material README, topic README, every ancestor README, and root README. Missing ancestor READMEs are created, existing prose outside managed markers is preserved, and legacy child lists are replaced without duplication. This recursion applies to every area, including newly created top-level areas. Quick mode publishes the complete change set in one commit; Review mode includes it in one draft pull request.
 
 ## Theory Research And Creation
 

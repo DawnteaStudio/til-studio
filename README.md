@@ -29,8 +29,10 @@ The first target repository is [`DawnteaStudio/TIL`](https://github.com/DawnteaS
 - Choose which top-level folders are visible from Studio.
 - Hide README files from public recent lists and article lists.
 - Write notes without hand-crafting the final Markdown structure.
-- Generate note paths from area, topic, source, and title.
-- Create a source README and keep its learning log synchronized with notes and source code.
+- Generate note paths from area, topic, learning material, and title.
+- Create a learning-material README and keep its learning log synchronized with notes and source code.
+- Update every affected README from the learning material through the repository root.
+- Delete notes from the document reader through Quick or Review mode.
 - Research a theory keyword and create a review-ready theory draft.
 - Save changes directly with Quick Save or through a pull request with Review Save.
 
@@ -82,7 +84,7 @@ Use this page when you want to create or update content in the TIL repository.
 1. Open `/studio`.
 2. In "Public folders", keep only the top-level folders you want to show publicly.
 3. Pick an area and topic from the folder tree.
-4. For a note, choose an existing source or create one with its type and optional metadata.
+4. For a note, choose an existing learning material or create one with its type and optional metadata.
 5. Fill in the title, learning source, learned content, confusion, conclusion, and experiments.
 6. Click "Markdown 만들기" to turn the note draft into Markdown.
 7. Review the generated path and Markdown preview.
@@ -143,13 +145,13 @@ TIL/
 
 ### notes
 
-`notes/` is for raw learning records:
+`notes/` is for source-aware learning records:
 
 - Lecture or book notes
 - Work-in-progress understanding
 - Confusing points and questions
 - Experiments and current conclusions
-- Source-aware writing
+- Writing tied to a book, lecture, course, mentoring series, or other learning material
 
 Each book, lecture, course, mentoring series, or miscellaneous source uses the same layout:
 
@@ -166,10 +168,18 @@ notes/<source>/
 - Practice code belongs in `src/<slug>/`; Studio does not upload or edit it.
 - A note and source directory are paired only when their slugs match exactly, including case.
 - The note frontmatter stores `created: YYYY-MM-DD`.
-- The source README contains source metadata, structure guidance, and an automatically managed learning log.
+- The learning-material README contains metadata, structure guidance, and an automatically managed learning log.
 - The learning log is the union of note and src slugs. A missing side is shown as `-` in the same row.
 - Do not manually edit content between the `til-studio:learning-log` markers.
 - Git does not track empty directories, so `note/` and `src/` appear when their first file is committed.
+
+When Studio saves or deletes a note, it regenerates every affected managed index in the same commit or pull request: the learning-material README, topic README, each ancestor README, and the repository root README. New topics and new top-level areas therefore appear in their parent indexes automatically.
+
+The new learning-material form accepts technologies one at a time. Known technologies receive an editable Shields/Simple Icons badge recommendation; unknown technologies remain plain text. The saved README uses the final label, color, logo, and logo color chosen in Studio.
+
+### Deleting a note
+
+Open a note in the document reader and select delete. Review mode is selected by default and creates a draft pull request; Quick mode commits directly. The note and all affected managed README indexes are updated together. Theory deletion and administrator-only controls are deferred.
 
 ### theory
 
