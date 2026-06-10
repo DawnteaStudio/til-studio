@@ -144,14 +144,17 @@ function renderLearningLog(notes: SourceNote[], srcSlugs: string[]): string {
 
   if (sortedNotes.length || srcOnlySlugs.length) {
     for (const note of sortedNotes) {
-      const srcLink = sourceSet.has(note.slug) ? `[src](./src/${encodeURIComponent(note.slug)}/)` : "-";
+      const srcLink = sourceSet.has(note.slug)
+        ? `[${escapeLinkLabel(note.slug)}](./src/${encodeURIComponent(note.slug)}/)`
+        : "-";
+      const noteFilename = `${note.slug}.md`;
       lines.push(
-        `| ${note.created || "-"} | ${escapeTableCell(note.title)} | ${srcLink} | [note](./note/${encodeURIComponent(note.slug)}.md) |`,
+        `| ${note.created || "-"} | ${escapeTableCell(note.title)} | ${srcLink} | [${escapeLinkLabel(noteFilename)}](./note/${encodeURIComponent(note.slug)}.md) |`,
       );
     }
     for (const slug of srcOnlySlugs) {
       lines.push(
-        `| - | ${escapeTableCell(readableSlug(slug))} | [src](./src/${encodeURIComponent(slug)}/) | - |`,
+        `| - | ${escapeTableCell(readableSlug(slug))} | [${escapeLinkLabel(slug)}](./src/${encodeURIComponent(slug)}/) | - |`,
       );
     }
   } else {
@@ -179,6 +182,10 @@ function readableSlug(slug: string): string {
 
 function escapeTableCell(value: string): string {
   return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+}
+
+function escapeLinkLabel(value: string): string {
+  return escapeTableCell(value).replace(/\[/g, "\\[").replace(/\]/g, "\\]");
 }
 
 function escapeRegExp(value: string): string {

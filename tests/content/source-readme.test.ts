@@ -60,13 +60,13 @@ describe("source README generation", () => {
     expect(readme).toContain("├── note/");
     expect(readme).toContain("└── src/");
     expect(readme).toContain(
-      "| 2026-06-09 | 변수와 입력 | - | [note](./note/variable.md) |",
+      "| 2026-06-09 | 변수와 입력 | - | [variable.md](./note/variable.md) |",
     );
     expect(readme).toContain(
-      "| 2026-06-10 | 배열과 포인터 | [src](./src/array-pointer/) | [note](./note/array-pointer.md) |",
+      "| 2026-06-10 | 배열과 포인터 | [array-pointer](./src/array-pointer/) | [array-pointer.md](./note/array-pointer.md) |",
     );
     expect(readme).toContain(
-      "| - | collections | [src](./src/collections/) | - |",
+      "| - | collections | [collections](./src/collections/) | - |",
     );
     expect(readme).not.toContain("## 연결 대기");
   });
@@ -92,7 +92,7 @@ describe("source README generation", () => {
     expect(readme).toContain("직접 작성한 참고");
     expect(readme).not.toContain("\nold\n");
     expect(readme).toContain("| 2026-06-10 | 무식하게 풀기 | - |");
-    expect(readme).toContain("| - | Ch06 | [src](./src/Ch06/) | - |");
+    expect(readme).toContain("| - | Ch06 | [Ch06](./src/Ch06/) | - |");
     expect(readme).not.toContain("## 연결 대기");
   });
 

@@ -67,7 +67,7 @@ describe("repository change planning", () => {
     ]);
 
     expect(upsertContent(changes, "languages/java/notes/java-intro/README.md")).toContain(
-      "| 2026-06-10 | Test note | - | [note](./note/test.md) |",
+      "| 2026-06-10 | Test note | - | [test.md](./note/test.md) |",
     );
     expect(upsertContent(changes, "languages/java/README.md")).toContain(
       "- [java-intro](notes/java-intro/)",
@@ -109,7 +109,7 @@ describe("repository change planning", () => {
       "languages/c/notes/hongongc/README.md",
     );
     expect(sourceReadme).toContain(
-      "| - | ch2 | [src](./src/ch2/) | - |",
+      "| - | ch2 | [ch2](./src/ch2/) | - |",
     );
     expect(sourceReadme).not.toContain("./note/ch2.md");
   });

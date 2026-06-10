@@ -81,33 +81,39 @@ describe("save mode recommendation", () => {
     expect(changes).toHaveLength(1);
     expect(changes[0].path).toBe("languages/c/notes/hongongc/README.md");
     expect(changes[0].content).toContain(
-      "| 2026-06-10 | 배열과 포인터 | [src](./src/array-pointer/) | [note](./note/array-pointer.md) |",
+      "| 2026-06-10 | 배열과 포인터 | [array-pointer](./src/array-pointer/) | [array-pointer.md](./note/array-pointer.md) |",
     );
   });
 });
 
 describe("GitHub change publication", () => {
-  it("publishes upserts and deletions to the selected branch", async () => {
+  it("publishes all upserts and deletions in one commit", async () => {
     requestMock.mockImplementation(async (route: string, parameters: Record<string, unknown>) => {
       if (route === "GET /repos/{owner}/{repo}/git/ref/{ref}") {
         return { data: { object: { sha: "base-sha" } } };
       }
-      if (route === "POST /repos/{owner}/{repo}/git/refs") {
-        return { data: {} };
+      if (route === "GET /repos/{owner}/{repo}/git/commits/{commit_sha}") {
+        return { data: { tree: { sha: "base-tree-sha" } } };
       }
-      if (route === "GET /repos/{owner}/{repo}/contents/{path}") {
+      if (route === "GET /repos/{owner}/{repo}/git/trees/{tree_sha}") {
         return {
-          data: {
-            type: "file",
-            sha: parameters.path === "languages/java/README.md" ? "readme-sha" : "note-sha",
-          },
+          data: { tree: [
+            { type: "blob", path: "languages/java/README.md", sha: "readme-sha" },
+            { type: "blob", path: "languages/java/notes/java-intro/note/test.md", sha: "note-sha" },
+          ] },
         };
       }
-      if (route === "PUT /repos/{owner}/{repo}/contents/{path}") {
-        return { data: { commit: { sha: "upsert-commit" } } };
+      if (route === "POST /repos/{owner}/{repo}/git/blobs") {
+        return { data: { sha: `blob-${String(parameters.content).length}` } };
       }
-      if (route === "DELETE /repos/{owner}/{repo}/contents/{path}") {
-        return { data: { commit: { sha: "delete-commit" } } };
+      if (route === "POST /repos/{owner}/{repo}/git/trees") {
+        return { data: { sha: "next-tree-sha" } };
+      }
+      if (route === "POST /repos/{owner}/{repo}/git/commits") {
+        return { data: { sha: "next-commit-sha" } };
+      }
+      if (route === "POST /repos/{owner}/{repo}/git/refs") {
+        return { data: {} };
       }
       if (route === "POST /repos/{owner}/{repo}/pulls") {
         return { data: { html_url: "https://github.com/example/repo/pull/1" } };
@@ -136,23 +142,39 @@ describe("GitHub change publication", () => {
       ],
     });
 
+    expect(requestMock).toHaveBeenCalledTimes(8);
     expect(requestMock).toHaveBeenCalledWith(
-      "PUT /repos/{owner}/{repo}/contents/{path}",
+      "POST /repos/{owner}/{repo}/git/trees",
       expect.objectContaining({
-        branch: expect.stringMatching(/^til-studio\//),
-        path: "languages/java/README.md",
-        sha: "readme-sha",
+        base_tree: "base-tree-sha",
+        tree: expect.arrayContaining([
+          expect.objectContaining({
+            path: "languages/java/README.md",
+            type: "blob",
+          }),
+          {
+            path: "languages/java/notes/java-intro/note/test.md",
+            mode: "100644",
+            type: "blob",
+            sha: null,
+          },
+        ]),
       }),
     );
     expect(requestMock).toHaveBeenCalledWith(
-      "DELETE /repos/{owner}/{repo}/contents/{path}",
+      "POST /repos/{owner}/{repo}/git/commits",
       expect.objectContaining({
-        branch: expect.stringMatching(/^til-studio\//),
-        path: "languages/java/notes/java-intro/note/test.md",
-        sha: "note-sha",
+        tree: "next-tree-sha",
+        parents: ["base-sha"],
       }),
     );
+    expect(
+      requestMock.mock.calls.filter(
+        ([route]) => route === "POST /repos/{owner}/{repo}/git/commits",
+      ),
+    ).toHaveLength(1);
     expect(result.pullRequestUrl).toBe("https://github.com/example/repo/pull/1");
+    expect(result.commitSha).toBe("next-commit-sha");
   });
 
   it("rejects deletion when the target file no longer exists", async () => {
@@ -160,8 +182,11 @@ describe("GitHub change publication", () => {
       if (route === "GET /repos/{owner}/{repo}/git/ref/{ref}") {
         return { data: { object: { sha: "base-sha" } } };
       }
-      if (route === "GET /repos/{owner}/{repo}/contents/{path}") {
-        throw new Error("Not found");
+      if (route === "GET /repos/{owner}/{repo}/git/commits/{commit_sha}") {
+        return { data: { tree: { sha: "base-tree-sha" } } };
+      }
+      if (route === "GET /repos/{owner}/{repo}/git/trees/{tree_sha}") {
+        return { data: { tree: [] } };
       }
       throw new Error(`Unexpected route: ${route}`);
     });
@@ -183,5 +208,65 @@ describe("GitHub change publication", () => {
         ],
       }),
     ).rejects.toThrow("GitHub deletion target does not exist");
+  });
+
+  it("advances main once for a quick save without forcing", async () => {
+    requestMock.mockImplementation(async (route: string) => {
+      if (route === "GET /repos/{owner}/{repo}/git/ref/{ref}") {
+        return { data: { object: { sha: "base-sha" } } };
+      }
+      if (route === "GET /repos/{owner}/{repo}/git/commits/{commit_sha}") {
+        return { data: { tree: { sha: "base-tree-sha" } } };
+      }
+      if (route === "GET /repos/{owner}/{repo}/git/trees/{tree_sha}") {
+        return { data: { tree: [] } };
+      }
+      if (route === "POST /repos/{owner}/{repo}/git/blobs") {
+        return { data: { sha: "note-blob-sha" } };
+      }
+      if (route === "POST /repos/{owner}/{repo}/git/trees") {
+        return { data: { sha: "next-tree-sha" } };
+      }
+      if (route === "POST /repos/{owner}/{repo}/git/commits") {
+        return { data: { sha: "next-commit-sha" } };
+      }
+      if (route === "PATCH /repos/{owner}/{repo}/git/refs/{ref}") {
+        return { data: {} };
+      }
+      throw new Error(`Unexpected route: ${route}`);
+    });
+
+    await saveToGitHub({
+      repository: {
+        owner: "example",
+        repo: "repo",
+        defaultBranch: "main",
+      },
+      mode: "quick",
+      message: "Add TIL note",
+      changes: [
+        {
+          operation: "upsert",
+          path: "languages/java/notes/book/note/records.md",
+          content: "# Records",
+        },
+      ],
+    });
+
+    expect(requestMock).toHaveBeenCalledWith(
+      "PATCH /repos/{owner}/{repo}/git/refs/{ref}",
+      {
+        owner: "example",
+        repo: "repo",
+        ref: "heads/main",
+        sha: "next-commit-sha",
+        force: false,
+      },
+    );
+    expect(
+      requestMock.mock.calls.filter(
+        ([route]) => route === "PATCH /repos/{owner}/{repo}/git/refs/{ref}",
+      ),
+    ).toHaveLength(1);
   });
 });

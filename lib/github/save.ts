@@ -117,68 +117,94 @@ export async function saveToGitHub(request: SaveRequest): Promise<SaveResult> {
     ref: `heads/${defaultBranch}`,
   });
   const baseSha = baseRef.data.object.sha;
+  const baseCommit = await octokit.request(
+    "GET /repos/{owner}/{repo}/git/commits/{commit_sha}",
+    { owner, repo, commit_sha: baseSha },
+  );
+  const baseTreeSha = baseCommit.data.tree.sha;
+  const baseTree = await octokit.request(
+    "GET /repos/{owner}/{repo}/git/trees/{tree_sha}",
+    {
+      owner,
+      repo,
+      tree_sha: baseTreeSha,
+      recursive: "true",
+    },
+  );
+  const existingPaths = new Set(
+    baseTree.data.tree
+      .filter((entry) => entry.type === "blob" && entry.path)
+      .map((entry) => entry.path as string),
+  );
+  const tree = [];
+
+  for (const change of request.changes) {
+    if (change.operation === "delete") {
+      if (!existingPaths.has(change.path)) {
+        throw new Error(`GitHub deletion target does not exist: ${change.path}`);
+      }
+      tree.push({
+        path: change.path,
+        mode: "100644" as const,
+        type: "blob" as const,
+        sha: null,
+      });
+      continue;
+    }
+
+    const blob = await octokit.request(
+      "POST /repos/{owner}/{repo}/git/blobs",
+      {
+        owner,
+        repo,
+        content: Buffer.from(change.content, "utf8").toString("base64"),
+        encoding: "base64",
+      },
+    );
+    tree.push({
+      path: change.path,
+      mode: "100644" as const,
+      type: "blob" as const,
+      sha: blob.data.sha,
+    });
+  }
+
+  const nextTree = await octokit.request(
+    "POST /repos/{owner}/{repo}/git/trees",
+    {
+      owner,
+      repo,
+      base_tree: baseTreeSha,
+      tree,
+    },
+  );
+  const nextCommit = await octokit.request(
+    "POST /repos/{owner}/{repo}/git/commits",
+    {
+      owner,
+      repo,
+      message: request.message,
+      tree: nextTree.data.sha,
+      parents: [baseSha],
+    },
+  );
+  const latestCommitSha = nextCommit.data.sha;
 
   if (request.mode === "review") {
     await octokit.request("POST /repos/{owner}/{repo}/git/refs", {
       owner,
       repo,
       ref: `refs/heads/${targetBranch}`,
-      sha: baseSha,
+      sha: latestCommitSha,
     });
-  }
-
-  let latestCommitSha = baseSha;
-
-  for (const change of request.changes) {
-    let existingSha: string | undefined;
-    try {
-      const existing = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", {
-        owner,
-        repo,
-        path: change.path,
-        ref: targetBranch,
-      });
-      if (!Array.isArray(existing.data) && existing.data.type === "file") {
-        existingSha = existing.data.sha;
-      }
-    } catch {
-      existingSha = undefined;
-    }
-
-    if (change.operation === "delete") {
-      if (!existingSha) {
-        throw new Error(`GitHub deletion target does not exist: ${change.path}`);
-      }
-
-      const deleted = await octokit.request(
-        "DELETE /repos/{owner}/{repo}/contents/{path}",
-        {
-          owner,
-          repo,
-          branch: targetBranch,
-          path: change.path,
-          message: request.message,
-          sha: existingSha,
-        },
-      );
-      latestCommitSha = deleted.data.commit.sha ?? latestCommitSha;
-      continue;
-    }
-
-    const updated = await octokit.request(
-      "PUT /repos/{owner}/{repo}/contents/{path}",
-      {
-        owner,
-        repo,
-        branch: targetBranch,
-        path: change.path,
-        message: request.message,
-        content: Buffer.from(change.content, "utf8").toString("base64"),
-        sha: existingSha,
-      },
-    );
-
-    latestCommitSha = updated.data.commit.sha ?? latestCommitSha;
+  } else {
+    await octokit.request("PATCH /repos/{owner}/{repo}/git/refs/{ref}", {
+      owner,
+      repo,
+      ref: `heads/${defaultBranch}`,
+      sha: latestCommitSha,
+      force: false,
+    });
   }
 
   if (request.mode === "review") {
