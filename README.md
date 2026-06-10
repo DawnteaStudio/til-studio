@@ -167,7 +167,7 @@ notes/<source>/
 - A note and source directory are paired only when their slugs match exactly, including case.
 - The note frontmatter stores `created: YYYY-MM-DD`.
 - The source README contains source metadata, structure guidance, and an automatically managed learning log.
-- A note without matching source code is listed with `-`. Source code without a matching note is listed as pending.
+- The learning log is the union of note and src slugs. A missing side is shown as `-` in the same row.
 - Do not manually edit content between the `til-studio:learning-log` markers.
 - Git does not track empty directories, so `note/` and `src/` appear when their first file is committed.
 

@@ -82,10 +82,7 @@ The source README contains one replaceable block:
 | 날짜 | 학습 내용 | 소스 코드 | 노트 |
 | --- | --- | --- | --- |
 | 2026-06-10 | 배열과 포인터 | [src](./src/array-pointer/) | [note](./note/array-pointer.md) |
-
-## 연결 대기
-
-- [collections](./src/collections/) - 대응하는 note가 없습니다.
+| - | collections | [src](./src/collections/) | - |
 <!-- til-studio:learning-log:end -->
 ```
 
@@ -93,12 +90,12 @@ Reconciliation rules:
 
 - Note and src both exist: add one learning-log row with both links.
 - Note only: add one learning-log row with `-` in the source-code column.
-- Src only: list it under `연결 대기`.
-- When a pair is completed, remove the src entry from `연결 대기` and render the complete row.
+- Src only: add one learning-log row with `-` in the note column.
+- When a pair is completed, update the existing row with the newly available link.
 - When src is removed, retain the note row and change its source-code column to `-`.
-- When a note is removed but src remains, remove its learning-log row and add the src entry to `연결 대기`.
+- When a note is removed but src remains, retain the row and change its note column to `-`.
 - Sort learning-log rows by date ascending, then slug ascending.
-- Sort pending src entries by slug ascending.
+- Append src-only rows after dated note rows and sort them by slug ascending.
 - Do not infer matches from similar names. Only exact slug matches are automatic.
 
 ### Date And Title Rules
@@ -264,4 +261,4 @@ End-to-end verification covers:
 1. Create a new source and note in Studio.
 2. Verify source README and topic README changes in the GitHub save.
 3. Push matching src later and verify Actions adds the src link.
-4. Push src first, verify the pending entry, then add the matching note and verify the complete row.
+4. Push src first, verify the src-only learning-log row, then add the matching note and verify both links in the same row.

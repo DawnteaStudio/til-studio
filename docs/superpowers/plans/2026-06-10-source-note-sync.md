@@ -105,7 +105,7 @@ expect(readme).toContain("└── src/");
 expect(readme).toContain("| 2026-06-10 | 배열과 포인터 | - | [note](./note/array-pointer.md) |");
 ```
 
-Also test paired src, src-only pending entries, exact-case matching, deterministic ordering, and preservation outside the managed block.
+Also test paired src, src-only learning-log rows, exact-case matching, deterministic ordering, and preservation outside the managed block.
 
 - [ ] **Step 2: Run tests and verify RED**
 
@@ -457,4 +457,3 @@ docs: document source note workflow
 - [ ] **Step 4: Push til-studio**
 
 Push the verified default branch or approved feature branch to `DawnteaStudio/til-studio`.
-

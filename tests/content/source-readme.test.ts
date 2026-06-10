@@ -27,7 +27,7 @@ describe("source README generation", () => {
     });
   });
 
-  it("creates a source guide with note-only, paired, and pending entries", () => {
+  it("creates one learning log for note-only, paired, and src-only entries", () => {
     const readme = upsertSourceReadme({
       sourcePath: "languages/c/notes/hongongc",
       metadata: {
@@ -66,8 +66,9 @@ describe("source README generation", () => {
       "| 2026-06-10 | 배열과 포인터 | [src](./src/array-pointer/) | [note](./note/array-pointer.md) |",
     );
     expect(readme).toContain(
-      "- [collections](./src/collections/) - 대응하는 note가 없습니다.",
+      "| - | collections | [src](./src/collections/) | - |",
     );
+    expect(readme).not.toContain("## 연결 대기");
   });
 
   it("matches src slugs case-sensitively and preserves prose outside the managed block", () => {
@@ -91,6 +92,7 @@ describe("source README generation", () => {
     expect(readme).toContain("직접 작성한 참고");
     expect(readme).not.toContain("\nold\n");
     expect(readme).toContain("| 2026-06-10 | 무식하게 풀기 | - |");
-    expect(readme).toContain("- [Ch06](./src/Ch06/)");
+    expect(readme).toContain("| - | Ch06 | [src](./src/Ch06/) | - |");
+    expect(readme).not.toContain("## 연결 대기");
   });
 });

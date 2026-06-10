@@ -117,7 +117,9 @@ function renderLearningLog(notes: SourceNote[], srcSlugs: string[]): string {
       left.created.localeCompare(right.created) || left.slug.localeCompare(right.slug),
   );
   const noteSlugs = new Set(sortedNotes.map((note) => note.slug));
-  const pending = [...sourceSet].filter((slug) => !noteSlugs.has(slug)).sort();
+  const srcOnlySlugs = [...sourceSet]
+    .filter((slug) => !noteSlugs.has(slug))
+    .sort();
   const lines = [
     learningLogStart,
     "## 학습 기록",
@@ -126,27 +128,22 @@ function renderLearningLog(notes: SourceNote[], srcSlugs: string[]): string {
     "| --- | --- | --- | --- |",
   ];
 
-  if (sortedNotes.length) {
+  if (sortedNotes.length || srcOnlySlugs.length) {
     for (const note of sortedNotes) {
       const srcLink = sourceSet.has(note.slug) ? `[src](./src/${encodeURIComponent(note.slug)}/)` : "-";
       lines.push(
         `| ${note.created || "-"} | ${escapeTableCell(note.title)} | ${srcLink} | [note](./note/${encodeURIComponent(note.slug)}.md) |`,
       );
     }
-  } else {
-    lines.push("| - | 아직 작성된 note가 없습니다. | - | - |");
-  }
-
-  lines.push("", "## 연결 대기", "");
-  if (pending.length) {
-    for (const slug of pending) {
+    for (const slug of srcOnlySlugs) {
       lines.push(
-        `- [${slug}](./src/${encodeURIComponent(slug)}/) - 대응하는 note가 없습니다.`,
+        `| - | ${escapeTableCell(readableSlug(slug))} | [src](./src/${encodeURIComponent(slug)}/) | - |`,
       );
     }
   } else {
-    lines.push("- 연결을 기다리는 src가 없습니다.");
+    lines.push("| - | 아직 작성된 학습 기록이 없습니다. | - | - |");
   }
+
   lines.push(learningLogEnd);
 
   return lines.join("\n");

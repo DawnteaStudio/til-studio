@@ -167,7 +167,7 @@ notes/<source>/
 - note와 src는 대소문자를 포함해 slug가 정확히 같을 때만 한 쌍으로 봅니다.
 - note frontmatter에는 `created: YYYY-MM-DD`를 기록합니다.
 - source README에는 자료 메타데이터, 디렉토리 안내, 자동 관리되는 학습 기록이 들어갑니다.
-- 대응하는 src가 없는 note는 `-`로 표시하고, 대응하는 note가 없는 src는 작성 대기로 표시합니다.
+- 학습 기록은 note와 src slug의 합집합으로 구성하며, 어느 한쪽이 없으면 같은 행에서 `-`로 표시합니다.
 - `til-studio:learning-log` marker 사이 내용은 직접 수정하지 않습니다.
 - Git은 빈 폴더를 추적하지 않으므로 `note/`와 `src/`는 첫 파일이 커밋될 때 생깁니다.
 
