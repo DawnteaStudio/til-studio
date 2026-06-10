@@ -170,10 +170,11 @@ notes/<source>/
 - The note frontmatter stores `created: YYYY-MM-DD`.
 - The learning-material README contains metadata, structure guidance, and an automatically managed learning log.
 - The learning log is the union of note and src slugs. A missing side is shown as `-` in the same row.
+- Learning-log links use their real names, such as `[ch2](./src/ch2/)` and `[ch2.md](./note/ch2.md)`.
 - Do not manually edit content between the `til-studio:learning-log` markers.
 - Git does not track empty directories, so `note/` and `src/` appear when their first file is committed.
 
-When Studio saves or deletes a note, it regenerates every affected managed index in the same commit or pull request: the learning-material README, topic README, each ancestor README, and the repository root README. New topics and new top-level areas therefore appear in their parent indexes automatically.
+When Studio saves or deletes a note, it publishes the note and every affected managed index as one Git commit: the learning-material README, topic README, each ancestor README, and the repository root README. New topics and new top-level areas therefore appear in their parent indexes automatically without exposing a partially updated repository state.
 
 The new learning-material form accepts technologies one at a time. Known technologies receive an editable Shields/Simple Icons badge recommendation; unknown technologies remain plain text. The saved README uses the final label, color, logo, and logo color chosen in Studio.
 

@@ -170,10 +170,11 @@ notes/<source>/
 - note frontmatter에는 `created: YYYY-MM-DD`를 기록합니다.
 - 학습 자료 README에는 자료 메타데이터, 디렉토리 안내, 자동 관리되는 학습 기록이 들어갑니다.
 - 학습 기록은 note와 src slug의 합집합으로 구성하며, 어느 한쪽이 없으면 같은 행에서 `-`로 표시합니다.
+- 학습 기록 링크는 `[ch2](./src/ch2/)`, `[ch2.md](./note/ch2.md)`처럼 실제 폴더명과 파일명을 표시합니다.
 - `til-studio:learning-log` marker 사이 내용은 직접 수정하지 않습니다.
 - Git은 빈 폴더를 추적하지 않으므로 `note/`와 `src/`는 첫 파일이 커밋될 때 생깁니다.
 
-Studio에서 note를 저장하거나 삭제하면 같은 커밋 또는 pull request에서 학습 자료 README, topic README, 모든 상위 README, 루트 README까지 관리 영역을 다시 만듭니다. 따라서 새 topic이나 새 최상위 area도 상위 목록에 자동으로 반영됩니다.
+Studio에서 note를 저장하거나 삭제하면 note와 학습 자료 README, topic README, 모든 상위 README, 루트 README를 하나의 Git 커밋으로 반영합니다. 중간 상태가 공개되지 않으며 새 topic이나 새 최상위 area도 상위 목록에 자동으로 반영됩니다.
 
 새 학습 자료 화면에서는 기술을 하나씩 추가합니다. 알려진 기술은 Shields/Simple Icons 기반 배지를 추천하며 label, 색상, logo, logo 색상을 수정할 수 있습니다. 알 수 없는 기술은 일반 텍스트로 저장됩니다.
 

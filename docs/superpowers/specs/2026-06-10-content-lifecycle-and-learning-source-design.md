@@ -57,6 +57,7 @@ The source learning log is generated from the union of note and src slugs.
 - Src only: one row with `-` in the note column.
 - Deleted note with matching src: retain the src-only row.
 - Deleted note without matching src: remove the row.
+- Src links display the actual directory name and note links display the actual Markdown filename.
 
 ### Topic README
 
@@ -169,6 +170,8 @@ Save and delete requests share:
 - resulting-path calculation;
 - recursive README generation;
 - Quick and Review GitHub publication behavior.
+
+All requested document and generated README changes are published through one Git tree and one commit. Quick mode advances the default branch once without force; Review mode creates its branch at that single commit.
 
 File changes support explicit operations:
 
