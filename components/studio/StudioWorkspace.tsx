@@ -84,7 +84,7 @@ export function StudioWorkspace() {
   const [sourceMetadata, setSourceMetadata] = useState<SourceMetadataForm>({
     type: "",
     overview: "",
-    technologies: "",
+    technologies: [],
     reference: "",
   });
   const [theoryTitle, setTheoryTitle] = useState("");
@@ -336,13 +336,13 @@ export function StudioWorkspace() {
       setStatus("저장할 경로를 만들 수 없습니다");
       setNotice({
         title: "저장할 수 없습니다",
-        message: "저장할 경로를 만들 수 없습니다. 작업 위치, 출처, 제목을 확인하세요.",
+        message: "저장할 경로를 만들 수 없습니다. 작업 위치, 학습 자료, 제목을 확인하세요.",
         tone: "error",
       });
       return;
     }
     if (draftKind === "note" && isCreatingSource && !sourceMetadata.type) {
-      setStatus("새 source의 자료 유형을 선택하세요");
+      setStatus("새 학습 자료의 자료 유형을 선택하세요");
       setNotice({
         title: "자료 유형이 필요합니다",
         message: "책, 강의, 멘토링, 코스, 기타 중 하나를 선택하세요.",
@@ -370,10 +370,7 @@ export function StudioWorkspace() {
                   name: sourceName.trim(),
                   type: sourceMetadata.type,
                   overview: sourceMetadata.overview.trim() || undefined,
-                  technologies: sourceMetadata.technologies
-                    .split(",")
-                    .map((technology) => technology.trim())
-                    .filter(Boolean),
+                  technologies: sourceMetadata.technologies,
                   references: sourceMetadata.reference.trim()
                     ? [sourceMetadata.reference.trim()]
                     : [],
@@ -514,17 +511,23 @@ export function StudioWorkspace() {
               </button>
             ) : null}
           </div>
-          <div className="mt-4 rounded-2xl bg-[#2b2923] px-4 py-3 font-mono text-xs text-[#e8dcc7]">
+          <div className="mt-4 rounded-2xl bg-[#2b2923] px-4 py-3 text-[#e8dcc7]">
+            <p className="text-xs font-semibold text-[#bdb19d]">
+              이 글이 저장될 위치
+            </p>
+            <p className="mt-1 break-all font-mono text-xs leading-5">
             {(draftKind === "theory" ? theoryPath : notePath) || "선택을 마치면 저장 경로가 표시됩니다"}
+            </p>
           </div>
           <p className="mt-2 text-xs leading-5 text-[#6b6257]">
             {draftKind === "theory"
               ? "Theory는 오른쪽에서 concept을 조사하고 확인한 뒤, 선택한 topic 아래 theory 폴더로 저장됩니다."
-              : "Notes는 선택한 topic과 source 아래 notes 폴더로 자동 저장됩니다."}
+              : "Notes는 선택한 topic과 학습 자료 아래 note 폴더로 자동 저장됩니다."}
           </p>
           {draftKind === "note" ? (
             <SourceFolderPicker
               selectedPath={selectedPath}
+              savePath={notePath}
               sourceName={sourceName}
               sources={selectedTopicSources}
               isCreating={isCreatingSource}
@@ -539,9 +542,13 @@ export function StudioWorkspace() {
                 setSourceMetadata({
                   type: "",
                   overview: "",
-                  technologies: "",
+                  technologies: [],
                   reference: "",
                 });
+              }}
+              onShowExisting={() => {
+                setSourceName("");
+                setIsCreatingSource(false);
               }}
               onSourceNameChange={setSourceName}
               onMetadataChange={setSourceMetadata}

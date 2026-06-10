@@ -178,21 +178,22 @@ describe("StudioWorkspace note and theory actions", () => {
     expect(screen.getByDisplayValue(/# Cleaned Note/)).toBeTruthy();
   });
 
-  it("guides source folder selection in the center workspace", async () => {
+  it("guides learning material selection in the center workspace", async () => {
     mockFetch();
     render(<StudioWorkspace />);
 
-    expect(await screen.findByText("먼저 topic을 선택하면 source 폴더를 고를 수 있습니다.")).toBeTruthy();
+    expect(await screen.findByText("먼저 topic을 선택하면 학습 자료를 고를 수 있습니다.")).toBeTruthy();
 
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
 
-    expect(screen.getByRole("heading", { name: "저장 source 폴더" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "학습 자료 선택" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "기존 학습 자료" }));
     fireEvent.click(screen.getByRole("button", { name: "APSS" }));
-    expect(screen.getByText("선택된 source: APSS")).toBeTruthy();
+    expect(screen.getByText("선택한 학습 자료: APSS")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "새 source 만들기" }));
-    fireEvent.change(screen.getByLabelText("새 source 이름"), { target: { value: "Software Maestro" } });
-    expect(screen.getByText("저장 폴더: software-maestro")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "새 학습 자료 만들기" }));
+    fireEvent.change(screen.getByLabelText("새 학습 자료 이름"), { target: { value: "Software Maestro" } });
+    expect(screen.getByText("software-maestro")).toBeTruthy();
   });
 
   it("sends metadata when saving the first note for a new source", async () => {
@@ -207,11 +208,13 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await screen.findByText("algorithms");
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
-    fireEvent.click(screen.getByRole("button", { name: "새 source 만들기" }));
-    fireEvent.change(screen.getByLabelText("새 source 이름"), { target: { value: "혼자 공부하는 C" } });
+    fireEvent.change(screen.getByLabelText("새 학습 자료 이름"), { target: { value: "혼자 공부하는 C" } });
     fireEvent.change(screen.getByLabelText("자료 유형"), { target: { value: "book" } });
     fireEvent.change(screen.getByLabelText("학습 개요"), { target: { value: "C 문법과 실습" } });
-    fireEvent.change(screen.getByLabelText("언어 및 기술"), { target: { value: "C, GCC" } });
+    fireEvent.change(screen.getByLabelText("기술 이름"), { target: { value: "C" } });
+    fireEvent.click(screen.getByRole("button", { name: "기술 추가" }));
+    fireEvent.change(screen.getByLabelText("기술 이름"), { target: { value: "GCC" } });
+    fireEvent.click(screen.getByRole("button", { name: "기술 추가" }));
     fireEvent.change(screen.getByLabelText("참고 자료"), { target: { value: "https://example.com/book" } });
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "배열과 포인터" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "배열과 포인터 관계를 배웠다." } });
@@ -225,7 +228,18 @@ describe("StudioWorkspace note and theory actions", () => {
       name: "혼자 공부하는 C",
       type: "book",
       overview: "C 문법과 실습",
-      technologies: ["C", "GCC"],
+      technologies: [
+        {
+          name: "C",
+          badge: {
+            label: "C",
+            color: "00599C",
+            logo: "c",
+            logoColor: "white",
+          },
+        },
+        { name: "GCC" },
+      ],
       references: ["https://example.com/book"],
     });
     expect(body.changes[0].path).toContain("/notes/혼자-공부하는-c/note/");
@@ -309,7 +323,7 @@ describe("StudioWorkspace note and theory actions", () => {
     fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
 
     expect(await screen.findByRole("status", { name: "저장할 수 없습니다" })).toBeTruthy();
-    expect(screen.getByText("저장할 경로를 만들 수 없습니다. 작업 위치, 출처, 제목을 확인하세요.")).toBeTruthy();
+    expect(screen.getByText("저장할 경로를 만들 수 없습니다. 작업 위치, 학습 자료, 제목을 확인하세요.")).toBeTruthy();
   });
 
   it("shows progress and failure notices for GitHub save requests", async () => {
@@ -327,6 +341,7 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await screen.findByText("algorithms");
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByRole("button", { name: "기존 학습 자료" }));
     fireEvent.click(screen.getByText("APSS").closest("button")!);
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
@@ -352,6 +367,7 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await screen.findByText("algorithms");
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByRole("button", { name: "기존 학습 자료" }));
     fireEvent.click(screen.getByText("APSS").closest("button")!);
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
