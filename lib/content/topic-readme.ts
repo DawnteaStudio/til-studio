@@ -15,6 +15,14 @@ export function topicPathForReadme(readmePath: string): string {
   return readmePath.replace(/\/README\.md$/i, "");
 }
 
+export function isRemovableTopicReadme(input: {
+  topicPath: string;
+  content: string;
+}): boolean {
+  const base = removeManagedBlock(normalizeReadme(input.content));
+  return base === `# ${titleFromTopicPath(input.topicPath)}`;
+}
+
 export function upsertTopicReadmeIndex(input: {
   topicPath: string;
   existingContent?: string | null;
@@ -81,4 +89,28 @@ function titleFromFilePath(path: string): string {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeReadme(content: string): string {
+  return content
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .join("\n")
+    .trimEnd();
+}
+
+function removeManagedBlock(content: string): string | null {
+  if (count(content, indexStart) !== 1 || count(content, indexEnd) !== 1) {
+    return null;
+  }
+
+  const pattern = new RegExp(
+    `${escapeRegExp(indexStart)}[\\s\\S]*?${escapeRegExp(indexEnd)}`,
+  );
+  return normalizeReadme(content.replace(pattern, ""));
+}
+
+function count(value: string, needle: string): number {
+  return value.split(needle).length - 1;
 }

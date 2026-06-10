@@ -43,6 +43,31 @@ export function sourcePathForNote(path: string): string | null {
   return readmePath?.replace(/\/README\.md$/i, "") ?? null;
 }
 
+export function isRemovableSourceReadme(input: {
+  sourcePath: string;
+  content: string;
+}): boolean {
+  const base = removeManagedBlock(
+    normalizeReadme(input.content),
+    learningLogStart,
+    learningLogEnd,
+  );
+  if (base === null) return false;
+
+  const sourceSlug = input.sourcePath.split("/").at(-1) ?? "source";
+  const match = base
+    .replace(/\n\n---$/, "")
+    .match(
+      /^\[상위 README로 이동\]\(\.\.\/\.\.\/README\.md\)\n\n# ([^\n]+)\n\n유형: (책|강의|멘토링|코스|기타)\n\n## 개요\n\n([^\n]+)\n\n## 디렉터리 구조\n\n```text\n\n([^\n]+)\/\n\n├── README\.md\n\n├── note\/    # 학습 기록 Markdown\n\n└── src\/     # note와 같은 slug를 사용하는 실습 코드\n\n```\n\n## 작성 원칙\n\n- 같은 학습 단위는 하나의 slug를 사용합니다\.\n\n- 학습 기록은 `note\/<slug>\.md`에 작성합니다\.\n\n- 관련 실습 코드는 `src\/<slug>\/` 아래에 둡니다\.\n\n- note와 src는 어느 한쪽만 먼저 존재해도 됩니다\.\n\n- `build\/`, `\.gradle\/`, `node_modules\/`, 바이너리와 IDE 캐시는 커밋하지 않습니다\.\n\n- 학습 기록 관리 블록은 자동 생성되므로 직접 수정하지 않습니다\.$/,
+    );
+
+  return (
+    match !== null &&
+    match[3] === `${match[1]} 학습 내용을 정리합니다.` &&
+    match[4] === sourceSlug
+  );
+}
+
 export function parseSourceNote(input: { path: string; content: string }): SourceNote {
   const filename = input.path.split("/").at(-1) ?? "";
   const slug = filename.replace(/\.md$/i, "");
@@ -190,4 +215,32 @@ function escapeLinkLabel(value: string): string {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeReadme(content: string): string {
+  return content
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .join("\n")
+    .trimEnd();
+}
+
+function removeManagedBlock(
+  content: string,
+  startMarker: string,
+  endMarker: string,
+): string | null {
+  if (count(content, startMarker) !== 1 || count(content, endMarker) !== 1) {
+    return null;
+  }
+
+  const pattern = new RegExp(
+    `${escapeRegExp(startMarker)}[\\s\\S]*?${escapeRegExp(endMarker)}`,
+  );
+  return normalizeReadme(content.replace(pattern, ""));
+}
+
+function count(value: string, needle: string): number {
+  return value.split(needle).length - 1;
 }

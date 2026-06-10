@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isRemovableSourceReadme,
   parseSourceNote,
   sourceReadmePathForNote,
   upsertSourceReadme,
@@ -123,5 +124,33 @@ describe("source README generation", () => {
       "![Java](https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=white&style=plastic)",
     );
     expect(readme).toContain("- JVM internals");
+  });
+
+  it("recognizes a generated minimal source README with normalized whitespace", () => {
+    const sourcePath = "languages/c/notes/hongongc";
+    const content = upsertSourceReadme({
+      sourcePath,
+      metadata: { name: "혼자 공부하는 C", type: "book" },
+      existingContent: null,
+      notes: [],
+      srcSlugs: [],
+    })
+      .replace(/\n/g, "  \r\n")
+      .trimEnd();
+
+    expect(isRemovableSourceReadme({ sourcePath, content })).toBe(true);
+  });
+
+  it("preserves a generated source README with user prose outside its managed block", () => {
+    const sourcePath = "languages/c/notes/hongongc";
+    const content = `${upsertSourceReadme({
+      sourcePath,
+      metadata: { name: "혼자 공부하는 C", type: "book" },
+      existingContent: null,
+      notes: [],
+      srcSlugs: [],
+    })}\n직접 작성한 참고 문장입니다.\n`;
+
+    expect(isRemovableSourceReadme({ sourcePath, content })).toBe(false);
   });
 });

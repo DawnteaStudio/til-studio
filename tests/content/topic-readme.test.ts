@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { readmePathForContentPath, upsertTopicReadmeIndex } from "@/lib/content/topic-readme";
+import {
+  isRemovableTopicReadme,
+  readmePathForContentPath,
+  upsertTopicReadmeIndex,
+} from "@/lib/content/topic-readme";
 
 describe("topic README index generation", () => {
   it("resolves note and theory documents to their topic README", () => {
@@ -59,5 +63,29 @@ describe("topic README index generation", () => {
     expect(readme).toContain(
       "- [TCP_IP(윤성우의 열혈)](notes/TCP_IP%28%EC%9C%A4%EC%84%B1%EC%9A%B0%EC%9D%98%20%EC%97%B4%ED%98%88%29/)",
     );
+  });
+
+  it("recognizes a generated minimal topic README with normalized whitespace", () => {
+    const topicPath = "software-engineering/design";
+    const content = upsertTopicReadmeIndex({
+      topicPath,
+      existingContent: null,
+      documentPaths: [],
+    })
+      .replace(/\n/g, "  \r\n")
+      .trimEnd();
+
+    expect(isRemovableTopicReadme({ topicPath, content })).toBe(true);
+  });
+
+  it("preserves a generated topic README with user prose outside its managed block", () => {
+    const topicPath = "software-engineering/design";
+    const content = `${upsertTopicReadmeIndex({
+      topicPath,
+      existingContent: null,
+      documentPaths: [],
+    })}\n직접 작성한 주제 소개입니다.\n`;
+
+    expect(isRemovableTopicReadme({ topicPath, content })).toBe(false);
   });
 });

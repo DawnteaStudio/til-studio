@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ancestorReadmePath,
   directChildDirectories,
+  isRemovableAncestorReadme,
   upsertAncestorReadme,
 } from "@/lib/content/ancestor-readme";
 
@@ -140,5 +141,29 @@ describe("ancestor README generation", () => {
     expect(readme).not.toContain("\nold\n");
     expect(readme).toContain("- [cs](cs/)");
     expect(readme).toContain("- [languages](languages/)");
+  });
+
+  it("recognizes a generated minimal ancestor README with normalized whitespace", () => {
+    const directoryPath = "new-area";
+    const content = upsertAncestorReadme({
+      directoryPath,
+      existingContent: null,
+      repositoryPaths: [],
+    })
+      .replace(/\n/g, "  \r\n")
+      .trimEnd();
+
+    expect(isRemovableAncestorReadme({ directoryPath, content })).toBe(true);
+  });
+
+  it("preserves a generated ancestor README with user prose outside its managed block", () => {
+    const directoryPath = "new-area";
+    const content = `${upsertAncestorReadme({
+      directoryPath,
+      existingContent: null,
+      repositoryPaths: [],
+    })}\n직접 작성한 영역 소개입니다.\n`;
+
+    expect(isRemovableAncestorReadme({ directoryPath, content })).toBe(false);
   });
 });

@@ -17,6 +17,14 @@ export function ancestorReadmePath(directoryPath: string): string {
   return directoryPath ? `${directoryPath}/README.md` : "README.md";
 }
 
+export function isRemovableAncestorReadme(input: {
+  directoryPath: string;
+  content: string;
+}): boolean {
+  const base = removeManagedBlock(normalizeReadme(input.content));
+  return base === createMinimalReadme(input.directoryPath);
+}
+
 export function directChildDirectories(
   directoryPath: string,
   repositoryPaths: string[],
@@ -106,4 +114,28 @@ function removeLegacyChildIndex(content: string): string {
 
 function count(value: string, needle: string): number {
   return value.split(needle).length - 1;
+}
+
+function normalizeReadme(content: string): string {
+  return content
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .join("\n")
+    .trimEnd();
+}
+
+function removeManagedBlock(content: string): string | null {
+  if (count(content, childrenStart) !== 1 || count(content, childrenEnd) !== 1) {
+    return null;
+  }
+
+  const pattern = new RegExp(
+    `${escapeRegExp(childrenStart)}[\\s\\S]*?${escapeRegExp(childrenEnd)}`,
+  );
+  return normalizeReadme(content.replace(pattern, ""));
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
