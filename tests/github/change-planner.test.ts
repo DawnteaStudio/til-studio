@@ -117,6 +117,45 @@ describe("repository change planning", () => {
     expect(sourceReadme).not.toContain("./note/ch2.md");
   });
 
+  it("does not plan parent README changes when adding a note to an existing source", async () => {
+    const areaPath = "cs";
+    const topicPath = `${areaPath}/software-engineering`;
+    const sourcePath = `${topicPath}/notes/etc`;
+    const existingNotePath = `${sourcePath}/note/existing.md`;
+    const newNotePath = `${sourcePath}/note/new.md`;
+    const existingPaths = [
+      "README.md",
+      `${areaPath}/README.md`,
+      `${topicPath}/README.md`,
+      `${sourcePath}/README.md`,
+      existingNotePath,
+    ];
+    const documents = managedHierarchyDocuments({
+      areaPath,
+      topicPath,
+      sourcePath,
+      notePath: existingNotePath,
+      existingPaths,
+    });
+
+    const changes = await planRepositoryChanges({
+      existingPaths,
+      requestedChanges: [
+        {
+          operation: "upsert",
+          path: newNotePath,
+          content: "---\ncreated: 2026-06-11\n---\n\n# New note\n",
+        },
+      ],
+      readDocument: async (path) => documents[path] ?? null,
+    });
+
+    expect(changes.map((change) => change.path)).toEqual([
+      newNotePath,
+      `${sourcePath}/README.md`,
+    ]);
+  });
+
   it("removes a source from indexes when all source paths are deleted", async () => {
     const sourceRoot = "languages/java/notes/java-intro";
     const changes = await planRepositoryChanges({
@@ -229,10 +268,10 @@ describe("repository change planning", () => {
     expect(upsertContent(changes, `${topicPath}/README.md`)).toContain(
       "사용자가 작성한 topic 설명",
     );
-    expect(upsertContent(changes, `${areaPath}/README.md`)).toContain(
-      "사용자가 작성한 area 설명",
+    expect(changes.map((change) => change.path)).not.toContain(
+      `${areaPath}/README.md`,
     );
-    expect(upsertContent(changes, "README.md")).toContain("action-chain");
+    expect(changes.map((change) => change.path)).not.toContain("README.md");
   });
 });
 
