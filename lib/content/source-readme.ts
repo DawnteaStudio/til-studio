@@ -181,7 +181,7 @@ function renderLearningLog(notes: SourceNote[], srcSlugs: string[]): string {
     learningLogStart,
     "## 학습 기록",
     "",
-    "| 날짜 | 학습 내용 | 소스 코드 | 노트 |",
+    "| 날짜 | 주제 | src | note |",
     "| --- | --- | --- | --- |",
   ];
 

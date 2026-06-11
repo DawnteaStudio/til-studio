@@ -60,6 +60,7 @@ describe("source README generation", () => {
     expect(readme).toContain("유형: 책");
     expect(readme).toContain("├── note/");
     expect(readme).toContain("└── src/");
+    expect(readme).toContain("| 날짜 | 주제 | src | note |");
     expect(readme).toContain(
       "| 2026-06-09 | 변수와 입력 | - | [variable.md](./note/variable.md) |",
     );
