@@ -141,6 +141,24 @@ describe("source README generation", () => {
     expect(isRemovableSourceReadme({ sourcePath, content })).toBe(true);
   });
 
+  it("recognizes generated source metadata sections as removable", () => {
+    const sourcePath = "languages/java/notes/java-intro";
+    const content = upsertSourceReadme({
+      sourcePath,
+      metadata: {
+        name: "Java Intro",
+        type: "lecture",
+        overview: "JVM과 Java 문법을 함께 학습한다.",
+        technologies: ["Java", "JVM"],
+        references: ["Java Language Specification"],
+      },
+      notes: [],
+      srcSlugs: [],
+    });
+
+    expect(isRemovableSourceReadme({ sourcePath, content })).toBe(true);
+  });
+
   it("preserves a generated source README with user prose outside its managed block", () => {
     const sourcePath = "languages/c/notes/hongongc";
     const content = `${upsertSourceReadme({

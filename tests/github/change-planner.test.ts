@@ -3,6 +3,9 @@ import {
   applyPathOperations,
   planRepositoryChanges,
 } from "@/lib/github/change-planner";
+import { upsertAncestorReadme } from "@/lib/content/ancestor-readme";
+import { upsertSourceReadme } from "@/lib/content/source-readme";
+import { upsertTopicReadmeIndex } from "@/lib/content/topic-readme";
 import type { RepositoryChange } from "@/lib/github/types";
 
 describe("repository change planning", () => {
@@ -153,6 +156,84 @@ describe("repository change planning", () => {
     expect(topicReadme).not.toContain("java-intro");
     expect(topicReadme).toContain("아직 등록된 note가 없습니다.");
   });
+
+  it("deletes a fully managed empty hierarchy after its final note is deleted", async () => {
+    const areaPath = "action-chain";
+    const topicPath = `${areaPath}/topic`;
+    const sourcePath = `${topicPath}/notes/source`;
+    const notePath = `${sourcePath}/note/note.md`;
+    const existingPaths = [
+      "README.md",
+      `${areaPath}/README.md`,
+      `${topicPath}/README.md`,
+      `${sourcePath}/README.md`,
+      notePath,
+    ];
+    const documents = managedHierarchyDocuments({
+      areaPath,
+      topicPath,
+      sourcePath,
+      notePath,
+      existingPaths,
+    });
+
+    const changes = await planRepositoryChanges({
+      existingPaths,
+      requestedChanges: [{ operation: "delete", path: notePath }],
+      readDocument: async (path) => documents[path] ?? null,
+    });
+
+    expect(deletePaths(changes)).toEqual([
+      notePath,
+      `${sourcePath}/README.md`,
+      `${topicPath}/README.md`,
+      `${areaPath}/README.md`,
+    ]);
+    expect(upsertContent(changes, "README.md")).not.toContain("action-chain");
+  });
+
+  it("preserves user-authored topic and area prose after the final note is deleted", async () => {
+    const areaPath = "action-chain";
+    const topicPath = `${areaPath}/topic`;
+    const sourcePath = `${topicPath}/notes/source`;
+    const notePath = `${sourcePath}/note/note.md`;
+    const existingPaths = [
+      "README.md",
+      `${areaPath}/README.md`,
+      `${topicPath}/README.md`,
+      `${sourcePath}/README.md`,
+      notePath,
+    ];
+    const documents = managedHierarchyDocuments({
+      areaPath,
+      topicPath,
+      sourcePath,
+      notePath,
+      existingPaths,
+    });
+    documents[`${areaPath}/README.md`] =
+      `${documents[`${areaPath}/README.md`].trimEnd()}\n\n사용자가 작성한 area 설명\n`;
+    documents[`${topicPath}/README.md`] =
+      `${documents[`${topicPath}/README.md`].trimEnd()}\n\n사용자가 작성한 topic 설명\n`;
+
+    const changes = await planRepositoryChanges({
+      existingPaths,
+      requestedChanges: [{ operation: "delete", path: notePath }],
+      readDocument: async (path) => documents[path] ?? null,
+    });
+
+    expect(deletePaths(changes)).toEqual([
+      notePath,
+      `${sourcePath}/README.md`,
+    ]);
+    expect(upsertContent(changes, `${topicPath}/README.md`)).toContain(
+      "사용자가 작성한 topic 설명",
+    );
+    expect(upsertContent(changes, `${areaPath}/README.md`)).toContain(
+      "사용자가 작성한 area 설명",
+    );
+    expect(upsertContent(changes, "README.md")).toContain("action-chain");
+  });
 });
 
 function upsertContent(changes: RepositoryChange[], path: string): string {
@@ -164,4 +245,52 @@ function upsertContent(changes: RepositoryChange[], path: string): string {
     throw new Error(`Missing upsert: ${path}`);
   }
   return change.content;
+}
+
+function deletePaths(changes: RepositoryChange[]): string[] {
+  return changes
+    .filter(
+      (change): change is Extract<RepositoryChange, { operation: "delete" }> =>
+        change.operation === "delete",
+    )
+    .map((change) => change.path);
+}
+
+function managedHierarchyDocuments(input: {
+  areaPath: string;
+  topicPath: string;
+  sourcePath: string;
+  notePath: string;
+  existingPaths: string[];
+}): Record<string, string> {
+  const noteContent = "---\ncreated: 2026-06-11\n---\n\n# Cascade note\n";
+  return {
+    "README.md": upsertAncestorReadme({
+      directoryPath: "",
+      existingContent: "# TIL",
+      repositoryPaths: input.existingPaths,
+    }),
+    [`${input.areaPath}/README.md`]: upsertAncestorReadme({
+      directoryPath: input.areaPath,
+      repositoryPaths: input.existingPaths,
+    }),
+    [`${input.topicPath}/README.md`]: upsertTopicReadmeIndex({
+      topicPath: input.topicPath,
+      documentPaths: input.existingPaths,
+    }),
+    [`${input.sourcePath}/README.md`]: upsertSourceReadme({
+      sourcePath: input.sourcePath,
+      metadata: { name: "Source", type: "etc" },
+      notes: [
+        {
+          path: input.notePath,
+          slug: "note",
+          created: "2026-06-11",
+          title: "Cascade note",
+        },
+      ],
+      srcSlugs: [],
+    }),
+    [input.notePath]: noteContent,
+  };
 }

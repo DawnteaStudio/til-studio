@@ -47,9 +47,15 @@ describe("note deletion route", () => {
     mocks.planChanges.mockResolvedValue([
       { operation: "delete", path: notePath },
       {
+        operation: "delete",
+        path: "languages/java/notes/java-intro/README.md",
+      },
+      { operation: "delete", path: "languages/java/README.md" },
+      { operation: "delete", path: "languages/README.md" },
+      {
         operation: "upsert",
-        path: "languages/java/README.md",
-        content: "# Java",
+        path: "README.md",
+        content: "# TIL",
       },
     ]);
     mocks.save.mockResolvedValue({
@@ -80,6 +86,13 @@ describe("note deletion route", () => {
         mode: "review",
         changes: expect.arrayContaining([
           { operation: "delete", path: notePath },
+          {
+            operation: "delete",
+            path: "languages/java/notes/java-intro/README.md",
+          },
+          { operation: "delete", path: "languages/java/README.md" },
+          { operation: "delete", path: "languages/README.md" },
+          { operation: "upsert", path: "README.md", content: "# TIL" },
         ]),
       }),
     );

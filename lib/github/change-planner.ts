@@ -1,14 +1,17 @@
 import {
   ancestorReadmePath,
+  isRemovableAncestorReadme,
   upsertAncestorReadme,
 } from "@/lib/content/ancestor-readme";
 import {
+  isRemovableSourceReadme,
   parseSourceNote,
   sourcePathForNote,
   upsertSourceReadme,
   type SourceMetadata,
 } from "@/lib/content/source-readme";
 import {
+  isRemovableTopicReadme,
   readmePathForContentPath,
   topicPathForReadme,
   upsertTopicReadmeIndex,
@@ -60,12 +63,26 @@ export async function planRepositoryChanges(input: {
 
   const sourcePaths = affectedSourcePaths(input.requestedChanges);
   for (const sourcePath of sourcePaths) {
-    const hasRemainingSourceContent = resultingPaths.some((path) =>
-      path.startsWith(`${sourcePath}/`),
-    );
-    if (!hasRemainingSourceContent) continue;
-
     const readmePath = `${sourcePath}/README.md`;
+    const hasRemainingSourceContent = resultingPaths.some(
+      (path) =>
+        path.startsWith(`${sourcePath}/note/`) ||
+        path.startsWith(`${sourcePath}/src/`),
+    );
+    const existingReadme = await readCurrentDocument(readmePath);
+    if (!hasRemainingSourceContent) {
+      if (!existingReadme) continue;
+      if (
+        isRemovableSourceReadme({
+          sourcePath,
+          content: existingReadme,
+        })
+      ) {
+        appendGenerated({ operation: "delete", path: readmePath });
+        continue;
+      }
+    }
+
     const notePaths = resultingPaths.filter(
       (path) =>
         path.startsWith(`${sourcePath}/note/`) && path.endsWith(".md"),
@@ -95,43 +112,83 @@ export async function planRepositoryChanges(input: {
         name: sourceSlug,
         type: "etc",
       },
-      existingContent: await readCurrentDocument(readmePath),
+      existingContent: existingReadme,
       notes,
       srcSlugs,
     });
 
-    appendGenerated(readmePath, content);
+    appendGenerated({ operation: "upsert", path: readmePath, content });
   }
 
   const topicReadmePaths = affectedTopicReadmePaths(input.requestedChanges);
   for (const readmePath of topicReadmePaths) {
+    const topicPath = topicPathForReadme(readmePath);
+    const existingReadme = await readCurrentDocument(readmePath);
+    const hasRemainingTopicContent = resultingPaths.some(
+      (path) =>
+        path.startsWith(`${topicPath}/notes/`) ||
+        path.startsWith(`${topicPath}/theory/`),
+    );
+    if (
+      !hasRemainingTopicContent &&
+      existingReadme &&
+      isRemovableTopicReadme({
+        topicPath,
+        content: existingReadme,
+      })
+    ) {
+      appendGenerated({ operation: "delete", path: readmePath });
+      continue;
+    }
+
     const content = upsertTopicReadmeIndex({
-      topicPath: topicPathForReadme(readmePath),
-      existingContent: await readCurrentDocument(readmePath),
+      topicPath,
+      existingContent: existingReadme,
       documentPaths: resultingPaths,
     });
-    appendGenerated(readmePath, content);
+    appendGenerated({ operation: "upsert", path: readmePath, content });
   }
 
   const ancestorDirectories = affectedAncestorDirectories(topicReadmePaths);
   for (const directoryPath of ancestorDirectories) {
     const readmePath = ancestorReadmePath(directoryPath);
+    const existingReadme = await readCurrentDocument(readmePath);
+    const hasRemainingChildren = resultingPaths.some((path) => {
+      if (path === readmePath) return false;
+      const prefix = directoryPath ? `${directoryPath}/` : "";
+      return path.startsWith(prefix);
+    });
+    if (
+      directoryPath &&
+      !hasRemainingChildren &&
+      existingReadme &&
+      isRemovableAncestorReadme({
+        directoryPath,
+        content: existingReadme,
+      })
+    ) {
+      appendGenerated({ operation: "delete", path: readmePath });
+      continue;
+    }
+
     const content = upsertAncestorReadme({
       directoryPath,
-      existingContent: await readCurrentDocument(readmePath),
+      existingContent: existingReadme,
       repositoryPaths: resultingPaths,
     });
-    appendGenerated(readmePath, content);
+    appendGenerated({ operation: "upsert", path: readmePath, content });
   }
 
   return collapseChanges([...input.requestedChanges, ...generatedChanges]);
 
-  function appendGenerated(path: string, content: string) {
-    generatedContent.set(path, content);
-    generatedChanges.push({ operation: "upsert", path, content });
-    resultingPaths = applyPathOperations(resultingPaths, [
-      { operation: "upsert", path, content },
-    ]);
+  function appendGenerated(change: RepositoryChange) {
+    if (change.operation === "upsert") {
+      generatedContent.set(change.path, change.content);
+    } else {
+      generatedContent.delete(change.path);
+    }
+    generatedChanges.push(change);
+    resultingPaths = applyPathOperations(resultingPaths, [change]);
   }
 }
 

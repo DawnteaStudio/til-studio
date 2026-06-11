@@ -54,18 +54,36 @@ export function isRemovableSourceReadme(input: {
   );
   if (base === null) return false;
 
-  const sourceSlug = input.sourcePath.split("/").at(-1) ?? "source";
-  const match = base
-    .replace(/\n\n---$/, "")
-    .match(
-      /^\[상위 README로 이동\]\(\.\.\/\.\.\/README\.md\)\n\n# ([^\n]+)\n\n유형: (책|강의|멘토링|코스|기타)\n\n## 개요\n\n([^\n]+)\n\n## 디렉터리 구조\n\n```text\n\n([^\n]+)\/\n\n├── README\.md\n\n├── note\/    # 학습 기록 Markdown\n\n└── src\/     # note와 같은 slug를 사용하는 실습 코드\n\n```\n\n## 작성 원칙\n\n- 같은 학습 단위는 하나의 slug를 사용합니다\.\n\n- 학습 기록은 `note\/<slug>\.md`에 작성합니다\.\n\n- 관련 실습 코드는 `src\/<slug>\/` 아래에 둡니다\.\n\n- note와 src는 어느 한쪽만 먼저 존재해도 됩니다\.\n\n- `build\/`, `\.gradle\/`, `node_modules\/`, 바이너리와 IDE 캐시는 커밋하지 않습니다\.\n\n- 학습 기록 관리 블록은 자동 생성되므로 직접 수정하지 않습니다\.$/,
-    );
-
-  return (
-    match !== null &&
-    match[3] === `${match[1]} 학습 내용을 정리합니다.` &&
-    match[4] === sourceSlug
+  const sourceSlug = escapeRegExp(
+    input.sourcePath.split("/").at(-1) ?? "source",
   );
+  const generatedBasePattern = new RegExp(
+    [
+      String.raw`^\[상위 README로 이동\]\(\.\.\/\.\.\/README\.md\)`,
+      String.raw`# [^\n]+`,
+      String.raw`유형: (책|강의|멘토링|코스|기타)`,
+      String.raw`## 개요`,
+      String.raw`[\s\S]+?`,
+      String.raw`## 디렉터리 구조`,
+      "```text",
+      `${sourceSlug}/`,
+      String.raw`├── README\.md`,
+      String.raw`├── note\/    # 학습 기록 Markdown`,
+      String.raw`└── src\/     # note와 같은 slug를 사용하는 실습 코드`,
+      "```",
+      String.raw`## 작성 원칙`,
+      String.raw`- 같은 학습 단위는 하나의 slug를 사용합니다\.`,
+      String.raw`- 학습 기록은 \`note\/<slug>\.md\`에 작성합니다\.`,
+      String.raw`- 관련 실습 코드는 \`src\/<slug>\/\` 아래에 둡니다\.`,
+      String.raw`- note와 src는 어느 한쪽만 먼저 존재해도 됩니다\.`,
+      String.raw`- \`build\/\`, \`\.gradle\/\`, \`node_modules\/\`, 바이너리와 IDE 캐시는 커밋하지 않습니다\.`,
+      String.raw`- 학습 기록 관리 블록은 자동 생성되므로 직접 수정하지 않습니다\.`,
+    ].join("\n\n") +
+      String.raw`(?:\n\n## 언어 및 기술(?:\n\n(?!## ).+)+)?` +
+      String.raw`(?:\n\n## 참고 자료(?:\n\n- .+)+)?$`,
+  );
+
+  return generatedBasePattern.test(base.replace(/\n\n---$/, ""));
 }
 
 export function parseSourceNote(input: { path: string; content: string }): SourceNote {
