@@ -25,6 +25,23 @@ describe("source README generation", () => {
       slug: "array-pointer",
       created: "2026-06-10",
       title: "배열과 포인터",
+      srcSlugs: [],
+    });
+  });
+
+  it("parses explicit source folder links from note frontmatter", () => {
+    expect(
+      parseSourceNote({
+        path: "languages/java/notes/java-basic/note/class-loading.md",
+        content:
+          "---\ncreated: 2026-06-17\nsrc:\n  - ch1\n  - ch2\n---\n\n# 클래스 로딩\n",
+      }),
+    ).toEqual({
+      path: "languages/java/notes/java-basic/note/class-loading.md",
+      slug: "class-loading",
+      created: "2026-06-17",
+      title: "클래스 로딩",
+      srcSlugs: ["ch1", "ch2"],
     });
   });
 
@@ -45,12 +62,14 @@ describe("source README generation", () => {
           slug: "array-pointer",
           created: "2026-06-10",
           title: "배열과 포인터",
+          srcSlugs: [],
         },
         {
           path: "languages/c/notes/hongongc/note/variable.md",
           slug: "variable",
           created: "2026-06-09",
           title: "변수와 입력",
+          srcSlugs: [],
         },
       ],
       srcSlugs: ["array-pointer", "collections"],
@@ -73,6 +92,29 @@ describe("source README generation", () => {
     expect(readme).not.toContain("## 연결 대기");
   });
 
+  it("links topic notes to chapter source folders declared in frontmatter", () => {
+    const readme = upsertSourceReadme({
+      sourcePath: "languages/java/notes/java-basic",
+      metadata: { name: "Java Basic", type: "book" },
+      existingContent: null,
+      notes: [
+        parseSourceNote({
+          path: "languages/java/notes/java-basic/note/class-loading.md",
+          content:
+            "---\ncreated: 2026-06-17\nsrc:\n  - ch1\n  - ch2\n---\n\n# 클래스 로딩\n",
+        }),
+      ],
+      srcSlugs: ["ch1", "ch2", "ch3"],
+    });
+
+    expect(readme).toContain(
+      "| 2026-06-17 | 클래스 로딩 | [ch1](./src/ch1/), [ch2](./src/ch2/) | [class-loading.md](./note/class-loading.md) |",
+    );
+    expect(readme).toContain("| - | ch3 | [ch3](./src/ch3/) | - |");
+    expect(readme).not.toContain("| - | ch1 |");
+    expect(readme).not.toContain("| - | ch2 |");
+  });
+
   it("matches src slugs case-sensitively and preserves prose outside the managed block", () => {
     const readme = upsertSourceReadme({
       sourcePath: "cs/algorithms/notes/apss",
@@ -85,6 +127,7 @@ describe("source README generation", () => {
           slug: "ch06",
           created: "2026-06-10",
           title: "무식하게 풀기",
+          srcSlugs: [],
         },
       ],
       srcSlugs: ["Ch06"],

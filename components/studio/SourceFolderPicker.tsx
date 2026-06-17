@@ -29,6 +29,8 @@ export function SourceFolderPicker({
   onShowExisting,
   onSourceNameChange,
   onMetadataChange,
+  onCreateSourceWorkspace,
+  isCreatingWorkspace = false,
 }: {
   selectedPath: string;
   savePath: string;
@@ -41,6 +43,8 @@ export function SourceFolderPicker({
   onShowExisting(): void;
   onSourceNameChange(source: string): void;
   onMetadataChange(metadata: SourceMetadataForm): void;
+  onCreateSourceWorkspace(): void;
+  isCreatingWorkspace?: boolean;
 }) {
   const [technologyName, setTechnologyName] = useState("");
   const slug = makeSlug(sourceName);
@@ -282,6 +286,24 @@ export function SourceFolderPicker({
                     className="h-12 rounded-lg bg-[#f3ebdf] px-4 text-sm text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:ring-4 focus:ring-[#c7ad6d]/30"
                   />
                 </label>
+              </div>
+              <div className="flex flex-col gap-2 rounded-lg bg-[#e8dfd0] p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-[#342f28]">
+                    note 없이 학습 공간만 먼저 만들 수 있습니다
+                  </p>
+                  <p className="mt-1 text-xs text-[#71685c]">
+                    README, note 폴더, src 폴더를 먼저 준비합니다.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onCreateSourceWorkspace}
+                  disabled={isCreatingWorkspace}
+                  className="h-11 shrink-0 rounded-lg bg-[#31513a] px-4 text-sm font-semibold text-[#f6efe2] transition hover:bg-[#294632] disabled:opacity-60"
+                >
+                  {isCreatingWorkspace ? "학습 공간 생성 중" : "학습 공간 만들기"}
+                </button>
               </div>
             </div>
           )}

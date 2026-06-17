@@ -22,6 +22,7 @@ export type SourceNote = {
   slug: string;
   created: string;
   title: string;
+  srcSlugs: string[];
 };
 
 export function sourceReadmePathForNote(path: string): string | null {
@@ -41,6 +42,20 @@ export function sourceReadmePathForNote(path: string): string | null {
 export function sourcePathForNote(path: string): string | null {
   const readmePath = sourceReadmePathForNote(path);
   return readmePath?.replace(/\/README\.md$/i, "") ?? null;
+}
+
+export function sourcePathForContentPath(path: string): string | null {
+  const segments = path.split("/");
+  const notesIndex = segments.indexOf("notes");
+  const sourceSlug = segments[notesIndex + 1];
+  const sourceChild = segments[notesIndex + 2];
+  if (notesIndex < 2 || !sourceSlug || !sourceChild) return null;
+
+  if (sourceChild === "README.md" || sourceChild === "note" || sourceChild === "src") {
+    return segments.slice(0, notesIndex + 2).join("/");
+  }
+
+  return null;
 }
 
 export function isRemovableSourceReadme(input: {
@@ -72,9 +87,11 @@ export function isRemovableSourceReadme(input: {
       String.raw`└── src\/     # note와 같은 slug를 사용하는 실습 코드`,
       "```",
       String.raw`## 작성 원칙`,
-      String.raw`- 같은 학습 단위는 하나의 slug를 사용합니다\.`,
+      String.raw`- 같은 학습 단위는 기본적으로 하나의 slug를 사용합니다\.`,
       String.raw`- 학습 기록은 \`note\/<slug>\.md\`에 작성합니다\.`,
       String.raw`- 관련 실습 코드는 \`src\/<slug>\/\` 아래에 둡니다\.`,
+      String.raw`- note slug와 src 폴더명이 다르면 note frontmatter의 \`src\` 목록으로 연결합니다\.`,
+      String.raw`- 예: \`src: \[ch1, ch2\]\`는 해당 note를 \`src\/ch1\/\`, \`src\/ch2\/\`와 연결합니다\.`,
       String.raw`- note와 src는 어느 한쪽만 먼저 존재해도 됩니다\.`,
       String.raw`- \`build\/\`, \`\.gradle\/\`, \`node_modules\/\`, 바이너리와 IDE 캐시는 커밋하지 않습니다\.`,
       String.raw`- 학습 기록 관리 블록은 자동 생성되므로 직접 수정하지 않습니다\.`,
@@ -97,6 +114,7 @@ export function parseSourceNote(input: { path: string; content: string }): Sourc
     slug,
     created,
     title: extractedTitle === "Untitled" ? readableSlug(slug) : extractedTitle,
+    srcSlugs: parseFrontmatterSourceSlugs(input.content),
   };
 }
 
@@ -146,9 +164,11 @@ function createSourceReadmeBase(sourcePath: string, metadata: SourceMetadata): s
     "└── src/     # note와 같은 slug를 사용하는 실습 코드",
     "```",
     "## 작성 원칙",
-    "- 같은 학습 단위는 하나의 slug를 사용합니다.",
+    "- 같은 학습 단위는 기본적으로 하나의 slug를 사용합니다.",
     "- 학습 기록은 `note/<slug>.md`에 작성합니다.",
     "- 관련 실습 코드는 `src/<slug>/` 아래에 둡니다.",
+    "- note slug와 src 폴더명이 다르면 note frontmatter의 `src` 목록으로 연결합니다.",
+    "- 예: `src: [ch1, ch2]`는 해당 note를 `src/ch1/`, `src/ch2/`와 연결합니다.",
     "- note와 src는 어느 한쪽만 먼저 존재해도 됩니다.",
     "- `build/`, `.gradle/`, `node_modules/`, 바이너리와 IDE 캐시는 커밋하지 않습니다.",
     "- 학습 기록 관리 블록은 자동 생성되므로 직접 수정하지 않습니다.",
@@ -173,9 +193,18 @@ function renderLearningLog(notes: SourceNote[], srcSlugs: string[]): string {
     (left, right) =>
       left.created.localeCompare(right.created) || left.slug.localeCompare(right.slug),
   );
-  const noteSlugs = new Set(sortedNotes.map((note) => note.slug));
   const srcOnlySlugs = [...sourceSet]
-    .filter((slug) => !noteSlugs.has(slug))
+    .filter((slug) => {
+      const isLinked = sortedNotes.some((note) => {
+        const explicitSlugs = note.srcSlugs.filter((srcSlug) =>
+          sourceSet.has(srcSlug),
+        );
+        return explicitSlugs.length
+          ? explicitSlugs.includes(slug)
+          : note.slug === slug;
+      });
+      return !isLinked;
+    })
     .sort();
   const lines = [
     learningLogStart,
@@ -187,8 +216,14 @@ function renderLearningLog(notes: SourceNote[], srcSlugs: string[]): string {
 
   if (sortedNotes.length || srcOnlySlugs.length) {
     for (const note of sortedNotes) {
-      const srcLink = sourceSet.has(note.slug)
-        ? `[${escapeLinkLabel(note.slug)}](./src/${encodeURIComponent(note.slug)}/)`
+      const explicitSlugs = note.srcSlugs.filter((slug) => sourceSet.has(slug));
+      const linkedSlugs = explicitSlugs.length
+        ? explicitSlugs
+        : sourceSet.has(note.slug)
+          ? [note.slug]
+          : [];
+      const srcLink = linkedSlugs.length
+        ? linkedSlugs.map((slug) => sourceLink(slug)).join(", ")
         : "-";
       const noteFilename = `${note.slug}.md`;
       lines.push(
@@ -207,6 +242,55 @@ function renderLearningLog(notes: SourceNote[], srcSlugs: string[]): string {
   lines.push(learningLogEnd);
 
   return lines.join("\n");
+}
+
+function parseFrontmatterSourceSlugs(content: string): string[] {
+  const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!frontmatter) return [];
+
+  const lines = frontmatter[1].split(/\r?\n/);
+  const slugs: string[] = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const inlineMatch = line.match(/^src:\s*(.+?)\s*$/);
+    if (inlineMatch) {
+      slugs.push(...parseInlineSourceSlugs(inlineMatch[1]));
+      continue;
+    }
+
+    if (!/^src:\s*$/.test(line)) continue;
+
+    for (let cursor = index + 1; cursor < lines.length; cursor += 1) {
+      const listMatch = lines[cursor].match(/^\s*-\s*(.+?)\s*$/);
+      if (!listMatch) break;
+      slugs.push(cleanSourceSlug(listMatch[1]));
+      index = cursor;
+    }
+  }
+
+  return [...new Set(slugs.filter(Boolean))];
+}
+
+function parseInlineSourceSlugs(value: string): string[] {
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+    return trimmed
+      .slice(1, -1)
+      .split(",")
+      .map(cleanSourceSlug)
+      .filter(Boolean);
+  }
+  return [cleanSourceSlug(trimmed)].filter(Boolean);
+}
+
+function cleanSourceSlug(value: string): string {
+  return value.trim().replace(/^["']|["']$/g, "");
+}
+
+function sourceLink(slug: string): string {
+  return `[${escapeLinkLabel(slug)}](./src/${encodeURIComponent(slug)}/)`;
 }
 
 function sourceTypeLabel(type: SourceType): string {

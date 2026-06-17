@@ -156,6 +156,55 @@ describe("repository change planning", () => {
     ]);
   });
 
+  it("plans topic and ancestor README changes when bootstrapping a source without notes", async () => {
+    const sourcePath = "languages/java/notes/java-basic";
+    const changes = await planRepositoryChanges({
+      existingPaths: ["README.md", "languages/README.md"],
+      requestedChanges: [
+        {
+          operation: "upsert",
+          path: `${sourcePath}/README.md`,
+          content: "# Java Basic\n",
+        },
+        {
+          operation: "upsert",
+          path: `${sourcePath}/note/.gitkeep`,
+          content: "",
+        },
+        {
+          operation: "upsert",
+          path: `${sourcePath}/src/.gitkeep`,
+          content: "",
+        },
+      ],
+      readDocument: async (path) => {
+        if (path === "README.md") return "# TIL";
+        if (path === "languages/README.md") return "# Languages";
+        return null;
+      },
+      sourceMetadata: {
+        name: "Java Basic",
+        type: "book",
+        technologies: ["Java"],
+      },
+    });
+
+    expect(changes.map((change) => change.path)).toEqual([
+      `${sourcePath}/README.md`,
+      `${sourcePath}/note/.gitkeep`,
+      `${sourcePath}/src/.gitkeep`,
+      "languages/java/README.md",
+      "languages/README.md",
+      "README.md",
+    ]);
+    expect(upsertContent(changes, `${sourcePath}/README.md`)).toContain(
+      "| - | 아직 작성된 학습 기록이 없습니다. | - | - |",
+    );
+    expect(upsertContent(changes, "languages/java/README.md")).toContain(
+      "- [java-basic](notes/java-basic/)",
+    );
+  });
+
   it("removes a source from indexes when all source paths are deleted", async () => {
     const sourceRoot = "languages/java/notes/java-intro";
     const changes = await planRepositoryChanges({
@@ -326,6 +375,7 @@ function managedHierarchyDocuments(input: {
           slug: "note",
           created: "2026-06-11",
           title: "Cascade note",
+          srcSlugs: [],
         },
       ],
       srcSlugs: [],

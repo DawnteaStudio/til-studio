@@ -6,7 +6,7 @@ import {
 import {
   isRemovableSourceReadme,
   parseSourceNote,
-  sourcePathForNote,
+  sourcePathForContentPath,
   upsertSourceReadme,
   type SourceMetadata,
 } from "@/lib/content/source-readme";
@@ -102,7 +102,7 @@ export async function planRepositoryChanges(input: {
           .map((path) =>
             path.slice(`${sourcePath}/src/`.length).split("/")[0],
           )
-          .filter(Boolean),
+          .filter((slug) => Boolean(slug) && slug !== ".gitkeep"),
       ),
     ];
     const sourceSlug = sourcePath.split("/").at(-1) ?? "source";
@@ -206,7 +206,7 @@ function affectedSourcePaths(changes: RepositoryChange[]): string[] {
   return [
     ...new Set(
       changes
-        .map((change) => sourcePathForNote(change.path))
+        .map((change) => sourcePathForContentPath(change.path))
         .filter((path): path is string => Boolean(path)),
     ),
   ].sort((left, right) => left.localeCompare(right));
@@ -228,7 +228,7 @@ function affectedTopicReadmePaths(
       continue;
     }
 
-    const sourcePath = sourcePathForNote(change.path);
+    const sourcePath = sourcePathForContentPath(change.path);
     if (
       sourcePath &&
       hasSourceContent(existingPaths, sourcePath) !==

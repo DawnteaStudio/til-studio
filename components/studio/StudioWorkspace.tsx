@@ -107,6 +107,7 @@ export function StudioWorkspace() {
   const [mode, setMode] = useState<SaveMode>("quick");
   const [draftKind, setDraftKind] = useState<StudioDraftKind>("note");
   const [isBusy, setIsBusy] = useState(false);
+  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [isTreeLoading, setIsTreeLoading] = useState(true);
   const [visibleRootPaths, setVisibleRootPaths] = useState<string[]>([]);
   const [status, setStatus] = useState("TIL 레포 구조를 불러오는 중");
@@ -234,6 +235,86 @@ export function StudioWorkspace() {
     return missing;
   }
 
+  function sourceMetadataPayload() {
+    if (!sourceMetadata.type) return null;
+    return {
+      name: sourceName.trim(),
+      type: sourceMetadata.type,
+      overview: sourceMetadata.overview.trim() || undefined,
+      technologies: sourceMetadata.technologies,
+      references: sourceMetadata.reference.trim()
+        ? [sourceMetadata.reference.trim()]
+        : [],
+    };
+  }
+
+  async function createSourceWorkspace() {
+    if (!target) {
+      setStatus("먼저 왼쪽에서 학습 공간을 만들 topic을 선택하세요");
+      setNotice({
+        title: "작업 위치가 필요합니다",
+        message: "왼쪽에서 area와 topic을 선택한 뒤 학습 공간을 만들 수 있습니다.",
+        tone: "error",
+      });
+      return;
+    }
+    if (!sourceName.trim()) {
+      setStatus("새 학습 자료 이름을 입력하세요");
+      setNotice({
+        title: "학습 자료 이름이 필요합니다",
+        message: "새 학습 공간에 사용할 책, 강의, 자료 이름을 입력하세요.",
+        tone: "error",
+      });
+      return;
+    }
+    const metadata = sourceMetadataPayload();
+    if (!metadata) {
+      setStatus("새 학습 자료의 자료 유형을 선택하세요");
+      setNotice({
+        title: "자료 유형이 필요합니다",
+        message: "책, 강의, 멘토링, 코스, 기타 중 하나를 선택하세요.",
+        tone: "error",
+      });
+      return;
+    }
+
+    setIsCreatingWorkspace(true);
+    setStatus("학습 공간 생성 요청 중");
+    setNotice({
+      title: "학습 공간 생성 중",
+      message: "README와 note/src 폴더를 GitHub에 준비하는 중입니다.",
+      tone: "progress",
+    });
+    try {
+      const response = await fetch("/api/github/source", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          mode,
+          topicPath: selectedPath,
+          sourceName: sourceName.trim(),
+          sourceMetadata: metadata,
+        }),
+      });
+      if (!response.ok) throw new Error("Source workspace creation failed");
+      setStatus(`학습 공간 생성 완료: ${selectedPath}/notes/${sourceName.trim()}`);
+      setNotice({
+        title: "학습 공간 생성 완료",
+        message: "README와 note/src 폴더가 준비되었습니다.",
+        tone: "success",
+      });
+    } catch {
+      setStatus("학습 공간 생성 요청에 실패했습니다");
+      setNotice({
+        title: "학습 공간 생성 실패",
+        message: "GitHub 설정과 권한을 확인한 뒤 다시 시도하세요.",
+        tone: "error",
+      });
+    } finally {
+      setIsCreatingWorkspace(false);
+    }
+  }
+
   async function createNoteMarkdown() {
     const missing = missingNoteMarkdownFields();
     if (missing.length) {
@@ -350,6 +431,10 @@ export function StudioWorkspace() {
       });
       return;
     }
+    const content =
+      draftKind === "note"
+        ? ensureCreatedFrontmatter(publishMarkdown, noteDraft.created || seoulDate())
+        : publishMarkdown;
 
     setStatus("GitHub 저장 요청 중");
     setNotice({
@@ -366,20 +451,12 @@ export function StudioWorkspace() {
           message: "Add TIL note from til-studio",
           sourceMetadata:
             draftKind === "note" && isCreatingSource && sourceMetadata.type
-              ? {
-                  name: sourceName.trim(),
-                  type: sourceMetadata.type,
-                  overview: sourceMetadata.overview.trim() || undefined,
-                  technologies: sourceMetadata.technologies,
-                  references: sourceMetadata.reference.trim()
-                    ? [sourceMetadata.reference.trim()]
-                    : [],
-                }
+              ? sourceMetadataPayload()
               : undefined,
           changes: [
             {
               path,
-              content: publishMarkdown,
+              content,
             },
           ],
         }),
@@ -552,6 +629,8 @@ export function StudioWorkspace() {
               }}
               onSourceNameChange={setSourceName}
               onMetadataChange={setSourceMetadata}
+              onCreateSourceWorkspace={createSourceWorkspace}
+              isCreatingWorkspace={isCreatingWorkspace}
             />
           ) : null}
         </div>

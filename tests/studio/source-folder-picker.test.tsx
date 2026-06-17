@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   SourceFolderPicker,
   type SourceMetadataForm,
@@ -57,6 +57,7 @@ function Harness() {
       }}
       onSourceNameChange={setSourceName}
       onMetadataChange={setMetadata}
+      onCreateSourceWorkspace={vi.fn()}
     />
   );
 }
@@ -141,5 +142,59 @@ describe("learning material picker", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Custom VM 기술 삭제" }));
     expect(screen.queryByText("Custom VM")).toBeNull();
+  });
+
+  it("offers source workspace creation only in new material mode", () => {
+    const onCreateSourceWorkspace = vi.fn();
+    render(
+      <SourceFolderPicker
+        selectedPath="languages/java"
+        savePath="languages/java/notes/java-basic/"
+        sourceName="Java Basic"
+        sources={sources}
+        isCreating={false}
+        metadata={{
+          type: "",
+          overview: "",
+          technologies: [],
+          reference: "",
+        }}
+        onSelectExisting={vi.fn()}
+        onStartCreating={vi.fn()}
+        onShowExisting={vi.fn()}
+        onSourceNameChange={vi.fn()}
+        onMetadataChange={vi.fn()}
+        onCreateSourceWorkspace={onCreateSourceWorkspace}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "학습 공간 만들기" })).toBeNull();
+
+    cleanup();
+    render(
+      <SourceFolderPicker
+        selectedPath="languages/java"
+        savePath="languages/java/notes/java-basic/"
+        sourceName="Java Basic"
+        sources={sources}
+        isCreating
+        metadata={{
+          type: "book",
+          overview: "",
+          technologies: [],
+          reference: "",
+        }}
+        onSelectExisting={vi.fn()}
+        onStartCreating={vi.fn()}
+        onShowExisting={vi.fn()}
+        onSourceNameChange={vi.fn()}
+        onMetadataChange={vi.fn()}
+        onCreateSourceWorkspace={onCreateSourceWorkspace}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "학습 공간 만들기" }));
+
+    expect(onCreateSourceWorkspace).toHaveBeenCalledTimes(1);
   });
 });

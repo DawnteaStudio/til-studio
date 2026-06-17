@@ -246,6 +246,79 @@ describe("StudioWorkspace note and theory actions", () => {
     expect(body.changes[0].content).toContain("created:");
   });
 
+  it("creates a source workspace before writing a note", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/github/tree") return Response.json(treeResponse);
+      if (url === "/api/github/source") return Response.json({ mode: "quick", commitSha: "abc123" });
+      return Response.json({}, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<StudioWorkspace />);
+
+    await screen.findByText("algorithms");
+    fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.change(screen.getByLabelText("새 학습 자료 이름"), { target: { value: "Java Basic" } });
+    fireEvent.change(screen.getByLabelText("자료 유형"), { target: { value: "book" } });
+    fireEvent.change(screen.getByLabelText("기술 이름"), { target: { value: "Java" } });
+    fireEvent.click(screen.getByRole("button", { name: "기술 추가" }));
+    fireEvent.click(screen.getByRole("button", { name: "학습 공간 만들기" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/source", expect.any(Object)));
+    const sourceCall = fetchMock.mock.calls.find(([url]) => String(url) === "/api/github/source");
+    const body = JSON.parse(String((sourceCall?.[1] as RequestInit).body));
+
+    expect(body).toMatchObject({
+      mode: "quick",
+      topicPath: "cs/algorithms",
+      sourceName: "Java Basic",
+      sourceMetadata: {
+        name: "Java Basic",
+        type: "book",
+        technologies: [
+          {
+            name: "Java",
+            badge: {
+              label: "Java",
+              color: "ED8B00",
+              logo: "openjdk",
+              logoColor: "white",
+            },
+          },
+        ],
+      },
+    });
+    expect(await screen.findByRole("status", { name: "학습 공간 생성 완료" })).toBeTruthy();
+  });
+
+  it("adds created frontmatter when saving manually edited note markdown", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/github/tree") return Response.json(treeResponse);
+      if (url === "/api/github/save") return Response.json({ mode: "quick", commitSha: "abc123" });
+      return Response.json({}, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<StudioWorkspace />);
+
+    await screen.findByText("algorithms");
+    fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByRole("button", { name: "기존 학습 자료" }));
+    fireEvent.click(screen.getByText("APSS").closest("button")!);
+    fireEvent.change(screen.getByLabelText("제목"), { target: { value: "Manual note" } });
+    fireEvent.click(screen.getByLabelText("Markdown 직접 수정"));
+    fireEvent.change(screen.getByLabelText("Markdown source"), {
+      target: { value: "# Manual note\n\n본문" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/save", expect.any(Object)));
+    const saveCall = fetchMock.mock.calls.find(([url]) => String(url) === "/api/github/save");
+    const body = JSON.parse(String((saveCall?.[1] as RequestInit).body));
+
+    expect(body.changes[0].content).toMatch(/^---\ncreated: \d{4}-\d{2}-\d{2}\n---\n\n# Manual note/);
+  });
+
   it("shows themed progress and completion notices while drafting a note", async () => {
     const noteResponse = deferred<Response>();
     vi.stubGlobal(
