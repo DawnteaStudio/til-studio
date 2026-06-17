@@ -59,46 +59,84 @@ export function BlogIndex({ paths, owner, repo, initialVisibleRootPaths }: BlogI
   }
 
   return (
-    <main className="min-h-screen bg-[#151611] text-[#f4efe4]">
-      <section className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-        <nav className="mb-12 flex flex-wrap items-center justify-between gap-4">
-          <Link href="/" className="text-lg font-semibold">til-studio</Link>
-          <div className="flex gap-3 text-sm text-[#cec4ae]">
-            <Link href="/map" className="hover:text-[#f4efe4]">Map</Link>
-            <Link href="/studio" className="hover:text-[#f4efe4]">Studio</Link>
+    <main className="public-shell text-[#f7f4ea]">
+      <section className="public-frame py-6 sm:py-8">
+        <nav className="public-nav rounded-full px-4 py-3 sm:px-5">
+          <Link href="/" className="text-base font-semibold sm:text-lg">til-studio</Link>
+          <div className="flex gap-2 text-sm text-[#d6d0c6]">
+            <Link href="/map" className="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">Map</Link>
+            <Link href="/studio" className="rounded-full bg-white/10 px-3 py-2 transition hover:bg-[#ffd36a] hover:text-[#080b12]">
+              Studio
+            </Link>
           </div>
         </nav>
 
-        <header className="grid gap-8 border-b border-[#34382b] pb-10 lg:grid-cols-[1fr_360px]">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9da88c]">
-              {owner}/{repo}
-            </p>
-            <h1 className="mt-4 max-w-3xl text-5xl font-semibold leading-tight text-[#f4efe4]">
-              공부 기록을 블로그처럼 읽는 공간
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-8 text-[#c8bea8]">
-              TIL 저장소의 notes와 theory를 실제 글 목록으로 보여줍니다. 안내 문서는 폴더 진입용으로만 쓰고,
-              화면에서는 폴더를 펼쳐가며 학습 기록을 고를 수 있게 구성합니다.
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-3 self-end">
-            <Metric label="all" value={documents.length} />
-            <Metric label="notes" value={notes.length} />
-            <Metric label="theory" value={theory.length} />
+        <header className="relative mt-12 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.05] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-8 lg:p-10">
+          <div className="absolute inset-x-0 top-0 h-1 public-step-line" />
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end">
+            <div>
+              <p className="font-mono text-xs uppercase text-[#c7f05a]">{owner}/{repo}</p>
+              <h1 className="mt-4 max-w-4xl text-5xl font-black leading-[0.95] tracking-normal text-white sm:text-7xl">
+                archive stream
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-8 text-[#d8d0bd]">
+                notes와 theory만 골라 읽는 공개 아카이브입니다. 폴더 필터는 유지하되,
+                글 자체가 먼저 눈에 들어오도록 스트림 중심으로 재구성했습니다.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Metric label="all" value={documents.length} />
+              <Metric label="notes" value={notes.length} />
+              <Metric label="theory" value={theory.length} />
+            </div>
           </div>
         </header>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="rounded-[1.75rem] bg-[#20241b] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.18)]">
+        <div className="mt-10 grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <section className="relative space-y-5">
+            <div className="absolute bottom-0 left-4 top-0 hidden w-px bg-gradient-to-b from-[#5de7ff] via-white/15 to-[#ffd36a] md:block" />
+            {documents.map((document, index) => (
+              <Link
+                key={document.path}
+                href={`/docs/${document.path}`}
+                className={[
+                  "public-stream-card group block rounded-[1.5rem] p-5 md:ml-10 md:p-6",
+                  index % 2 ? "xl:ml-24 xl:mr-0" : "xl:mr-16",
+                ].join(" ")}
+              >
+                <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
+                  <span className="rounded-full bg-[#ffd36a] px-3 py-1 text-xs font-black text-[#080b12]">
+                    {kindLabel[document.kind]}
+                  </span>
+                  <span className="font-mono text-xs text-[#9cecff]">
+                    {String(index + 1).padStart(2, "0")} / {document.area}/{document.topic}
+                  </span>
+                </div>
+                <h2 className="relative z-10 mt-6 text-2xl font-black leading-tight text-white group-hover:text-[#ffd36a] sm:text-3xl">
+                  {document.title}
+                </h2>
+                <p className="relative z-10 mt-4 break-all font-mono text-xs leading-5 text-[#bfb8aa]">
+                  {document.path}
+                </p>
+              </Link>
+            ))}
+          </section>
+
+          <aside className="public-glass rounded-[2rem] p-4 xl:sticky xl:top-6 xl:self-start">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <p className="text-sm font-bold text-white">탐색 필터</p>
+              <span className="rounded-full bg-white/10 px-3 py-1 font-mono text-[0.68rem] text-[#9cecff]">
+                {documents.length} files
+              </span>
+            </div>
             <button
               type="button"
               onClick={() => setActiveFolder("all")}
               className={[
-                "mb-3 flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-sm font-semibold transition",
+                "mb-3 flex w-full items-center justify-between rounded-full px-4 py-3 text-left text-sm font-bold transition",
                 activeFolder === "all"
-                  ? "bg-[#d8c69a] text-[#151611]"
-                  : "bg-[#2a3024] text-[#f4efe4] hover:bg-[#343c2c]",
+                  ? "bg-[#ffd36a] text-[#080b12]"
+                  : "bg-white/[0.07] text-white hover:bg-white/[0.12]",
               ].join(" ")}
             >
               <span>전체 글</span>
@@ -117,31 +155,6 @@ export function BlogIndex({ paths, owner, repo, initialVisibleRootPaths }: BlogI
               ))}
             </div>
           </aside>
-
-          <section className="grid content-start gap-5 xl:grid-cols-2">
-            {documents.map((document) => (
-              <Link
-                key={document.path}
-                href={`/docs/${document.path}`}
-                className="group rounded-[1.75rem] bg-[#24281e] p-5 transition hover:-translate-y-0.5 hover:bg-[#2f3527]"
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <span className="rounded-full bg-[#d8c69a] px-3 py-1 text-xs font-semibold text-[#1e2118]">
-                    {kindLabel[document.kind]}
-                  </span>
-                  <span className="font-mono text-xs text-[#9d957f]">
-                    {document.area}/{document.topic}
-                  </span>
-                </div>
-                <h2 className="mt-5 text-2xl font-semibold text-[#f4efe4] group-hover:text-[#f3d99a]">
-                  {document.title}
-                </h2>
-                <p className="mt-3 break-all font-mono text-xs leading-5 text-[#9d957f]">
-                  {document.path}
-                </p>
-              </Link>
-            ))}
-          </section>
         </div>
       </section>
     </main>
@@ -171,8 +184,8 @@ function FolderButton({
         type="button"
         onClick={() => onToggle(folder.path)}
         className={[
-          "flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-left text-sm transition",
-          isActive ? "bg-[#d8c69a] text-[#151611]" : "text-[#cec4ae] hover:bg-[#2a3024] hover:text-[#f4efe4]",
+          "flex w-full items-center justify-between gap-3 rounded-full px-3 py-2.5 text-left text-sm transition",
+          isActive ? "bg-[#ffd36a] text-[#080b12]" : "text-[#d8d0bd] hover:bg-white/[0.08] hover:text-white",
         ].join(" ")}
         style={{ paddingLeft: `${12 + level * 18}px` }}
       >
@@ -211,9 +224,9 @@ function FolderButton({
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-3xl bg-[#24281e] p-4 text-center">
-      <p className="text-2xl font-semibold text-[#f4efe4]">{value}</p>
-      <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[#9d957f]">{label}</p>
+    <div className="rounded-[1.1rem] border border-white/10 bg-[#080b12]/45 p-4 text-center backdrop-blur">
+      <p className="text-3xl font-black text-white">{value}</p>
+      <p className="mt-1 text-xs uppercase text-[#c8c0b1]">{label}</p>
     </div>
   );
 }

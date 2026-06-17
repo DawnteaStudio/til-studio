@@ -18,64 +18,96 @@ export default async function HomePage() {
   const theoryCount = snapshot.paths.filter((path) => path.includes("/theory/")).length;
 
   return (
-    <main className="min-h-screen bg-[#151611] text-[#f4efe4]">
-      <section className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-8 lg:px-8">
-        <nav className="flex items-center justify-between">
-          <p className="text-lg font-semibold">til-studio</p>
-          <div className="flex gap-4 text-sm text-[#cec4ae]">
-            <Link href="/blog" className="hover:text-[#f4efe4]">Blog</Link>
-            <Link href="/map" className="hover:text-[#f4efe4]">Map</Link>
-            <Link href="/studio" className="hover:text-[#f4efe4]">Studio</Link>
+    <main className="public-shell text-[#f7f4ea]">
+      <section className="public-frame flex min-h-screen flex-col py-6 sm:py-8">
+        <nav className="public-nav rounded-full px-4 py-3 sm:px-5">
+          <p className="text-base font-semibold sm:text-lg">til-studio</p>
+          <div className="flex items-center gap-2 text-sm text-[#d6d0c6] sm:gap-3">
+            <Link href="/blog" className="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">
+              Blog
+            </Link>
+            <Link href="/map" className="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">
+              Map
+            </Link>
+            <Link href="/studio" className="rounded-full bg-white/10 px-3 py-2 transition hover:bg-[#ffd36a] hover:text-[#080b12]">
+              Studio
+            </Link>
           </div>
         </nav>
 
-        <div className="grid flex-1 items-center gap-12 py-16 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9da88c]">
+        <div className="grid flex-1 items-center gap-8 py-10 lg:grid-cols-[minmax(0,0.98fr)_minmax(420px,0.82fr)] lg:py-16">
+          <section className="relative">
+            <div className="public-marquee mb-8 rounded-full border border-white/10 bg-white/[0.04] py-3 text-xs font-semibold uppercase text-[#9cecff]">
+              <div className="public-marquee-track">
+                {["notes", "theory", "github", "learning map", "markdown", "source link", "notes", "theory"].map(
+                  (item, index) => (
+                    <span key={`${item}-${index}`}>{item}</span>
+                  ),
+                )}
+              </div>
+            </div>
+            <p className="font-mono text-xs uppercase text-[#c7f05a]">
               {snapshot.owner}/{snapshot.repo}
             </p>
-            <h1 className="mt-5 max-w-4xl text-6xl font-semibold leading-[1.05] tracking-tight">
-              공부 기록을 쓰고, 정리하고, 블로그처럼 보여주는 TIL 작업실
+            <h1 className="mt-5 max-w-5xl text-7xl font-black leading-[0.86] tracking-normal sm:text-8xl lg:text-9xl">
+              TIL
+              <span className="block text-[#5de7ff]">archive</span>
+              <span className="block text-[#ffd36a]">system</span>
             </h1>
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-[#c8bea8]">
-              GitHub TIL 저장소를 그대로 사용하면서 작성 경험은 더 편하게, 공개 화면은
-              포트폴리오와 학습 아카이브처럼 보이도록 만든 도구입니다.
+            <p className="mt-7 max-w-2xl text-base leading-8 text-[#d8d0bd] sm:text-lg">
+              GitHub 저장소 구조는 그대로 유지하면서, 작성은 Studio에서 빠르게 하고 공개 화면은
+              학습 흐름이 살아있는 아카이브처럼 탐색합니다.
             </p>
-            <div className="mt-9 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/studio"
-                className="rounded-2xl bg-[#d8c69a] px-5 py-3 text-sm font-semibold text-[#1e2118]"
+                className="public-action rounded-full bg-[#ffd36a] px-6 py-3 text-sm font-bold text-[#080b12]"
               >
                 글 작성하기
               </Link>
               <Link
                 href="/blog"
-                className="rounded-2xl bg-[#24281e] px-5 py-3 text-sm font-semibold text-[#f4efe4]"
+                className="public-action rounded-full border border-white/15 bg-white/10 px-6 py-3 text-sm font-bold text-white"
               >
                 글 보러가기
               </Link>
+              <Link
+                href="/map"
+                className="public-action rounded-full border border-[#5de7ff]/30 px-6 py-3 text-sm font-bold text-[#9cecff]"
+              >
+                지도 열기
+              </Link>
             </div>
-          </div>
+          </section>
 
-          <div className="rounded-[2rem] bg-[#24281e] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.25)]">
-            <div className="grid grid-cols-3 gap-3">
-              <Metric label="docs" value={snapshot.paths.length} />
-              <Metric label="notes" value={noteCount} />
-              <Metric label="theory" value={theoryCount} />
+          <section className="relative min-h-[520px]">
+            <div className="absolute left-2 top-4 hidden h-[92%] w-1 rounded-full public-step-line lg:block" />
+            <div className="grid gap-4 sm:grid-cols-3 lg:ml-10 lg:grid-cols-1">
+              <Metric label="docs" value={snapshot.paths.length} tone="cyan" />
+              <Metric label="notes" value={noteCount} tone="amber" />
+              <Metric label="theory" value={theoryCount} tone="pink" />
             </div>
-            <HomeRecentDocuments paths={snapshot.paths} initialVisibleRootPaths={visibleRootPaths} />
-          </div>
+            <div className="mt-6 lg:ml-24 lg:-rotate-1">
+              <HomeRecentDocuments paths={snapshot.paths} initialVisibleRootPaths={visibleRootPaths} />
+            </div>
+          </section>
         </div>
       </section>
     </main>
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({ label, value, tone }: { label: string; value: number; tone: "cyan" | "amber" | "pink" }) {
+  const toneClass = {
+    cyan: "text-[#5de7ff]",
+    amber: "text-[#ffd36a]",
+    pink: "text-[#ff7af7]",
+  }[tone];
+
   return (
-    <div className="rounded-3xl bg-[#1b1f17] p-4 text-center">
-      <p className="text-3xl font-semibold">{value}</p>
-      <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[#9d957f]">{label}</p>
+    <div className="public-glass rounded-[1.35rem] px-5 py-4 first:rotate-1 last:-rotate-1">
+      <p className={`text-4xl font-black ${toneClass}`}>{value}</p>
+      <p className="mt-1 text-xs uppercase text-[#c8c0b1]">{label}</p>
     </div>
   );
 }
