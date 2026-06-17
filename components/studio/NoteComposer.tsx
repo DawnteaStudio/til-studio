@@ -57,7 +57,7 @@ const fields: Array<{
 
 export function NoteComposer({ draft, onChange }: NoteComposerProps) {
   return (
-    <section className="rounded-[2rem] bg-[#f1eadc] p-5 shadow-[0_22px_70px_rgba(59,50,35,0.16)] md:p-7">
+    <section className="studio-paper rounded-[2rem] p-5 md:p-7">
       <div className="mb-5">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b806f]">Note Draft</p>
         <h2 className="mt-2 text-2xl font-semibold text-[#25221c]">공부하면서 편하게 적기</h2>
@@ -77,14 +77,14 @@ export function NoteComposer({ draft, onChange }: NoteComposerProps) {
                 onChange={(event) => onChange(item.field, event.target.value)}
                 placeholder={item.placeholder}
                 rows={item.rows}
-                className="w-full resize-y rounded-3xl bg-[#e1d7c5] px-5 py-4 text-[15px] leading-7 text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:bg-[#f7f1e7] focus:ring-4 focus:ring-[#c7ad6d]/30"
+                className="studio-field w-full resize-y rounded-3xl bg-white/65 px-5 py-4 text-[15px] leading-7 text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:bg-white/90 focus:ring-4 focus:ring-[#ff34ff]/20"
               />
             ) : (
               <input
                 value={draft[item.field]}
                 onChange={(event) => onChange(item.field, event.target.value)}
                 placeholder={item.placeholder}
-                className="h-12 w-full rounded-3xl bg-[#e1d7c5] px-5 text-[15px] text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:bg-[#f7f1e7] focus:ring-4 focus:ring-[#c7ad6d]/30"
+                className="studio-field h-12 w-full rounded-3xl bg-white/65 px-5 text-[15px] text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:bg-white/90 focus:ring-4 focus:ring-[#ff34ff]/20"
               />
             )}
           </label>

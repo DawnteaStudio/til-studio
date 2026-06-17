@@ -45,7 +45,7 @@ export function FolderTree({
   return (
     <nav className="space-y-4 text-sm">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d9a7b]">Workspace</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#5de7ff]">Workspace</p>
         <p className="mt-2 text-2xl font-semibold text-[#f3ecd8]">
           {draftKind === "theory" ? "Theory" : "Notes"}
         </p>
@@ -54,7 +54,7 @@ export function FolderTree({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 rounded-2xl bg-[#171b14] p-1">
+      <div className="studio-panel grid grid-cols-2 rounded-2xl p-1">
         {(["note", "theory"] as const).map((kind) => {
           const active = draftKind === kind;
           return (
@@ -65,8 +65,8 @@ export function FolderTree({
               className={[
                 "rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300",
                 active
-                  ? "bg-[#d8c69a] text-[#1e2118] shadow-[0_10px_24px_rgba(0,0,0,0.22)]"
-                  : "text-[#d8d0bd] hover:bg-[#252a20]",
+                  ? "bg-[#ff34ff] text-[#111827] shadow-[0_10px_24px_rgba(255,52,255,0.2)]"
+                  : "text-[#d8d0bd] hover:bg-white/10",
               ].join(" ")}
             >
               {kind === "note" ? "Notes" : "Theory"}
@@ -83,8 +83,8 @@ export function FolderTree({
       ) : null}
 
       {workspace.areas.length ? (
-        <section className="rounded-3xl bg-[#171b14] p-3">
-          <p className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#8d9a7b]">Area</p>
+        <section className="studio-panel rounded-3xl p-3">
+          <p className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#5de7ff]">Area</p>
           <div className="mt-3 grid gap-2">
             {workspace.areas.map((area) => (
               <button
@@ -98,8 +98,8 @@ export function FolderTree({
                 className={[
                   "rounded-2xl px-3 py-2 text-left font-medium transition-all duration-300",
                   selectedArea?.path === area.path
-                    ? "bg-[#d8c69a] text-[#1e2118] shadow-[0_12px_28px_rgba(0,0,0,0.2)]"
-                    : "text-[#d8d0bd] hover:bg-[#24291d]",
+                    ? "bg-[#5de7ff] text-[#111827] shadow-[0_12px_28px_rgba(93,231,255,0.16)]"
+                    : "text-[#d8d0bd] hover:bg-white/10",
                 ].join(" ")}
               >
                 {area.name}
@@ -110,8 +110,8 @@ export function FolderTree({
       ) : null}
 
       {selectedArea ? (
-        <section className="overflow-hidden rounded-3xl bg-[#171b14] p-3 transition-all duration-300">
-          <p className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#8d9a7b]">Topic</p>
+        <section className="studio-panel overflow-hidden rounded-3xl p-3 transition-all duration-300">
+          <p className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#5de7ff]">Topic</p>
           <div className="mt-3 grid gap-2">
             {selectedArea.topics.map((topic) => (
               <button
@@ -124,8 +124,8 @@ export function FolderTree({
                 className={[
                   "rounded-2xl px-3 py-2 text-left transition-all duration-300",
                   selectedPath === topic.path && !isCreatingTopic
-                    ? "bg-[#d8c69a] text-[#1e2118] shadow-[0_12px_28px_rgba(0,0,0,0.2)]"
-                    : "text-[#d8d0bd] hover:bg-[#24291d]",
+                    ? "bg-[#c7f05a] text-[#111827] shadow-[0_12px_28px_rgba(199,240,90,0.18)]"
+                    : "text-[#d8d0bd] hover:bg-white/10",
                 ].join(" ")}
               >
                 <span className="block font-medium">{topic.name}</span>
@@ -143,14 +143,14 @@ export function FolderTree({
               className={[
                 "rounded-2xl border border-dashed px-3 py-2 text-left font-medium transition-all duration-300",
                 isCreatingTopic
-                  ? "border-[#d8c69a] bg-[#2b2f24] text-[#f4efe4]"
-                  : "border-[#3a3f31] text-[#d8d0bd] hover:border-[#d8c69a]",
+                  ? "border-[#ff34ff] bg-white/10 text-[#f4efe4]"
+                  : "border-white/20 text-[#d8d0bd] hover:border-[#ff34ff]",
               ].join(" ")}
             >
               새 토픽
             </button>
             {isCreatingTopic ? (
-              <label className="grid gap-2 rounded-2xl bg-[#24291d] p-3 text-xs text-[#d8d0bd] transition-all duration-300">
+              <label className="grid gap-2 rounded-2xl bg-white/10 p-3 text-xs text-[#d8d0bd] transition-all duration-300">
                 <span className="font-semibold">새 토픽 이름</span>
                 <input
                   onChange={(event) =>
@@ -162,7 +162,7 @@ export function FolderTree({
                       }),
                     )
                   }
-                  className="h-10 rounded-xl bg-[#34382b] px-3 text-sm text-[#f4efe4] outline-none focus:ring-4 focus:ring-[#d8c69a]/25"
+                  className="studio-field h-10 rounded-xl bg-[#111827] px-3 text-sm text-[#f4efe4] outline-none focus:ring-4 focus:ring-[#ff34ff]/25"
                 />
               </label>
             ) : null}
@@ -171,8 +171,8 @@ export function FolderTree({
       ) : null}
 
       {rootDirectories.length ? (
-        <section className="rounded-3xl bg-[#171b14] p-3">
-          <p className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#8d9a7b]">
+        <section className="studio-panel rounded-3xl p-3">
+          <p className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#5de7ff]">
             공개 표시 폴더
           </p>
           <div className="mt-3 space-y-1">
@@ -182,7 +182,7 @@ export function FolderTree({
               return (
                 <label
                   key={node.path}
-                  className="flex cursor-pointer items-center justify-between rounded-2xl px-3 py-2 text-[#d8d0bd] hover:bg-[#24291d]"
+                  className="flex cursor-pointer items-center justify-between rounded-2xl px-3 py-2 text-[#d8d0bd] transition hover:bg-white/10"
                 >
                   <span>{node.name}</span>
                   <input
@@ -195,7 +195,7 @@ export function FolderTree({
                         : visibleRootPaths.filter((path) => path !== node.path);
                       onVisibleRootPathsChange(next);
                     }}
-                    className="size-4 accent-[#d8c69a]"
+                    className="size-4 accent-[#ff34ff]"
                   />
                 </label>
               );

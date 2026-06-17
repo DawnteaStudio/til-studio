@@ -37,6 +37,8 @@ function Harness() {
       sources={sources}
       isCreating={isCreating}
       metadata={metadata}
+      sourceCodeOptions={["ch1", "ch2"]}
+      selectedSourceCodeSlugs={[]}
       onSelectExisting={(source) => {
         setSourceName(source);
         setIsCreating(false);
@@ -58,6 +60,7 @@ function Harness() {
       onSourceNameChange={setSourceName}
       onMetadataChange={setMetadata}
       onCreateSourceWorkspace={vi.fn()}
+      onToggleSourceCode={vi.fn()}
     />
   );
 }
@@ -159,16 +162,19 @@ describe("learning material picker", () => {
           technologies: [],
           reference: "",
         }}
+        sourceCodeOptions={[]}
+        selectedSourceCodeSlugs={[]}
         onSelectExisting={vi.fn()}
         onStartCreating={vi.fn()}
         onShowExisting={vi.fn()}
         onSourceNameChange={vi.fn()}
         onMetadataChange={vi.fn()}
         onCreateSourceWorkspace={onCreateSourceWorkspace}
+        onToggleSourceCode={vi.fn()}
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "학습 공간 만들기" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "학습 자료 공간 만들기" })).toBeNull();
 
     cleanup();
     render(
@@ -184,17 +190,55 @@ describe("learning material picker", () => {
           technologies: [],
           reference: "",
         }}
+        sourceCodeOptions={[]}
+        selectedSourceCodeSlugs={[]}
         onSelectExisting={vi.fn()}
         onStartCreating={vi.fn()}
         onShowExisting={vi.fn()}
         onSourceNameChange={vi.fn()}
         onMetadataChange={vi.fn()}
         onCreateSourceWorkspace={onCreateSourceWorkspace}
+        onToggleSourceCode={vi.fn()}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "학습 공간 만들기" }));
+    fireEvent.click(screen.getByRole("button", { name: "학습 자료 공간 만들기" }));
 
     expect(onCreateSourceWorkspace).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows source code attachment options in user-facing language", () => {
+    const onToggleSourceCode = vi.fn();
+    render(
+      <SourceFolderPicker
+        selectedPath="languages/java"
+        savePath="languages/java/notes/java-basic/note/test.md"
+        sourceName="java-basic"
+        sources={sources}
+        isCreating={false}
+        metadata={{
+          type: "",
+          overview: "",
+          technologies: [],
+          reference: "",
+        }}
+        sourceCodeOptions={["ch1", "ch2"]}
+        selectedSourceCodeSlugs={["ch1"]}
+        onSelectExisting={vi.fn()}
+        onStartCreating={vi.fn()}
+        onShowExisting={vi.fn()}
+        onSourceNameChange={vi.fn()}
+        onMetadataChange={vi.fn()}
+        onCreateSourceWorkspace={vi.fn()}
+        onToggleSourceCode={onToggleSourceCode}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "소스코드 연결" })).toBeTruthy();
+    expect(screen.getByText("연결된 소스코드: ch1")).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText("ch2 소스코드 연결"));
+
+    expect(onToggleSourceCode).toHaveBeenCalledWith("ch2");
   });
 });

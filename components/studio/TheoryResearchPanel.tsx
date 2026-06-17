@@ -40,7 +40,7 @@ export function TheoryResearchPanel({
   }
 
   return (
-    <section className="space-y-3">
+    <section className="studio-panel space-y-3 rounded-[1.75rem] p-4">
       <h2 className="text-sm font-semibold text-[#f4efe4]">Concept Research</h2>
       <label className="block space-y-2 text-sm">
         <span className="font-semibold text-[#f4efe4]">정리할 개념 키워드</span>
@@ -50,13 +50,13 @@ export function TheoryResearchPanel({
             setLocalKeyword(event.target.value);
             onKeywordChange(event.target.value);
           }}
-          className="h-11 w-full rounded-2xl bg-[#34382b] px-4 text-sm text-[#f4efe4] outline-none placeholder:text-[#918a79] focus:ring-4 focus:ring-[#769269]/30"
+          className="studio-field h-11 w-full rounded-2xl bg-[#111827] px-4 text-sm text-[#f4efe4] outline-none placeholder:text-[#918a79] focus:ring-4 focus:ring-[#5de7ff]/25"
           placeholder="예: KMP failure function"
         />
       </label>
       <button
         type="button"
-        className="w-full rounded-2xl bg-[#d8c69a] px-3 py-3 text-sm font-semibold text-[#1e2118] disabled:opacity-50"
+        className="studio-action w-full rounded-2xl bg-[#5de7ff] px-3 py-3 text-sm font-semibold text-[#111827] disabled:opacity-50"
         disabled={isResearching || !localKeyword.trim()}
         onClick={research}
       >
@@ -64,7 +64,7 @@ export function TheoryResearchPanel({
       </button>
 
       {visibleResult ? (
-        <div className="space-y-3 rounded-3xl bg-[#171b14] p-4 text-sm text-[#d8d0bd]">
+        <div className="space-y-3 rounded-3xl bg-[#111827] p-4 text-sm text-[#d8d0bd]">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d9a7b]">Research Result</p>
             <h3 className="mt-2 text-lg font-semibold text-[#f4efe4]">{visibleResult.title}</h3>
@@ -107,7 +107,7 @@ export function TheoryResearchPanel({
           ) : null}
           <button
             type="button"
-            className="w-full rounded-2xl bg-[#31513a] px-3 py-3 text-sm font-semibold text-[#f6efe2] transition hover:bg-[#3b6046]"
+            className="studio-action w-full rounded-2xl bg-[#204a78] px-3 py-3 text-sm font-semibold text-white"
             onClick={() => onCreateDraft(visibleResult)}
           >
             Theory 초안 만들기

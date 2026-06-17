@@ -8,6 +8,13 @@ const treeResponse = {
     "cs/algorithms/theory/kmp.md",
     "cs/algorithms/notes/APSS/note/ch6.md",
   ],
+  allPaths: [
+    "cs/algorithms/README.md",
+    "cs/algorithms/theory/kmp.md",
+    "cs/algorithms/notes/APSS/note/ch6.md",
+    "cs/algorithms/notes/APSS/src/ch1/Main.java",
+    "cs/algorithms/notes/APSS/src/ch2/Main.java",
+  ],
 };
 
 function mockFetch() {
@@ -262,7 +269,7 @@ describe("StudioWorkspace note and theory actions", () => {
     fireEvent.change(screen.getByLabelText("자료 유형"), { target: { value: "book" } });
     fireEvent.change(screen.getByLabelText("기술 이름"), { target: { value: "Java" } });
     fireEvent.click(screen.getByRole("button", { name: "기술 추가" }));
-    fireEvent.click(screen.getByRole("button", { name: "학습 공간 만들기" }));
+    fireEvent.click(screen.getByRole("button", { name: "학습 자료 공간 만들기" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/source", expect.any(Object)));
     const sourceCall = fetchMock.mock.calls.find(([url]) => String(url) === "/api/github/source");
@@ -317,6 +324,41 @@ describe("StudioWorkspace note and theory actions", () => {
     const body = JSON.parse(String((saveCall?.[1] as RequestInit).body));
 
     expect(body.changes[0].content).toMatch(/^---\ncreated: \d{4}-\d{2}-\d{2}\n---\n\n# Manual note/);
+  });
+
+  it("lets users attach source code folders to a note without editing metadata", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/github/tree") return Response.json(treeResponse);
+      if (url === "/api/github/save") return Response.json({ mode: "quick", commitSha: "abc123" });
+      return Response.json({}, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<StudioWorkspace />);
+
+    await screen.findByText("algorithms");
+    fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByRole("button", { name: "기존 학습 자료" }));
+    fireEvent.click(screen.getByRole("button", { name: "APSS" }));
+
+    expect(screen.getByRole("heading", { name: "소스코드 연결" })).toBeTruthy();
+    expect(screen.getByLabelText("ch1 소스코드 연결")).toBeTruthy();
+    expect(screen.getByLabelText("ch2 소스코드 연결")).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText("ch1 소스코드 연결"));
+    fireEvent.click(screen.getByLabelText("ch2 소스코드 연결"));
+    expect(screen.getByText("연결된 소스코드: ch1, ch2")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("제목"), { target: { value: "Class loading" } });
+    fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "클래스가 어떻게 로딩되는지 배웠다." } });
+    fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/save", expect.any(Object)));
+    const saveCall = fetchMock.mock.calls.find(([url]) => String(url) === "/api/github/save");
+    const body = JSON.parse(String((saveCall?.[1] as RequestInit).body));
+
+    expect(body.changes[0].content).toContain("src:\n  - ch1\n  - ch2");
+    expect(body.changes[0].content).not.toContain("frontmatter");
   });
 
   it("shows themed progress and completion notices while drafting a note", async () => {

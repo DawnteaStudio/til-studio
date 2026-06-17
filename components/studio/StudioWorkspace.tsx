@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { treeFromPaths } from "@/lib/content/indexer";
 import { draftToNoteMarkdown, type StructuredNoteDraft } from "@/lib/content/note-draft";
-import { buildNotePath, buildTheoryPath, parentReadmePath } from "@/lib/content/paths";
+import { buildNotePath, buildTheoryPath, makeSlug, parentReadmePath } from "@/lib/content/paths";
 import { deriveStudyTarget } from "@/lib/content/studio-target";
 import {
   buildStudioWorkspace,
@@ -76,10 +76,62 @@ function ensureCreatedFrontmatter(markdown: string, created: string): string {
   return `---\ncreated: ${created}\n---\n\n${markdown.trimStart()}`;
 }
 
+function applySourceCodeLinks(markdown: string, sourceCodeSlugs: string[]): string {
+  const uniqueSlugs = [...new Set(sourceCodeSlugs.filter(Boolean))];
+  const frontmatterMatch = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+
+  if (!frontmatterMatch) {
+    if (!uniqueSlugs.length) return markdown;
+    return `---\nsrc:\n${uniqueSlugs.map((slug) => `  - ${slug}`).join("\n")}\n---\n\n${markdown.trimStart()}`;
+  }
+
+  const body = markdown.slice(frontmatterMatch[0].length).trimStart();
+  const cleanedLines: string[] = [];
+  let isSkippingSourceList = false;
+  for (const line of frontmatterMatch[1].split(/\r?\n/)) {
+    if (/^src:\s*/.test(line)) {
+      isSkippingSourceList = /^src:\s*$/.test(line);
+      continue;
+    }
+    if (isSkippingSourceList && /^\s*-\s*/.test(line)) continue;
+    isSkippingSourceList = false;
+    if (line.trim()) cleanedLines.push(line);
+  }
+  const srcLines = uniqueSlugs.length
+    ? ["src:", ...uniqueSlugs.map((slug) => `  - ${slug}`)]
+    : [];
+  const createdIndex = cleanedLines.findIndex((line) => /^created:\s*/.test(line));
+  const nextFrontmatter = [...cleanedLines];
+  if (srcLines.length) {
+    nextFrontmatter.splice(
+      createdIndex === -1 ? 0 : createdIndex + 1,
+      0,
+      ...srcLines,
+    );
+  }
+
+  return `---\n${nextFrontmatter.join("\n")}\n---\n\n${body}`;
+}
+
+function sourceCodeSlugsForSource(paths: string[], sourcePath: string): string[] {
+  if (!sourcePath) return [];
+  const prefix = `${sourcePath}/src/`;
+  return [
+    ...new Set(
+      paths
+        .filter((path) => path.startsWith(prefix))
+        .map((path) => path.slice(prefix.length).split("/")[0])
+        .filter((slug) => Boolean(slug) && slug !== ".gitkeep"),
+    ),
+  ].sort((left, right) => left.localeCompare(right));
+}
+
 export function StudioWorkspace() {
   const [tree, setTree] = useState(initialTree);
+  const [repositoryPaths, setRepositoryPaths] = useState<string[]>([]);
   const [selectedPath, setSelectedPath] = useState("");
   const [sourceName, setSourceName] = useState("");
+  const [selectedSourceCodeSlugs, setSelectedSourceCodeSlugs] = useState<string[]>([]);
   const [isCreatingSource, setIsCreatingSource] = useState(true);
   const [sourceMetadata, setSourceMetadata] = useState<SourceMetadataForm>({
     type: "",
@@ -132,6 +184,17 @@ export function StudioWorkspace() {
       title: noteDraft.title,
     });
   }, [noteDraft.title, sourceName, target]);
+  const selectedSourcePath = useMemo(() => {
+    if (!selectedPath || !sourceName.trim()) return "";
+    const existingSource = selectedTopicSources.find(
+      (source) => source.name === sourceName,
+    );
+    return existingSource?.path ?? `${selectedPath}/notes/${makeSlug(sourceName)}`;
+  }, [selectedPath, selectedTopicSources, sourceName]);
+  const sourceCodeOptions = useMemo(
+    () => sourceCodeSlugsForSource(repositoryPaths, selectedSourcePath),
+    [repositoryPaths, selectedSourcePath],
+  );
   const theoryPath = useMemo(() => {
     if (!target) return "";
     if (!theoryTitle.trim()) return "";
@@ -177,10 +240,11 @@ export function StudioWorkspace() {
       try {
         const response = await fetch("/api/github/tree");
         if (!response.ok) return;
-        const data = (await response.json()) as { paths?: string[] };
+        const data = (await response.json()) as { paths?: string[]; allPaths?: string[] };
         if (isMounted && data.paths?.length) {
           const roots = [...new Set(data.paths.map(topLevelFolder).filter(Boolean))].sort();
           const saved = readVisibleRootPaths();
+          setRepositoryPaths(data.allPaths?.length ? data.allPaths : data.paths);
           setTree(treeFromPaths(data.paths));
           const visibleRoots = saved.length ? roots.filter((root) => saved.includes(root)) : roots;
           setVisibleRootPaths(visibleRoots);
@@ -246,6 +310,14 @@ export function StudioWorkspace() {
         ? [sourceMetadata.reference.trim()]
         : [],
     };
+  }
+
+  function toggleSourceCode(slug: string) {
+    setSelectedSourceCodeSlugs((current) =>
+      current.includes(slug)
+        ? current.filter((item) => item !== slug)
+        : [...current, slug].sort((left, right) => left.localeCompare(right)),
+    );
   }
 
   async function createSourceWorkspace() {
@@ -433,7 +505,10 @@ export function StudioWorkspace() {
     }
     const content =
       draftKind === "note"
-        ? ensureCreatedFrontmatter(publishMarkdown, noteDraft.created || seoulDate())
+        ? applySourceCodeLinks(
+            ensureCreatedFrontmatter(publishMarkdown, noteDraft.created || seoulDate()),
+            selectedSourceCodeSlugs,
+          )
         : publishMarkdown;
 
     setStatus("GitHub 저장 요청 중");
@@ -479,7 +554,7 @@ export function StudioWorkspace() {
   }
 
   return (
-    <main className="grid min-h-screen grid-cols-1 bg-[#151611] text-[#f4efe4] lg:grid-cols-[300px_minmax(0,1fr)_340px]">
+    <main className="studio-shell grid min-h-screen grid-cols-1 text-[#f4efe4] lg:grid-cols-[320px_minmax(0,1fr)_360px]">
       {notice ? (
         <div className="fixed right-4 top-4 z-50 w-[min(calc(100vw-2rem),380px)]">
           <div
@@ -521,23 +596,20 @@ export function StudioWorkspace() {
         </div>
       ) : null}
       <SettingsPanel isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-      <aside className="border-b border-[#2a2d22] bg-[#1d2118] p-5 lg:min-h-screen lg:border-b-0 lg:border-r">
+      <aside className="studio-rail border-b p-5 lg:min-h-screen lg:border-b-0 lg:border-r">
         <div className="mb-6 flex items-center justify-between gap-3">
           <Link href="/" className="text-lg font-semibold text-[#f3ecd8]">
             til-studio
           </Link>
           <div className="flex items-center gap-2">
-            <Link
-              href="/blog"
-              className="rounded-full bg-[#2a2f22] px-3 py-1.5 text-xs font-medium text-[#d8d0bd] hover:bg-[#343b2a]"
-            >
+            <Link href="/blog" className="studio-chip rounded-full px-3 py-1.5 text-xs font-medium text-[#d8d0bd]">
               Blog
             </Link>
             <button
               type="button"
               aria-label="설정 열기"
               onClick={() => setIsSettingsOpen(true)}
-              className="flex size-8 items-center justify-center rounded-full bg-[#2a2f22] text-sm text-[#d8d0bd] transition hover:bg-[#343b2a] hover:text-[#f4efe4]"
+              className="studio-chip flex size-8 items-center justify-center rounded-full text-sm text-[#d8d0bd] hover:text-[#f4efe4]"
             >
               ⚙
             </button>
@@ -554,26 +626,26 @@ export function StudioWorkspace() {
           isLoading={isTreeLoading}
         />
       </aside>
-      <section className="min-w-0 bg-[#e8dfd0] px-5 py-6 text-[#201f1b] md:px-8 lg:px-10">
+      <section className="studio-stage min-w-0 px-5 py-6 text-[#201f1b] md:px-8 lg:px-10">
         <div className="mx-auto max-w-4xl">
-        <div className="pb-7 text-sm text-[#6b6257]">
+        <div className="studio-fade-in pb-7 text-sm text-[#5a5360]">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#837969]">
                 Writing Session
               </p>
-              <h1 className="mt-3 text-4xl font-semibold leading-tight text-[#24221d]">
+              <h1 className="mt-3 text-4xl font-semibold leading-tight text-[#111827] md:text-5xl">
                 새 학습 기록 작성
               </h1>
             </div>
-            <div className="max-w-full rounded-full bg-[#27251f] px-4 py-2 text-xs font-medium text-[#efe7d8]">
+            <div className="max-w-full rounded-full bg-[#111827] px-4 py-2 text-xs font-medium text-[#f7f4ea] shadow-[0_16px_34px_rgba(17,24,39,0.22)]">
               {status}
             </div>
           </div>
           <div className="mt-7 grid gap-4 md:grid-cols-[1fr_auto]">
             <label className="space-y-1">
               <span className="block text-xs font-semibold text-[#5e564c]">작업 위치</span>
-              <div className="flex h-12 items-center rounded-2xl bg-[#d8cebd] px-4 text-sm text-[#39352d] shadow-inner">
+              <div className="flex h-12 items-center rounded-2xl border border-[#204a78]/15 bg-white/45 px-4 text-sm text-[#39352d] shadow-inner backdrop-blur">
                 {selectedPath || "왼쪽에서 area와 topic을 선택하세요"}
               </div>
             </label>
@@ -582,13 +654,13 @@ export function StudioWorkspace() {
                 type="button"
                 onClick={createNoteMarkdown}
                 disabled={isBusy}
-                className="self-end rounded-2xl bg-[#31513a] px-5 py-3 text-sm font-semibold text-[#f6efe2] shadow-[0_14px_30px_rgba(38,57,40,0.25)] transition hover:bg-[#294632] disabled:opacity-60"
+                className="studio-action self-end rounded-2xl bg-[#204a78] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(32,74,120,0.28)] disabled:opacity-60"
               >
                 {isBusy ? "글 초안 생성 중" : "글 초안 만들기"}
               </button>
             ) : null}
           </div>
-          <div className="mt-4 rounded-2xl bg-[#2b2923] px-4 py-3 text-[#e8dcc7]">
+          <div className="mt-4 rounded-2xl bg-[#111827] px-4 py-3 text-[#e8dcc7] shadow-[0_18px_45px_rgba(17,24,39,0.18)]">
             <p className="text-xs font-semibold text-[#bdb19d]">
               이 글이 저장될 위치
             </p>
@@ -612,10 +684,12 @@ export function StudioWorkspace() {
               onSelectExisting={(source) => {
                 setSourceName(source);
                 setIsCreatingSource(false);
+                setSelectedSourceCodeSlugs([]);
               }}
               onStartCreating={() => {
                 setSourceName("");
                 setIsCreatingSource(true);
+                setSelectedSourceCodeSlugs([]);
                 setSourceMetadata({
                   type: "",
                   overview: "",
@@ -626,9 +700,13 @@ export function StudioWorkspace() {
               onShowExisting={() => {
                 setSourceName("");
                 setIsCreatingSource(false);
+                setSelectedSourceCodeSlugs([]);
               }}
               onSourceNameChange={setSourceName}
               onMetadataChange={setSourceMetadata}
+              sourceCodeOptions={sourceCodeOptions}
+              selectedSourceCodeSlugs={selectedSourceCodeSlugs}
+              onToggleSourceCode={toggleSourceCode}
               onCreateSourceWorkspace={createSourceWorkspace}
               isCreatingWorkspace={isCreatingWorkspace}
             />
@@ -661,14 +739,14 @@ export function StudioWorkspace() {
           {isMarkdownEditing ? (
             <FileEditor value={markdown} onChange={setMarkdown} />
           ) : (
-            <div className="max-h-[520px] overflow-auto rounded-3xl bg-[#f3ebdf] p-6 shadow-inner">
+            <div className="studio-paper max-h-[520px] overflow-auto rounded-3xl p-6">
               <MarkdownArticle markdown={publishMarkdown} />
             </div>
           )}
         </section>
         </div>
       </section>
-      <aside className="bg-[#24281e] p-5 text-[#f4efe4] lg:min-h-screen lg:border-l lg:border-[#34382b]">
+      <aside className="studio-rail p-5 text-[#f4efe4] lg:min-h-screen lg:border-l">
         <div className="sticky top-5 space-y-5">
         {draftKind === "note" ? (
           <SaveControls mode={mode} onModeChange={setMode} onSave={save} />

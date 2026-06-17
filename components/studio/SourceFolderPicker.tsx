@@ -24,12 +24,15 @@ export function SourceFolderPicker({
   sources,
   isCreating,
   metadata,
+  sourceCodeOptions,
+  selectedSourceCodeSlugs,
   onSelectExisting,
   onStartCreating,
   onShowExisting,
   onSourceNameChange,
   onMetadataChange,
   onCreateSourceWorkspace,
+  onToggleSourceCode,
   isCreatingWorkspace = false,
 }: {
   selectedPath: string;
@@ -38,12 +41,15 @@ export function SourceFolderPicker({
   sources: StudioSourceOption[];
   isCreating: boolean;
   metadata: SourceMetadataForm;
+  sourceCodeOptions: string[];
+  selectedSourceCodeSlugs: string[];
   onSelectExisting(source: string): void;
   onStartCreating(): void;
   onShowExisting(): void;
   onSourceNameChange(source: string): void;
   onMetadataChange(metadata: SourceMetadataForm): void;
   onCreateSourceWorkspace(): void;
+  onToggleSourceCode(slug: string): void;
   isCreatingWorkspace?: boolean;
 }) {
   const [technologyName, setTechnologyName] = useState("");
@@ -80,7 +86,7 @@ export function SourceFolderPicker({
   }
 
   return (
-    <section className="mt-5 rounded-lg bg-[#d8cebd] p-4 text-[#302c24] shadow-inner">
+    <section className="studio-paper mt-5 rounded-[1.75rem] p-4 text-[#302c24]">
       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase text-[#756b5e]">
@@ -90,7 +96,7 @@ export function SourceFolderPicker({
             학습 자료 선택
           </h2>
         </div>
-        <p className="rounded-full bg-[#27251f] px-3 py-1.5 text-xs font-medium text-[#efe7d8]">
+        <p className="rounded-full bg-[#111827] px-3 py-1.5 text-xs font-medium text-[#efe7d8]">
           {isCreating
             ? "새 학습 자료 작성 중"
             : sourceName
@@ -105,7 +111,7 @@ export function SourceFolderPicker({
         </p>
       ) : (
         <div className="mt-4 grid gap-4">
-          <div className="grid grid-cols-2 gap-1 rounded-lg bg-[#c8baa5] p-1">
+            <div className="grid grid-cols-2 gap-1 rounded-2xl bg-[#111827]/10 p-1">
             <button
               type="button"
               aria-pressed={!isCreating}
@@ -113,8 +119,8 @@ export function SourceFolderPicker({
               className={[
                 "h-11 rounded-md px-3 text-sm font-semibold transition",
                 !isCreating
-                  ? "bg-[#31513a] text-[#f6efe2] shadow-sm"
-                  : "text-[#5a5045] hover:bg-[#ded3c2]",
+                  ? "bg-[#204a78] text-white shadow-sm"
+                  : "text-[#5a5045] hover:bg-white/50",
               ].join(" ")}
             >
               기존 학습 자료
@@ -126,8 +132,8 @@ export function SourceFolderPicker({
               className={[
                 "h-11 rounded-md px-3 text-sm font-semibold transition",
                 isCreating
-                  ? "bg-[#31513a] text-[#f6efe2] shadow-sm"
-                  : "text-[#5a5045] hover:bg-[#ded3c2]",
+                  ? "bg-[#204a78] text-white shadow-sm"
+                  : "text-[#5a5045] hover:bg-white/50",
               ].join(" ")}
             >
               새 학습 자료 만들기
@@ -146,8 +152,8 @@ export function SourceFolderPicker({
                       className={[
                         "min-h-12 rounded-lg px-4 py-3 text-left text-sm font-semibold transition",
                         sourceName === source.name
-                          ? "bg-[#31513a] text-[#f6efe2] shadow-[0_12px_24px_rgba(49,81,58,0.22)]"
-                          : "bg-[#e8dfd0] text-[#3c362d] hover:bg-[#f3ebdf]",
+                          ? "bg-[#204a78] text-white shadow-[0_12px_24px_rgba(32,74,120,0.2)]"
+                          : "bg-white/50 text-[#3c362d] hover:bg-white/75",
                       ].join(" ")}
                     >
                       {source.name}
@@ -162,7 +168,7 @@ export function SourceFolderPicker({
               )}
             </div>
           ) : (
-            <div className="grid gap-4 rounded-lg bg-[#cfc2af] p-4">
+            <div className="grid gap-4 rounded-[1.5rem] bg-white/35 p-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="grid gap-2">
                   <span className="text-sm font-semibold text-[#3f3a31]">
@@ -172,7 +178,7 @@ export function SourceFolderPicker({
                     value={sourceName}
                     onChange={(event) => onSourceNameChange(event.target.value)}
                     placeholder="예: 혼자 공부하는 C, Software Maestro"
-                    className="h-12 rounded-lg bg-[#f3ebdf] px-4 text-sm text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:ring-4 focus:ring-[#c7ad6d]/30"
+                    className="studio-field h-12 rounded-2xl bg-white/70 px-4 text-sm text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:ring-4 focus:ring-[#ff34ff]/20"
                   />
                 </label>
                 <label className="grid gap-2">
@@ -188,7 +194,7 @@ export function SourceFolderPicker({
                           .value as SourceMetadataForm["type"],
                       })
                     }
-                    className="h-12 rounded-lg bg-[#f3ebdf] px-4 text-sm text-[#25221c] outline-none focus:ring-4 focus:ring-[#c7ad6d]/30"
+                    className="studio-field h-12 rounded-2xl bg-white/70 px-4 text-sm text-[#25221c] outline-none focus:ring-4 focus:ring-[#ff34ff]/20"
                   >
                     <option value="">선택하세요</option>
                     <option value="book">책</option>
@@ -212,7 +218,7 @@ export function SourceFolderPicker({
                     }
                     rows={3}
                     placeholder="이 자료에서 무엇을 공부하는지 적어주세요."
-                    className="rounded-lg bg-[#f3ebdf] px-4 py-3 text-sm text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:ring-4 focus:ring-[#c7ad6d]/30"
+                    className="studio-field rounded-2xl bg-white/70 px-4 py-3 text-sm text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:ring-4 focus:ring-[#ff34ff]/20"
                   />
                 </label>
                 <div className="grid gap-3 sm:col-span-2">
@@ -235,13 +241,13 @@ export function SourceFolderPicker({
                             }
                           }}
                           placeholder="예: Java, Spring"
-                          className="h-12 w-full rounded-lg bg-[#f3ebdf] px-4 text-sm text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:ring-4 focus:ring-[#c7ad6d]/30"
+                          className="studio-field h-12 w-full rounded-2xl bg-white/70 px-4 text-sm text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:ring-4 focus:ring-[#ff34ff]/20"
                         />
                       </label>
                       <button
                         type="button"
                         onClick={addTechnology}
-                        className="h-12 shrink-0 rounded-lg bg-[#31513a] px-4 text-sm font-semibold text-[#f6efe2] transition hover:bg-[#294632]"
+                        className="studio-action h-12 shrink-0 rounded-2xl bg-[#204a78] px-4 text-sm font-semibold text-white"
                       >
                         기술 추가
                       </button>
@@ -283,32 +289,87 @@ export function SourceFolderPicker({
                       })
                     }
                     placeholder="책 정보 또는 URL"
-                    className="h-12 rounded-lg bg-[#f3ebdf] px-4 text-sm text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:ring-4 focus:ring-[#c7ad6d]/30"
+                    className="studio-field h-12 rounded-2xl bg-white/70 px-4 text-sm text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:ring-4 focus:ring-[#ff34ff]/20"
                   />
                 </label>
               </div>
-              <div className="flex flex-col gap-2 rounded-lg bg-[#e8dfd0] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 rounded-2xl bg-[#111827] p-4 text-white sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-[#342f28]">
-                    note 없이 학습 공간만 먼저 만들 수 있습니다
+                    글을 쓰기 전에 학습 자료 공간을 먼저 만들 수 있습니다
                   </p>
-                  <p className="mt-1 text-xs text-[#71685c]">
-                    README, note 폴더, src 폴더를 먼저 준비합니다.
+                  <p className="mt-1 text-xs text-[#c8d0dc]">
+                    README, note 폴더, 소스코드 폴더를 먼저 준비합니다.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={onCreateSourceWorkspace}
                   disabled={isCreatingWorkspace}
-                  className="h-11 shrink-0 rounded-lg bg-[#31513a] px-4 text-sm font-semibold text-[#f6efe2] transition hover:bg-[#294632] disabled:opacity-60"
+                  className="studio-action h-11 shrink-0 rounded-2xl bg-[#ff34ff] px-4 text-sm font-semibold text-[#111827] disabled:opacity-60"
                 >
-                  {isCreatingWorkspace ? "학습 공간 생성 중" : "학습 공간 만들기"}
+                  {isCreatingWorkspace
+                    ? "학습 자료 공간 생성 중"
+                    : "학습 자료 공간 만들기"}
                 </button>
               </div>
             </div>
           )}
 
-          <div className="rounded-lg bg-[#2b2923] px-4 py-3 text-[#e8dcc7]">
+          {sourceName ? (
+            <section className="rounded-[1.5rem] border border-[#204a78]/15 bg-[#f7f1e7] p-4 text-[#302c24] shadow-[0_18px_40px_rgba(32,74,120,0.12)]">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase text-[#756b5e]">
+                    Source attachment
+                  </p>
+                  <h3 className="mt-1 text-base font-semibold text-[#25221c]">
+                    소스코드 연결
+                  </h3>
+                </div>
+                {selectedSourceCodeSlugs.length ? (
+                  <p className="rounded-full bg-[#204a78] px-3 py-1.5 text-xs font-semibold text-white">
+                    연결된 소스코드: {selectedSourceCodeSlugs.join(", ")}
+                  </p>
+                ) : null}
+              </div>
+              {sourceCodeOptions.length ? (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {sourceCodeOptions.map((codeSlug) => {
+                    const checked = selectedSourceCodeSlugs.includes(codeSlug);
+                    return (
+                      <label
+                        key={codeSlug}
+                        className={[
+                          "flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm font-semibold transition",
+                          checked
+                            ? "border-[#204a78] bg-[#204a78] text-white shadow-[0_12px_24px_rgba(32,74,120,0.2)]"
+                            : "border-[#d3c4ae] bg-[#f8f0e4] text-[#3c362d] hover:border-[#204a78]/50",
+                        ].join(" ")}
+                      >
+                        <span className="font-mono">{codeSlug}</span>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => onToggleSourceCode(codeSlug)}
+                          aria-label={`${codeSlug} 소스코드 연결`}
+                          className="size-4 accent-[#ff34ff]"
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="mt-3 rounded-lg bg-[#e1d4c2] px-4 py-3 text-sm leading-6 text-[#5a5045]">
+                  아직 연결할 소스코드 폴더가 없습니다. GitHub에
+                  <span className="font-mono"> src/</span> 폴더를 추가하면 이
+                  글과 연결할 수 있습니다.
+                </p>
+              )}
+            </section>
+          ) : null}
+
+          <div className="rounded-[1.5rem] bg-[#111827] px-4 py-3 text-[#e8dcc7] shadow-[0_18px_45px_rgba(17,24,39,0.18)]">
             <p className="text-xs font-semibold text-[#bdb19d]">
               이 글이 저장될 위치
             </p>
