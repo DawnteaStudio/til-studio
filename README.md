@@ -252,6 +252,26 @@ Open:
 - Learning map: `http://localhost:3000/map`
 - Studio: `http://localhost:3000/studio`
 
+### macOS menu bar app
+
+You can create a local `TIL Studio.app` launcher that starts the production server from the macOS menu bar.
+
+```bash
+npm run desktop:app
+```
+
+After that, open `TIL Studio.app`. It starts the server on `http://localhost:3100`, opens Studio, and stays in the menu bar instead of the Dock.
+
+Menu actions:
+
+- `Open Studio`: open `http://localhost:3100/studio`.
+- `Start Server`: build and start the production Next.js server.
+- `Stop Server`: stop the server process.
+- `Restart Server`: stop, rebuild, and start again.
+- `Quit`: stop the server and close the menu bar app.
+
+Run `npm run desktop:app` again after moving the project folder or changing Node.js versions so the launcher script points at the right paths.
+
 ## GitHub App Setup
 
 Create a GitHub App and install it on the TIL repository.

@@ -253,6 +253,26 @@ npm run dev
 - 학습 지도: `http://localhost:3000/map`
 - Studio: `http://localhost:3000/studio`
 
+### macOS 메뉴바 앱
+
+로컬 `TIL Studio.app` 런처를 만들면 macOS 메뉴바에서 production 서버를 켜고 끌 수 있습니다.
+
+```bash
+npm run desktop:app
+```
+
+이후 `TIL Studio.app`을 열면 `http://localhost:3100`에서 서버를 시작하고 Studio를 엽니다. Dock이 아니라 메뉴바에 머무릅니다.
+
+메뉴 동작:
+
+- `Open Studio`: `http://localhost:3100/studio`를 엽니다.
+- `Start Server`: production Next.js 서버를 빌드하고 시작합니다.
+- `Stop Server`: 서버 프로세스를 종료합니다.
+- `Restart Server`: 서버를 종료한 뒤 다시 빌드하고 시작합니다.
+- `Quit`: 서버를 종료하고 메뉴바 앱을 닫습니다.
+
+프로젝트 폴더를 옮기거나 Node.js 버전을 바꾼 뒤에는 `npm run desktop:app`을 다시 실행해 런처 스크립트 경로를 갱신하세요.
+
 ## GitHub App 설정
 
 GitHub App을 만들고 TIL 저장소에 설치합니다.
