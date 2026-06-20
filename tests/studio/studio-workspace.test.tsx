@@ -85,6 +85,27 @@ describe("StudioWorkspace note and theory actions", () => {
     expect(await screen.findByText("작업 위치, 제목, 오늘 배운 것을 먼저 입력하세요")).toBeTruthy();
   });
 
+  it("organizes writing into focused workflow steps", async () => {
+    mockFetch();
+    render(<StudioWorkspace />);
+
+    expect(await screen.findByRole("tab", { name: /Where/ })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /Write/ })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /Preview/ })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /Publish/ })).toBeTruthy();
+    expect(screen.getByText("작업 위치를 먼저 정하면 나머지 도구는 조용히 접어둘게요.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "GitHub에 저장" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("tab", { name: /Write/ }));
+
+    expect(screen.getByRole("heading", { name: "공부하면서 편하게 적기" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "GitHub에 저장" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
+
+    expect(screen.getByRole("button", { name: "GitHub에 저장" })).toBeTruthy();
+  });
+
   it("opens settings from the gear button and saves without showing stored secrets", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -225,6 +246,7 @@ describe("StudioWorkspace note and theory actions", () => {
     fireEvent.change(screen.getByLabelText("참고 자료"), { target: { value: "https://example.com/book" } });
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "배열과 포인터" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "배열과 포인터 관계를 배웠다." } });
+    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
     fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/save", expect.any(Object)));
@@ -313,10 +335,12 @@ describe("StudioWorkspace note and theory actions", () => {
     fireEvent.click(screen.getByRole("button", { name: "기존 학습 자료" }));
     fireEvent.click(screen.getByText("APSS").closest("button")!);
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "Manual note" } });
+    fireEvent.click(screen.getByRole("tab", { name: /Preview/ }));
     fireEvent.click(screen.getByLabelText("Markdown 직접 수정"));
     fireEvent.change(screen.getByLabelText("Markdown source"), {
       target: { value: "# Manual note\n\n본문" },
     });
+    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
     fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/save", expect.any(Object)));
@@ -351,6 +375,7 @@ describe("StudioWorkspace note and theory actions", () => {
 
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "Class loading" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "클래스가 어떻게 로딩되는지 배웠다." } });
+    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
     fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/save", expect.any(Object)));
@@ -404,6 +429,7 @@ describe("StudioWorkspace note and theory actions", () => {
     expect(screen.queryByRole("status", { name: "글 초안 생성 완료" })).toBeNull();
 
     vi.useFakeTimers();
+    fireEvent.click(screen.getByRole("tab", { name: /Write/ }));
     fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
     await act(async () => {
       await Promise.resolve();
@@ -435,6 +461,7 @@ describe("StudioWorkspace note and theory actions", () => {
     mockFetch();
     render(<StudioWorkspace />);
 
+    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
     fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
 
     expect(await screen.findByRole("status", { name: "저장할 수 없습니다" })).toBeTruthy();
@@ -460,6 +487,7 @@ describe("StudioWorkspace note and theory actions", () => {
     fireEvent.click(screen.getByText("APSS").closest("button")!);
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
+    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
     fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
 
     expect(await screen.findByRole("status", { name: "GitHub 저장 중" })).toBeTruthy();
@@ -486,6 +514,7 @@ describe("StudioWorkspace note and theory actions", () => {
     fireEvent.click(screen.getByText("APSS").closest("button")!);
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
+    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
     fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/save", expect.any(Object)));

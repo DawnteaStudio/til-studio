@@ -45,6 +45,15 @@ type StudioNotice = {
   tone: "progress" | "success" | "error";
 };
 
+type StudioStep = "where" | "write" | "preview" | "publish";
+
+const studioSteps: Array<{ id: StudioStep; label: string; caption: string }> = [
+  { id: "where", label: "Where", caption: "위치" },
+  { id: "write", label: "Write", caption: "작성" },
+  { id: "preview", label: "Preview", caption: "확인" },
+  { id: "publish", label: "Publish", caption: "저장" },
+];
+
 function readVisibleRootPaths(): string[] {
   try {
     const raw = window.localStorage.getItem(folderVisibilityStorageKey);
@@ -162,6 +171,7 @@ export function StudioWorkspace() {
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [isTreeLoading, setIsTreeLoading] = useState(true);
   const [visibleRootPaths, setVisibleRootPaths] = useState<string[]>([]);
+  const [activeStep, setActiveStep] = useState<StudioStep>("where");
   const [status, setStatus] = useState("TIL 레포 구조를 불러오는 중");
   const [notice, setNotice] = useState<StudioNotice | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -216,6 +226,7 @@ export function StudioWorkspace() {
   function updateDraftKind(kind: StudioDraftKind) {
     setDraftKind(kind);
     setMode(defaultSaveModeForDraft(kind));
+    setActiveStep("write");
     if (kind === "note") {
       setIsMarkdownEditing(false);
     } else {
@@ -230,6 +241,11 @@ export function StudioWorkspace() {
         );
       }
     }
+  }
+
+  function selectStudyPath(path: string) {
+    setSelectedPath(path);
+    if (path) setActiveStep("write");
   }
 
   useEffect(() => {
@@ -280,6 +296,7 @@ export function StudioWorkspace() {
     persistVisibleRootPaths(paths);
     if (selectedPath && !paths.includes(topLevelFolder(selectedPath))) {
       setSelectedPath("");
+      setActiveStep("where");
     }
   }
 
@@ -415,6 +432,7 @@ export function StudioWorkspace() {
       }
       setMode("quick");
       setDraftKind("note");
+      setActiveStep("preview");
       setStatus("글 초안 생성 완료");
       setNotice({
         title: "글 초안 생성 완료",
@@ -458,6 +476,7 @@ export function StudioWorkspace() {
     setMode("review");
     setDraftKind("theory");
     setIsMarkdownEditing(true);
+    setActiveStep("preview");
     setStatus(`Theory 초안 생성: ${nextTheoryPath}`);
   }
 
@@ -553,8 +572,48 @@ export function StudioWorkspace() {
     }
   }
 
+  const sourcePicker =
+    draftKind === "note" ? (
+      <SourceFolderPicker
+        selectedPath={selectedPath}
+        savePath={notePath}
+        sourceName={sourceName}
+        sources={selectedTopicSources}
+        isCreating={isCreatingSource}
+        metadata={sourceMetadata}
+        onSelectExisting={(source) => {
+          setSourceName(source);
+          setIsCreatingSource(false);
+          setSelectedSourceCodeSlugs([]);
+        }}
+        onStartCreating={() => {
+          setSourceName("");
+          setIsCreatingSource(true);
+          setSelectedSourceCodeSlugs([]);
+          setSourceMetadata({
+            type: "",
+            overview: "",
+            technologies: [],
+            reference: "",
+          });
+        }}
+        onShowExisting={() => {
+          setSourceName("");
+          setIsCreatingSource(false);
+          setSelectedSourceCodeSlugs([]);
+        }}
+        onSourceNameChange={setSourceName}
+        onMetadataChange={setSourceMetadata}
+        sourceCodeOptions={sourceCodeOptions}
+        selectedSourceCodeSlugs={selectedSourceCodeSlugs}
+        onToggleSourceCode={toggleSourceCode}
+        onCreateSourceWorkspace={createSourceWorkspace}
+        isCreatingWorkspace={isCreatingWorkspace}
+      />
+    ) : null;
+
   return (
-    <main className="studio-shell grid min-h-screen grid-cols-1 text-[#f4efe4] lg:grid-cols-[320px_minmax(0,1fr)_360px]">
+    <main className="studio-shell grid min-h-screen grid-cols-1 text-[#f4efe4] lg:grid-cols-[320px_minmax(0,1fr)]">
       {notice ? (
         <div className="fixed right-4 top-4 z-50 w-[min(calc(100vw-2rem),380px)]">
           <div
@@ -622,155 +681,189 @@ export function StudioWorkspace() {
           visibleRootPaths={visibleRootPaths}
           onDraftKindChange={updateDraftKind}
           onVisibleRootPathsChange={updateVisibleRootPaths}
-          onSelectPath={setSelectedPath}
+          onSelectPath={selectStudyPath}
           isLoading={isTreeLoading}
         />
       </aside>
       <section className="studio-stage min-w-0 px-5 py-6 text-[#201f1b] md:px-8 lg:px-10">
-        <div className="mx-auto max-w-4xl">
-        <div className="studio-fade-in pb-7 text-sm text-[#5a5360]">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#837969]">
-                Writing Session
-              </p>
-              <h1 className="mt-3 text-4xl font-semibold leading-tight text-[#111827] md:text-5xl">
-                새 학습 기록 작성
-              </h1>
+        <div className="mx-auto max-w-5xl">
+          <div className="studio-fade-in pb-7 text-sm text-[#5a5360]">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase text-[#837969]">
+                  Writing Session
+                </p>
+                <h1 className="mt-3 text-4xl font-semibold leading-tight text-[#111827] md:text-5xl">
+                  새 학습 기록 작성
+                </h1>
+              </div>
+              <div className="max-w-full rounded-full bg-[#111827] px-4 py-2 text-xs font-medium text-[#f7f4ea] shadow-[0_16px_34px_rgba(17,24,39,0.22)]">
+                {status}
+              </div>
             </div>
-            <div className="max-w-full rounded-full bg-[#111827] px-4 py-2 text-xs font-medium text-[#f7f4ea] shadow-[0_16px_34px_rgba(17,24,39,0.22)]">
-              {status}
+            <div
+              role="tablist"
+              aria-label="Studio workflow"
+              className="mt-7 grid gap-2 rounded-2xl border border-[#204a78]/15 bg-[#e4dac9] p-2 shadow-inner md:grid-cols-4"
+            >
+              {studioSteps.map((step) => {
+                const isActive = activeStep === step.id;
+                return (
+                  <button
+                    key={step.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setActiveStep(step.id)}
+                    className={[
+                      "h-16 rounded-xl px-3 text-left transition",
+                      isActive
+                        ? "bg-[#111827] text-[#f7f4ea] shadow-[0_14px_30px_rgba(17,24,39,0.18)]"
+                        : "text-[#5f5549] hover:bg-white/55",
+                    ].join(" ")}
+                  >
+                    <span className="block text-sm font-semibold">{step.label}</span>
+                    <span className="mt-1 block text-xs opacity-75">{step.caption}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
-          <div className="mt-7 grid gap-4 md:grid-cols-[1fr_auto]">
-            <label className="space-y-1">
-              <span className="block text-xs font-semibold text-[#5e564c]">작업 위치</span>
-              <div className="flex h-12 items-center rounded-2xl border border-[#204a78]/15 bg-white/45 px-4 text-sm text-[#39352d] shadow-inner backdrop-blur">
-                {selectedPath || "왼쪽에서 area와 topic을 선택하세요"}
-              </div>
-            </label>
-            {draftKind === "note" ? (
-              <button
-                type="button"
-                onClick={createNoteMarkdown}
-                disabled={isBusy}
-                className="studio-action self-end rounded-2xl bg-[#204a78] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(32,74,120,0.28)] disabled:opacity-60"
-              >
-                {isBusy ? "글 초안 생성 중" : "글 초안 만들기"}
-              </button>
+
+          <div className="grid gap-5">
+            {activeStep === "where" ? (
+              <section className="studio-paper rounded-[2rem] p-5 md:p-7">
+                <p className="text-xs font-semibold uppercase text-[#756b5e]">Where</p>
+                <h2 className="mt-2 text-2xl font-semibold text-[#25221c]">
+                  작업 위치부터 정리하기
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[#6b6257]">
+                  작업 위치를 먼저 정하면 나머지 도구는 조용히 접어둘게요.
+                </p>
+                <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto]">
+                  <label className="space-y-1">
+                    <span className="block text-xs font-semibold text-[#5e564c]">작업 위치</span>
+                    <div className="flex min-h-12 items-center rounded-2xl border border-[#204a78]/15 bg-white/55 px-4 text-sm text-[#39352d] shadow-inner">
+                      {selectedPath || "왼쪽에서 area와 topic을 선택하세요"}
+                    </div>
+                  </label>
+                  {draftKind === "note" ? (
+                    <button
+                      type="button"
+                      onClick={createNoteMarkdown}
+                      disabled={isBusy}
+                      className="studio-action self-end rounded-2xl bg-[#204a78] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(32,74,120,0.28)] disabled:opacity-60"
+                    >
+                      {isBusy ? "글 초안 생성 중" : "글 초안 만들기"}
+                    </button>
+                  ) : null}
+                </div>
+                {sourcePicker}
+              </section>
+            ) : null}
+
+            {activeStep === "write" ? (
+              draftKind === "note" ? (
+                <>
+                  <section className="studio-paper rounded-[2rem] p-5 md:p-7">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-[#756b5e]">Write</p>
+                        <h2 className="mt-2 text-2xl font-semibold text-[#25221c]">
+                          메모 흐름 정리
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-[#6b6257]">
+                          위치와 자료를 정한 뒤 바로 메모를 쌓고 초안을 만들 수 있습니다.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={createNoteMarkdown}
+                        disabled={isBusy}
+                        className="studio-action self-start rounded-2xl bg-[#204a78] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(32,74,120,0.28)] disabled:opacity-60 md:self-end"
+                      >
+                        {isBusy ? "글 초안 생성 중" : "글 초안 만들기"}
+                      </button>
+                    </div>
+                  </section>
+                  {sourcePicker}
+                  <NoteComposer draft={noteDraft} onChange={updateNoteDraft} />
+                </>
+              ) : (
+                <TheoryResearchPanel
+                  keyword={theoryKeyword}
+                  result={theoryResearch}
+                  isResearching={isResearchingTheory}
+                  onKeywordChange={setTheoryKeyword}
+                  onResearch={researchTheoryConcept}
+                  onCreateDraft={createTheoryFromResearch}
+                />
+              )
+            ) : null}
+
+            {activeStep === "preview" ? (
+              <section className="studio-paper rounded-[2rem] p-5 md:p-7">
+                <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-[#756b5e]">Preview</p>
+                    <h2 className="mt-1 text-base font-semibold text-[#24221d]">미리보기</h2>
+                    <p className="mt-1 text-sm text-[#6b6257]">
+                      Publish 시점에는 이 내용이 GitHub에 저장됩니다.
+                    </p>
+                  </div>
+                  <label className="inline-flex items-center gap-2 rounded-full bg-[#d8cebd] px-4 py-2 text-sm font-medium text-[#3a352e]">
+                    <input
+                      type="checkbox"
+                      checked={isMarkdownEditing}
+                      onChange={(event) => {
+                        if (event.target.checked) setMarkdown(publishMarkdown);
+                        setIsMarkdownEditing(event.target.checked);
+                      }}
+                      className="size-4 rounded border-[#968b78]"
+                    />
+                    Markdown 직접 수정
+                  </label>
+                </div>
+                {isMarkdownEditing ? (
+                  <FileEditor value={markdown} onChange={setMarkdown} />
+                ) : (
+                  <div className="max-h-[560px] overflow-auto rounded-3xl border border-[#204a78]/10 bg-[#fbf6ec] p-6 shadow-inner">
+                    <MarkdownArticle markdown={publishMarkdown} />
+                  </div>
+                )}
+              </section>
+            ) : null}
+
+            {activeStep === "publish" ? (
+              <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="studio-paper rounded-[2rem] p-5 md:p-7">
+                  <p className="text-xs font-semibold uppercase text-[#756b5e]">Publish</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-[#25221c]">
+                    저장 전 마지막 확인
+                  </h2>
+                  <div className="mt-5 rounded-2xl bg-[#111827] px-4 py-3 text-[#e8dcc7] shadow-[0_18px_45px_rgba(17,24,39,0.18)]">
+                    <p className="text-xs font-semibold text-[#bdb19d]">이 글이 저장될 위치</p>
+                    <p className="mt-1 break-all font-mono text-xs leading-5">
+                      {(draftKind === "theory" ? theoryPath : notePath) || "선택을 마치면 저장 경로가 표시됩니다"}
+                    </p>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[#6b6257]">
+                    {draftKind === "theory"
+                      ? "Theory는 선택한 topic 아래 theory 폴더로 저장됩니다."
+                      : "Notes는 선택한 topic과 학습 자료 아래 note 폴더로 자동 저장됩니다."}
+                  </p>
+                </div>
+                <SaveControls
+                  mode={draftKind === "theory" ? "review" : mode}
+                  onModeChange={setMode}
+                  onSave={save}
+                  showQuick={draftKind === "note"}
+                />
+              </section>
             ) : null}
           </div>
-          <div className="mt-4 rounded-2xl bg-[#111827] px-4 py-3 text-[#e8dcc7] shadow-[0_18px_45px_rgba(17,24,39,0.18)]">
-            <p className="text-xs font-semibold text-[#bdb19d]">
-              이 글이 저장될 위치
-            </p>
-            <p className="mt-1 break-all font-mono text-xs leading-5">
-            {(draftKind === "theory" ? theoryPath : notePath) || "선택을 마치면 저장 경로가 표시됩니다"}
-            </p>
-          </div>
-          <p className="mt-2 text-xs leading-5 text-[#6b6257]">
-            {draftKind === "theory"
-              ? "Theory는 오른쪽에서 concept을 조사하고 확인한 뒤, 선택한 topic 아래 theory 폴더로 저장됩니다."
-              : "Notes는 선택한 topic과 학습 자료 아래 note 폴더로 자동 저장됩니다."}
-          </p>
-          {draftKind === "note" ? (
-            <SourceFolderPicker
-              selectedPath={selectedPath}
-              savePath={notePath}
-              sourceName={sourceName}
-              sources={selectedTopicSources}
-              isCreating={isCreatingSource}
-              metadata={sourceMetadata}
-              onSelectExisting={(source) => {
-                setSourceName(source);
-                setIsCreatingSource(false);
-                setSelectedSourceCodeSlugs([]);
-              }}
-              onStartCreating={() => {
-                setSourceName("");
-                setIsCreatingSource(true);
-                setSelectedSourceCodeSlugs([]);
-                setSourceMetadata({
-                  type: "",
-                  overview: "",
-                  technologies: [],
-                  reference: "",
-                });
-              }}
-              onShowExisting={() => {
-                setSourceName("");
-                setIsCreatingSource(false);
-                setSelectedSourceCodeSlugs([]);
-              }}
-              onSourceNameChange={setSourceName}
-              onMetadataChange={setSourceMetadata}
-              sourceCodeOptions={sourceCodeOptions}
-              selectedSourceCodeSlugs={selectedSourceCodeSlugs}
-              onToggleSourceCode={toggleSourceCode}
-              onCreateSourceWorkspace={createSourceWorkspace}
-              isCreatingWorkspace={isCreatingWorkspace}
-            />
-          ) : null}
-        </div>
-        {draftKind === "note" ? (
-          <NoteComposer draft={noteDraft} onChange={updateNoteDraft} />
-        ) : null}
-        <section className="mt-8 border-t border-[#c8bba7] pt-7">
-          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-[#24221d]">미리보기</h2>
-              <p className="mt-1 text-sm text-[#6b6257]">
-                Publish 시점에는 이 내용이 GitHub에 저장됩니다.
-              </p>
-            </div>
-            <label className="inline-flex items-center gap-2 rounded-full bg-[#d8cebd] px-4 py-2 text-sm font-medium text-[#3a352e]">
-              <input
-                type="checkbox"
-                checked={isMarkdownEditing}
-                onChange={(event) => {
-                  if (event.target.checked) setMarkdown(publishMarkdown);
-                  setIsMarkdownEditing(event.target.checked);
-                }}
-                className="size-4 rounded border-[#968b78]"
-              />
-              Markdown 직접 수정
-            </label>
-          </div>
-          {isMarkdownEditing ? (
-            <FileEditor value={markdown} onChange={setMarkdown} />
-          ) : (
-            <div className="studio-paper max-h-[520px] overflow-auto rounded-3xl p-6">
-              <MarkdownArticle markdown={publishMarkdown} />
-            </div>
-          )}
-        </section>
         </div>
       </section>
-      <aside className="studio-rail p-5 text-[#f4efe4] lg:min-h-screen lg:border-l">
-        <div className="sticky top-5 space-y-5">
-        {draftKind === "note" ? (
-          <SaveControls mode={mode} onModeChange={setMode} onSave={save} />
-        ) : (
-          <>
-            <TheoryResearchPanel
-              keyword={theoryKeyword}
-              result={theoryResearch}
-              isResearching={isResearchingTheory}
-              onKeywordChange={setTheoryKeyword}
-              onResearch={researchTheoryConcept}
-              onCreateDraft={createTheoryFromResearch}
-            />
-            <div className="rounded-3xl bg-[#171b14] p-4 text-sm">
-              <p className="font-semibold text-[#f4efe4]">Theory 저장 경로</p>
-              <p className="mt-2 break-all font-mono text-xs text-[#a9a18f]">
-                {theoryPath || "조사 결과로 초안을 만들면 경로가 표시됩니다"}
-              </p>
-            </div>
-            <SaveControls mode="review" onModeChange={setMode} onSave={save} showQuick={false} />
-          </>
-        )}
-        </div>
-      </aside>
     </main>
   );
 }
