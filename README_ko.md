@@ -261,14 +261,15 @@ npm run dev
 npm run desktop:app
 ```
 
-이후 `TIL Studio.app`을 열면 `http://localhost:3100`에서 서버를 시작하고 Studio를 엽니다. Dock이 아니라 메뉴바에 머무릅니다.
+이후 `TIL Studio.app`을 열면 `http://localhost:3100`에서 서버를 시작하고 Studio를 엽니다. Dock이 아니라 메뉴바에 머무릅니다. 평소 시작은 기존 `.next` production build를 재사용하므로 빠르게 열립니다.
 
 메뉴 동작:
 
 - `Open Studio`: `http://localhost:3100/studio`를 엽니다.
-- `Start Server`: production Next.js 서버를 빌드하고 시작합니다.
+- `Start Server`: production Next.js 서버를 시작합니다. 아직 `.next` build가 없으면 처음 한 번만 빌드합니다.
 - `Stop Server`: 서버 프로세스를 종료합니다.
-- `Restart Server`: 서버를 종료한 뒤 다시 빌드하고 시작합니다.
+- `Restart Server`: 빌드 없이 서버만 종료했다가 다시 시작합니다.
+- `Rebuild & Restart`: 앱을 다시 빌드한 뒤 서버를 시작합니다. 애플리케이션 코드를 바꾸거나 업데이트를 받은 뒤 사용하세요.
 - `Quit`: 서버를 종료하고 메뉴바 앱을 닫습니다.
 
 프로젝트 폴더를 옮기거나 Node.js 버전을 바꾼 뒤에는 `npm run desktop:app`을 다시 실행해 런처 스크립트 경로를 갱신하세요.

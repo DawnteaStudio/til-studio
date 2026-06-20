@@ -260,14 +260,15 @@ You can create a local `TIL Studio.app` launcher that starts the production serv
 npm run desktop:app
 ```
 
-After that, open `TIL Studio.app`. It starts the server on `http://localhost:3100`, opens Studio, and stays in the menu bar instead of the Dock.
+After that, open `TIL Studio.app`. It starts the server on `http://localhost:3100`, opens Studio, and stays in the menu bar instead of the Dock. Routine starts reuse the existing `.next` production build so the app opens quickly.
 
 Menu actions:
 
 - `Open Studio`: open `http://localhost:3100/studio`.
-- `Start Server`: build and start the production Next.js server.
+- `Start Server`: start the production Next.js server. If no `.next` build exists yet, the app creates one first.
 - `Stop Server`: stop the server process.
-- `Restart Server`: stop, rebuild, and start again.
+- `Restart Server`: stop and start again without rebuilding.
+- `Rebuild & Restart`: rebuild the app, then start the server again. Use this after changing application code or pulling updates.
 - `Quit`: stop the server and close the menu bar app.
 
 Run `npm run desktop:app` again after moving the project folder or changing Node.js versions so the launcher script points at the right paths.

@@ -1,4 +1,6 @@
 import { spawn as defaultSpawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 
 export function createServerProcessController(options = {}) {
   const cwd = options.cwd || process.cwd();
@@ -6,6 +8,7 @@ export function createServerProcessController(options = {}) {
   const spawn = options.spawn || defaultSpawn;
   const openExternal = options.openExternal || (() => {});
   const logger = options.logger || console;
+  const buildExists = options.buildExists || (() => existsSync(join(cwd, ".next", "BUILD_ID")));
   const url = `http://localhost:${port}/studio`;
   let serverProcess = null;
   let starting = false;
@@ -38,7 +41,9 @@ export function createServerProcessController(options = {}) {
 
     starting = true;
     try {
-      await runCommand("npm", ["run", "build"], "build");
+      if (!buildExists()) {
+        await runCommand("npm", ["run", "build"], "build");
+      }
       serverProcess = spawn("npm", ["run", "start", "--", "-p", String(port)], {
         cwd,
         env: { ...process.env, PORT: String(port) },
@@ -73,6 +78,17 @@ export function createServerProcessController(options = {}) {
     return start();
   }
 
+  async function rebuildAndRestart() {
+    stop();
+    starting = true;
+    try {
+      await runCommand("npm", ["run", "build"], "build");
+    } finally {
+      starting = false;
+    }
+    return start();
+  }
+
   function status() {
     return {
       running: Boolean(serverProcess),
@@ -85,6 +101,7 @@ export function createServerProcessController(options = {}) {
     start,
     stop,
     restart,
+    rebuildAndRestart,
     status,
   };
 }

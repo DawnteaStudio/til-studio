@@ -60,6 +60,11 @@ function updateMenu() {
         enabled: current.running && !busyLabel,
         click: () => runAction("Restarting", () => controller.restart()),
       },
+      {
+        label: "Rebuild & Restart",
+        enabled: !busyLabel,
+        click: () => runAction("Rebuilding", () => controller.rebuildAndRestart()),
+      },
       { type: "separator" },
       {
         label: "Quit",
