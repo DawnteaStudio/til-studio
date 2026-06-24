@@ -9,6 +9,10 @@ export function createServerProcessController(options = {}) {
   const openExternal = options.openExternal || (() => {});
   const logger = options.logger || console;
   const buildExists = options.buildExists || (() => existsSync(join(cwd, ".next", "BUILD_ID")));
+  const allowBuild = options.allowBuild ?? true;
+  const serverCommand = options.serverCommand || "npm";
+  const serverArgs = options.serverArgs || ["run", "start", "--", "-p", String(port)];
+  const serverEnv = options.serverEnv || {};
   const url = `http://localhost:${port}/studio`;
   let serverProcess = null;
   let starting = false;
@@ -42,11 +46,16 @@ export function createServerProcessController(options = {}) {
     starting = true;
     try {
       if (!buildExists()) {
+        if (!allowBuild) {
+          throw new Error(
+            "Packaged TIL Studio is missing its bundled Next.js server. Reinstall the app from the latest GitHub Release.",
+          );
+        }
         await runCommand("npm", ["run", "build"], "build");
       }
-      serverProcess = spawn("npm", ["run", "start", "--", "-p", String(port)], {
+      serverProcess = spawn(serverCommand, serverArgs, {
         cwd,
-        env: { ...process.env, PORT: String(port) },
+        env: { ...process.env, ...serverEnv, PORT: String(port) },
         shell: process.platform === "win32",
         stdio: ["ignore", "pipe", "pipe"],
       });
@@ -79,6 +88,9 @@ export function createServerProcessController(options = {}) {
   }
 
   async function rebuildAndRestart() {
+    if (!allowBuild) {
+      throw new Error("Rebuild is not available in the packaged app.");
+    }
     stop();
     starting = true;
     try {
@@ -94,6 +106,7 @@ export function createServerProcessController(options = {}) {
       running: Boolean(serverProcess),
       starting,
       url,
+      canRebuild: allowBuild,
     };
   }
 

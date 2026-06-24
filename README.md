@@ -252,9 +252,22 @@ Open:
 - Learning map: `http://localhost:3000/map`
 - Studio: `http://localhost:3000/studio`
 
+### GitHub Release desktop app
+
+For app-like installation on macOS, download the latest `TIL Studio.dmg` from GitHub Releases, open it, and drag `TIL Studio.app` into Applications.
+
+The Release MVP is unsigned. macOS may show a Gatekeeper warning until Developer ID signing and notarization are added.
+
+To publish a desktop release:
+
+1. Update `package.json` version.
+2. Commit the version change.
+3. Push a matching tag, for example `v0.2.0`.
+4. GitHub Actions builds and attaches the macOS artifacts to the GitHub Release.
+
 ### macOS menu bar app
 
-You can create a local `TIL Studio.app` launcher that starts the production server from the macOS menu bar.
+For local development convenience, you can create a repository-local `TIL Studio.app` launcher that starts the production server from the macOS menu bar.
 
 ```bash
 npm run desktop:app
@@ -271,7 +284,7 @@ Menu actions:
 - `Rebuild & Restart`: rebuild the app, then start the server again. Use this after changing application code or pulling updates.
 - `Quit`: stop the server and close the menu bar app.
 
-Run `npm run desktop:app` again after moving the project folder or changing Node.js versions so the launcher script points at the right paths.
+Run `npm run desktop:app` again after moving the project folder or changing Node.js versions so the launcher script points at the right paths. For regular app-like use, prefer the GitHub Release desktop app.
 
 ## GitHub App Setup
 

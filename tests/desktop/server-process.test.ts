@@ -44,7 +44,12 @@ describe("til-studio server process controller", () => {
       expect.objectContaining({ cwd: "/repo/til-studio" }),
     );
     expect(openExternal).toHaveBeenCalledWith("http://localhost:3100/studio");
-    expect(controller.status()).toEqual({ running: true, starting: false, url: "http://localhost:3100/studio" });
+    expect(controller.status()).toEqual({
+      running: true,
+      starting: false,
+      url: "http://localhost:3100/studio",
+      canRebuild: true,
+    });
   });
 
   test("builds before starting when no production build exists", async () => {
@@ -73,7 +78,12 @@ describe("til-studio server process controller", () => {
       expect.objectContaining({ cwd: "/repo/til-studio" }),
     );
     expect(openExternal).toHaveBeenCalledWith("http://localhost:3100/studio");
-    expect(controller.status()).toEqual({ running: true, starting: false, url: "http://localhost:3100/studio" });
+    expect(controller.status()).toEqual({
+      running: true,
+      starting: false,
+      url: "http://localhost:3100/studio",
+      canRebuild: true,
+    });
   });
 
   test("does not spawn a duplicate server when already running", async () => {
@@ -110,7 +120,60 @@ describe("til-studio server process controller", () => {
     controller.stop();
 
     expect(serverProcess.kill).toHaveBeenCalled();
-    expect(controller.status()).toEqual({ running: false, starting: false, url: "http://localhost:3100/studio" });
+    expect(controller.status()).toEqual({
+      running: false,
+      starting: false,
+      url: "http://localhost:3100/studio",
+      canRebuild: true,
+    });
+  });
+
+  test("starts the packaged standalone server without npm", async () => {
+    const serverProcess = createFakeChild();
+    const spawn = vi.fn(() => serverProcess);
+    const openExternal = vi.fn();
+    const controller = createServerProcessController({
+      cwd: "/Applications/TIL Studio.app/Contents/Resources/next",
+      port: 3100,
+      spawn,
+      openExternal,
+      buildExists: () => true,
+      allowBuild: false,
+      serverCommand: "/Applications/TIL Studio.app/Contents/MacOS/TIL Studio",
+      serverArgs: ["server.js"],
+      serverEnv: { ELECTRON_RUN_AS_NODE: "1" },
+    });
+
+    await controller.start();
+
+    expect(spawn).toHaveBeenCalledWith(
+      "/Applications/TIL Studio.app/Contents/MacOS/TIL Studio",
+      ["server.js"],
+      expect.objectContaining({
+        cwd: "/Applications/TIL Studio.app/Contents/Resources/next",
+        env: expect.objectContaining({ ELECTRON_RUN_AS_NODE: "1", PORT: "3100" }),
+      }),
+    );
+    expect(openExternal).toHaveBeenCalledWith("http://localhost:3100/studio");
+    expect(controller.status()).toEqual({
+      running: true,
+      starting: false,
+      url: "http://localhost:3100/studio",
+      canRebuild: false,
+    });
+  });
+
+  test("rejects rebuilds when build is disabled", async () => {
+    const controller = createServerProcessController({
+      cwd: "/Applications/TIL Studio.app/Contents/Resources/next",
+      port: 3100,
+      spawn: vi.fn(),
+      openExternal: vi.fn(),
+      buildExists: () => true,
+      allowBuild: false,
+    });
+
+    await expect(controller.rebuildAndRestart()).rejects.toThrow("Rebuild is not available in the packaged app.");
   });
 
   test("rebuilds explicitly before restarting the server", async () => {

@@ -253,9 +253,22 @@ npm run dev
 - 학습 지도: `http://localhost:3000/map`
 - Studio: `http://localhost:3000/studio`
 
+### GitHub Release 데스크톱 앱
+
+macOS에서 앱처럼 설치하려면 GitHub Releases에서 최신 `TIL Studio.dmg`를 내려받고, 파일을 연 뒤 `TIL Studio.app`을 Applications로 옮깁니다.
+
+Release MVP는 아직 서명되지 않았습니다. Developer ID signing과 notarization을 추가하기 전까지 macOS Gatekeeper 경고가 표시될 수 있습니다.
+
+데스크톱 릴리즈를 발행하려면:
+
+1. `package.json` version을 올립니다.
+2. version 변경을 커밋합니다.
+3. `v0.2.0` 같은 matching tag를 push합니다.
+4. GitHub Actions가 macOS artifact를 빌드해 GitHub Release에 첨부합니다.
+
 ### macOS 메뉴바 앱
 
-로컬 `TIL Studio.app` 런처를 만들면 macOS 메뉴바에서 production 서버를 켜고 끌 수 있습니다.
+로컬 개발 편의를 위해 저장소 안에 `TIL Studio.app` 런처를 만들면 macOS 메뉴바에서 production 서버를 켜고 끌 수 있습니다.
 
 ```bash
 npm run desktop:app
@@ -272,7 +285,7 @@ npm run desktop:app
 - `Rebuild & Restart`: 앱을 다시 빌드한 뒤 서버를 시작합니다. 애플리케이션 코드를 바꾸거나 업데이트를 받은 뒤 사용하세요.
 - `Quit`: 서버를 종료하고 메뉴바 앱을 닫습니다.
 
-프로젝트 폴더를 옮기거나 Node.js 버전을 바꾼 뒤에는 `npm run desktop:app`을 다시 실행해 런처 스크립트 경로를 갱신하세요.
+프로젝트 폴더를 옮기거나 Node.js 버전을 바꾼 뒤에는 `npm run desktop:app`을 다시 실행해 런처 스크립트 경로를 갱신하세요. 평소 앱처럼 사용할 때는 GitHub Release 데스크톱 앱을 권장합니다.
 
 ## GitHub App 설정
 

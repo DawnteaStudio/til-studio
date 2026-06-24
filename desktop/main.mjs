@@ -1,4 +1,5 @@
 import path from "node:path";
+import { existsSync } from "node:fs";
 import { app, dialog, Menu, nativeImage, shell, Tray } from "electron";
 import { createServerProcessController } from "./server-process.mjs";
 
@@ -7,7 +8,22 @@ let controller = null;
 let busyLabel = null;
 
 function projectRoot() {
+  if (process.env.TIL_STUDIO_PROJECT_DIR) return process.env.TIL_STUDIO_PROJECT_DIR;
+  if (app.isPackaged) return path.join(process.resourcesPath, "next");
   return process.env.TIL_STUDIO_PROJECT_DIR || path.resolve(import.meta.dirname, "..");
+}
+
+function serverOptions() {
+  if (!app.isPackaged) return {};
+  const root = projectRoot();
+
+  return {
+    allowBuild: false,
+    buildExists: () => existsSync(path.join(root, "server.js")),
+    serverCommand: process.execPath,
+    serverArgs: ["server.js"],
+    serverEnv: { ELECTRON_RUN_AS_NODE: "1" },
+  };
 }
 
 function trayImage() {
@@ -62,7 +78,8 @@ function updateMenu() {
       },
       {
         label: "Rebuild & Restart",
-        enabled: !busyLabel,
+        visible: current.canRebuild,
+        enabled: current.canRebuild && !busyLabel,
         click: () => runAction("Rebuilding", () => controller.rebuildAndRestart()),
       },
       { type: "separator" },
@@ -80,6 +97,7 @@ app.whenReady().then(() => {
     cwd: projectRoot(),
     port: Number(process.env.TIL_STUDIO_PORT || 3100),
     openExternal: (url) => shell.openExternal(url),
+    ...serverOptions(),
   });
   tray = new Tray(trayImage());
   tray.setTitle("TIL");
