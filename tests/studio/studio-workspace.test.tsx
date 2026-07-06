@@ -179,9 +179,17 @@ describe("StudioWorkspace note and theory actions", () => {
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
+    fireEvent.change(screen.getByLabelText("헷갈린 점"), { target: { value: "없음" } });
+    fireEvent.change(screen.getByLabelText("확인하고 싶은 것"), { target: { value: "해당 없음" } });
     fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/ai/note-cleanup", expect.any(Object)));
+    const cleanupRequest = fetchMock.mock.calls.find(([url]) => String(url) === "/api/ai/note-cleanup");
+    const cleanupBody = JSON.parse(String((cleanupRequest?.[1] as RequestInit).body)) as { markdown: string };
+    expect(cleanupBody.markdown).not.toContain("## 헷갈린 점");
+    expect(cleanupBody.markdown).not.toContain("## 확인하고 싶은 것");
+    expect(cleanupBody.markdown).not.toContain("없음");
+    expect(cleanupBody.markdown).not.toContain("해당 없음");
     expect(await screen.findByRole("status", { name: "글 초안 생성 완료" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Cleaned Note" })).toBeTruthy();
     expect(screen.queryByDisplayValue(/# Cleaned Note/)).toBeNull();

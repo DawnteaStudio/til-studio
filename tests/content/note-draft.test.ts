@@ -45,4 +45,27 @@ describe("structured note draft", () => {
     expect(markdown).not.toContain("## 헷갈린 점");
     expect(markdown).not.toContain("## 확인하고 싶은 것");
   });
+
+  it("skips fields that explicitly say there is nothing to add", () => {
+    const markdown = draftToNoteMarkdown({
+      title: "Next.js 라우팅 메모",
+      created: "2026-07-07",
+      source: "Next.js docs",
+      learned: "Route Handler는 app 디렉터리에서 HTTP 요청을 처리한다.",
+      confused: "없음",
+      questions: "해당 없음",
+      conclusion: "N/A",
+      experiments: "-",
+      parentHref: "../README.md",
+    });
+
+    expect(markdown).toContain("## 오늘 배운 것");
+    expect(markdown).not.toContain("## 헷갈린 점");
+    expect(markdown).not.toContain("## 확인하고 싶은 것");
+    expect(markdown).not.toContain("## 현재 이해한 결론");
+    expect(markdown).not.toContain("## 메모와 실험");
+    expect(markdown).not.toContain("없음");
+    expect(markdown).not.toContain("해당 없음");
+    expect(markdown).not.toContain("N/A");
+  });
 });

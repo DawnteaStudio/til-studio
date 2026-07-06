@@ -10,6 +10,13 @@ export interface StructuredNoteDraft {
   parentHref: string;
 }
 
+const absentFieldValues = new Set(["없음", "없어요", "해당 없음", "n/a", "na", "-"]);
+
+function hasDraftContent(body: string): boolean {
+  const normalized = body.trim().toLowerCase();
+  return normalized.length > 0 && !absentFieldValues.has(normalized);
+}
+
 export function draftToNoteMarkdown(draft: StructuredNoteDraft): string {
   const sectionEntries = [
     ["학습 출처", draft.source],
@@ -18,7 +25,7 @@ export function draftToNoteMarkdown(draft: StructuredNoteDraft): string {
     ["확인하고 싶은 것", draft.questions],
     ["현재 이해한 결론", draft.conclusion],
     ["메모와 실험", draft.experiments],
-  ].filter(([, body]) => body.trim().length > 0);
+  ].filter(([, body]) => hasDraftContent(body));
   const sections = sectionEntries
     .map(([heading, body]) => `## ${heading}\n${body.trim()}`)
     .join("\n\n");
