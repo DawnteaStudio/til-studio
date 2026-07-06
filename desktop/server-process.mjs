@@ -60,12 +60,13 @@ export function createServerProcessController(options = {}) {
         stdio: ["ignore", "pipe", "pipe"],
       });
       pipeLogs(serverProcess, "server");
+      const child = serverProcess;
       serverProcess.once("exit", () => {
-        serverProcess = null;
+        if (serverProcess === child) serverProcess = null;
       });
       serverProcess.once("error", (error) => {
         logger.error(error);
-        serverProcess = null;
+        if (serverProcess === child) serverProcess = null;
       });
       openExternal(url);
       return status();

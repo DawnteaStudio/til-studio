@@ -9,14 +9,14 @@ type FakeChildProcess = EventEmitter & {
   stderr: EventEmitter;
 };
 
-function createFakeChild(): FakeChildProcess {
+function createFakeChild({ emitExitOnKill = true } = {}): FakeChildProcess {
   const child = new EventEmitter() as FakeChildProcess;
   child.killed = false;
   child.stdout = new EventEmitter();
   child.stderr = new EventEmitter();
   child.kill = vi.fn(() => {
     child.killed = true;
-    child.emit("exit", 0);
+    if (emitExitOnKill) child.emit("exit", 0);
     return true;
   });
   return child;
@@ -204,5 +204,33 @@ describe("til-studio server process controller", () => {
       ["run", "start", "--", "-p", "3100"],
       expect.objectContaining({ cwd: "/repo/til-studio" }),
     );
+  });
+
+  test("quit after restart stops the newly started server even if the old exit arrives late", async () => {
+    const firstServerProcess = createFakeChild({ emitExitOnKill: false });
+    const secondServerProcess = createFakeChild();
+    const children = [firstServerProcess, secondServerProcess];
+    const spawn = vi.fn(() => children.shift()!);
+    const controller = createServerProcessController({
+      cwd: "/repo/til-studio",
+      port: 3100,
+      spawn,
+      openExternal: vi.fn(),
+      buildExists: () => true,
+    });
+
+    await controller.start();
+    await controller.restart();
+    firstServerProcess.emit("exit", 0);
+    controller.stop();
+
+    expect(firstServerProcess.kill).toHaveBeenCalled();
+    expect(secondServerProcess.kill).toHaveBeenCalled();
+    expect(controller.status()).toEqual({
+      running: false,
+      starting: false,
+      url: "http://localhost:3100/studio",
+      canRebuild: true,
+    });
   });
 });
