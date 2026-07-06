@@ -12,6 +12,9 @@ describe("AI prompts", () => {
     expect(noteCleanupSystemPrompt).toContain("기술 블로그");
     expect(noteCleanupSystemPrompt).toContain("감상문이나 편지처럼");
     expect(noteCleanupSystemPrompt).toContain("담백한 개발 글");
+    expect(noteCleanupSystemPrompt).toContain("반말");
+    expect(noteCleanupSystemPrompt).toContain("`했어`");
+    expect(noteCleanupSystemPrompt).toContain("구어체 종결");
     expect(noteCleanupSystemPrompt).toContain("짧은 문단");
     expect(noteCleanupSystemPrompt).toContain("참고자료가 실제로 있었을 때만");
     expect(noteCleanupSystemPrompt).toContain("사용자가 든 예시가 있다면 그 예시를 중심");
@@ -46,6 +49,8 @@ describe("AI prompts", () => {
     expect(prompt).toContain("현실적인 개발 상황을 새로 만들지 마세요");
     expect(prompt).toContain("편지처럼 쓰지 마세요");
     expect(prompt).toContain("기술적인 판단과 근거");
+    expect(prompt).toContain("반말이나 일기체로 쓰지 마세요");
+    expect(prompt).toContain("`했어`");
     expect(prompt).toContain("해당 섹션을 출력하지 마세요");
     expect(prompt).toContain("헷갈린 점이 `없음`이면");
     expect(prompt).toContain("확인하고 싶은 것이 `없음`이면");
