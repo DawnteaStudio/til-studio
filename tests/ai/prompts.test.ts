@@ -19,6 +19,8 @@ describe("AI prompts", () => {
     expect(noteCleanupSystemPrompt).toContain("오해나 막히는 질문에서 시작");
     expect(noteCleanupSystemPrompt).toContain("상황 예시");
     expect(noteCleanupSystemPrompt).toContain("전후 비교");
+    expect(noteCleanupSystemPrompt).toContain("없음");
+    expect(noteCleanupSystemPrompt).toContain("사용자가 직접 언급하지 않은");
   });
 
   it("wraps note markdown with strict drafting and quality checks", () => {
@@ -36,5 +38,8 @@ describe("AI prompts", () => {
     expect(prompt).toContain("전후 비교");
     expect(prompt).toContain("코드 예시");
     expect(prompt).toContain("최종 제출 전에");
+    expect(prompt).toContain("없음");
+    expect(prompt).toContain("사용자가 제공한 내용에 근거");
+    expect(prompt).toContain("현실적인 개발 상황을 새로 만들지 마세요");
   });
 });
