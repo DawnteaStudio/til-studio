@@ -27,6 +27,11 @@ describe("AI prompts", () => {
     expect(noteCleanupSystemPrompt).toContain("사용자가 직접 언급하지 않은");
     expect(noteCleanupSystemPrompt).toContain("섹션이 존재하지 않는 것으로 간주");
     expect(noteCleanupSystemPrompt).toContain("상상해서 만들지 마세요");
+    expect(noteCleanupSystemPrompt).toContain("대충 요약하지 마세요");
+    expect(noteCleanupSystemPrompt).toContain("사용자가 직접 언급한 각 개념");
+    expect(noteCleanupSystemPrompt).toContain("정의, 왜 중요한지, 헷갈리기 쉬운 지점");
+    expect(noteCleanupSystemPrompt).toContain("입력에 근거한 확장 예시");
+    expect(noteCleanupSystemPrompt).toContain("개인 경험이나 프로젝트 사실처럼 쓰지 마세요");
   });
 
   it("wraps note markdown with strict drafting and quality checks", () => {
@@ -54,5 +59,9 @@ describe("AI prompts", () => {
     expect(prompt).toContain("해당 섹션을 출력하지 마세요");
     expect(prompt).toContain("헷갈린 점이 `없음`이면");
     expect(prompt).toContain("확인하고 싶은 것이 `없음`이면");
+    expect(prompt).toContain("대충 요약하지 마세요");
+    expect(prompt).toContain("사용자가 직접 언급한 개념, 질문, 결론");
+    expect(prompt).toContain("단순 재진술로 끝나지 않았는가");
+    expect(prompt).toContain("근거 없는 개인 경험이나 프로젝트 맥락");
   });
 });

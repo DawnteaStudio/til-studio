@@ -33,9 +33,12 @@ describe("Gemini provider", () => {
     expect(systemText).toContain("상상해서 만들지 마세요");
     expect(systemText).toContain("반말");
     expect(systemText).toContain("`했어`");
+    expect(systemText).toContain("대충 요약하지 마세요");
+    expect(systemText).toContain("입력에 근거한 확장 예시");
     expect(userText).toContain("헷갈린 점이 `없음`이면");
     expect(userText).toContain("확인하고 싶은 것이 `없음`이면");
     expect(userText).toContain("반말이나 일기체로 쓰지 마세요");
+    expect(userText).toContain("단순 재진술로 끝나지 않았는가");
     expect(userText).toContain("## 헷갈린 점\n없음");
   });
 });
