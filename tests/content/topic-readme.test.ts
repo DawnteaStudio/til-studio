@@ -37,6 +37,34 @@ describe("topic README index generation", () => {
     expect(readme).toContain("- [srp](theory/srp.md)");
   });
 
+  it("creates a new topic README using the standard topic template", () => {
+    const readme = upsertTopicReadmeIndex({
+      topicPath: "cs/ai",
+      existingContent: null,
+      documentPaths: ["cs/ai/notes/단테의-codex/README.md"],
+    });
+
+    expect(readme).toContain("[상위 README로 이동](../README.md)");
+    expect(readme).toContain("# AI");
+    expect(readme).toContain("AI 관련 개념과 학습 기록을 정리합니다.");
+    expect(readme).toContain("## 구조");
+    expect(readme).toContain("ai/");
+    expect(readme).toContain("├── theory/    # 정제된 개념");
+    expect(readme).toContain("└── notes/     # 강의/책/학습 중 작성한 기록");
+    expect(readme).toContain("- [단테의-codex](notes/%EB%8B%A8%ED%85%8C%EC%9D%98-codex/)");
+  });
+
+  it("title-cases hyphenated topic names in generated README titles", () => {
+    const readme = upsertTopicReadmeIndex({
+      topicPath: "cs/system-design",
+      existingContent: null,
+      documentPaths: [],
+    });
+
+    expect(readme).toContain("# System Design");
+    expect(readme).toContain("system-design/");
+  });
+
   it("replaces an existing managed block without removing user content", () => {
     const readme = upsertTopicReadmeIndex({
       topicPath: "cs/network",

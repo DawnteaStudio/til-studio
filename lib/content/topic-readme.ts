@@ -20,7 +20,7 @@ export function isRemovableTopicReadme(input: {
   content: string;
 }): boolean {
   const base = removeManagedBlock(normalizeReadme(input.content));
-  return base === `# ${titleFromTopicPath(input.topicPath)}`;
+  return base === createTopicReadmeBase(input.topicPath);
 }
 
 export function upsertTopicReadmeIndex(input: {
@@ -28,7 +28,7 @@ export function upsertTopicReadmeIndex(input: {
   existingContent?: string | null;
   documentPaths: string[];
 }): string {
-  const base = input.existingContent?.trimEnd() || `# ${titleFromTopicPath(input.topicPath)}`;
+  const base = input.existingContent?.trimEnd() || createTopicReadmeBase(input.topicPath);
   const block = renderIndexBlock(input.topicPath, input.documentPaths);
   const pattern = new RegExp(`${escapeRegExp(indexStart)}[\\s\\S]*?${escapeRegExp(indexEnd)}`);
 
@@ -80,7 +80,32 @@ function renderIndexBlock(topicPath: string, documentPaths: string[]): string {
 }
 
 function titleFromTopicPath(path: string): string {
-  return path.split("/").at(-1)?.replace(/-/g, " ") || "TIL";
+  const slug = path.split("/").at(-1) ?? "TIL";
+  if (slug.toLowerCase() === "ai") return "AI";
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function createTopicReadmeBase(topicPath: string): string {
+  const topicSlug = topicPath.split("/").at(-1) ?? "topic";
+  const title = titleFromTopicPath(topicPath);
+
+  return [
+    "[상위 README로 이동](../README.md)",
+    `# ${title}`,
+    `${title} 관련 개념과 학습 기록을 정리합니다.`,
+    "---",
+    "## 구조",
+    "```text",
+    `${topicSlug}/`,
+    "├── README.md",
+    "├── theory/    # 정제된 개념",
+    "└── notes/     # 강의/책/학습 중 작성한 기록",
+    "```",
+  ].join("\n\n");
 }
 
 function titleFromFilePath(path: string): string {

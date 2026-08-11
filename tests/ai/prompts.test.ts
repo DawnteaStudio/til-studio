@@ -9,8 +9,12 @@ describe("AI prompts", () => {
     expect(noteCleanupSystemPrompt).toContain("확인할 점 섹션을 만들지 마세요");
     expect(noteCleanupSystemPrompt).toContain("Inpa");
     expect(noteCleanupSystemPrompt).toContain("헷갈린 점에 적힌 내용은 이해한 결론");
-    expect(noteCleanupSystemPrompt).toContain("습니다");
-    expect(noteCleanupSystemPrompt).toContain("회고를 남기는 말투");
+    expect(noteCleanupSystemPrompt).toContain("기술 블로그");
+    expect(noteCleanupSystemPrompt).toContain("감상문이나 편지처럼");
+    expect(noteCleanupSystemPrompt).toContain("담백한 개발 글");
+    expect(noteCleanupSystemPrompt).toContain("반말");
+    expect(noteCleanupSystemPrompt).toContain("`했어`");
+    expect(noteCleanupSystemPrompt).toContain("구어체 종결");
     expect(noteCleanupSystemPrompt).toContain("짧은 문단");
     expect(noteCleanupSystemPrompt).toContain("참고자료가 실제로 있었을 때만");
     expect(noteCleanupSystemPrompt).toContain("사용자가 든 예시가 있다면 그 예시를 중심");
@@ -19,6 +23,15 @@ describe("AI prompts", () => {
     expect(noteCleanupSystemPrompt).toContain("오해나 막히는 질문에서 시작");
     expect(noteCleanupSystemPrompt).toContain("상황 예시");
     expect(noteCleanupSystemPrompt).toContain("전후 비교");
+    expect(noteCleanupSystemPrompt).toContain("없음");
+    expect(noteCleanupSystemPrompt).toContain("사용자가 직접 언급하지 않은");
+    expect(noteCleanupSystemPrompt).toContain("섹션이 존재하지 않는 것으로 간주");
+    expect(noteCleanupSystemPrompt).toContain("상상해서 만들지 마세요");
+    expect(noteCleanupSystemPrompt).toContain("대충 요약하지 마세요");
+    expect(noteCleanupSystemPrompt).toContain("사용자가 직접 언급한 각 개념");
+    expect(noteCleanupSystemPrompt).toContain("정의, 왜 중요한지, 헷갈리기 쉬운 지점");
+    expect(noteCleanupSystemPrompt).toContain("입력에 근거한 확장 예시");
+    expect(noteCleanupSystemPrompt).toContain("개인 경험이나 프로젝트 사실처럼 쓰지 마세요");
   });
 
   it("wraps note markdown with strict drafting and quality checks", () => {
@@ -36,5 +49,19 @@ describe("AI prompts", () => {
     expect(prompt).toContain("전후 비교");
     expect(prompt).toContain("코드 예시");
     expect(prompt).toContain("최종 제출 전에");
+    expect(prompt).toContain("없음");
+    expect(prompt).toContain("사용자가 제공한 내용에 근거");
+    expect(prompt).toContain("현실적인 개발 상황을 새로 만들지 마세요");
+    expect(prompt).toContain("편지처럼 쓰지 마세요");
+    expect(prompt).toContain("기술적인 판단과 근거");
+    expect(prompt).toContain("반말이나 일기체로 쓰지 마세요");
+    expect(prompt).toContain("`했어`");
+    expect(prompt).toContain("해당 섹션을 출력하지 마세요");
+    expect(prompt).toContain("헷갈린 점이 `없음`이면");
+    expect(prompt).toContain("확인하고 싶은 것이 `없음`이면");
+    expect(prompt).toContain("대충 요약하지 마세요");
+    expect(prompt).toContain("사용자가 직접 언급한 개념, 질문, 결론");
+    expect(prompt).toContain("단순 재진술로 끝나지 않았는가");
+    expect(prompt).toContain("근거 없는 개인 경험이나 프로젝트 맥락");
   });
 });
