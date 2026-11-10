@@ -1,3 +1,7 @@
+import GithubSlugger from "github-slugger";
+import { escapeLinkLabel } from "./managed-readme";
+import { encodeMarkdownPath } from "./markdown-path";
+
 interface NoteTemplateInput {
   title: string;
   source?: string;
@@ -23,14 +27,15 @@ const coreNoteSections = [
   "현재 이해한 결론",
 ];
 
-const coreTheorySections = ["개념", "핵심 내용", "주의할 점", "관련 notes"];
-
-function headingAnchor(section: string): string {
-  return section.trim().replace(/\s+/g, "-").toLowerCase();
-}
+const coreTheorySections = ["개념", "핵심 내용", "주의할 점"];
 
 function toc(sections: string[]): string {
-  return sections.map((section) => `- [${section}](#${headingAnchor(section)})`).join("\n");
+  const slugger = new GithubSlugger();
+  return [
+    "<!-- til:toc:start -->",
+    ...sections.map(section => `- [${escapeLinkLabel(section)}](#${slugger.slug(section)})`),
+    "<!-- til:toc:end -->",
+  ].join("\n");
 }
 
 function sectionBlock(section: string, content = ""): string {
@@ -44,7 +49,7 @@ function bulletList(items?: string[]): string {
 function sourceList(sources?: Array<{ title: string; url: string }>): string {
   return sources
     ?.filter((source) => source.title.trim() && source.url.trim())
-    .map((source) => `- [${source.title}](${source.url})`)
+    .map((source) => `- [${escapeLinkLabel(source.title)}](${source.url.trim().replace(/ /g, "%20").replace(/\(/g, "%28").replace(/\)/g, "%29")})`)
     .join("\n") ?? "";
 }
 
@@ -52,7 +57,7 @@ function relativeNoteLink(notePath: string): string {
   const file = notePath.split("/").at(-1) ?? notePath;
   const notesIndex = notePath.indexOf("/notes/");
   const href = notesIndex >= 0 ? `../notes/${notePath.slice(notesIndex + "/notes/".length)}` : notePath;
-  return `- [${file}](${href})`;
+  return `- [${escapeLinkLabel(file)}](${encodeMarkdownPath(href)})`;
 }
 
 export function createNoteTemplate(input: NoteTemplateInput): string {
@@ -79,7 +84,9 @@ export function createTheoryTemplate(input: TheoryTemplateInput): string {
     ? input.relatedNotes.map(relativeNoteLink).join("\n")
     : "";
   const references = sourceList(input.sources);
-  const theorySections = references ? [...coreTheorySections, "참고 자료"] : coreTheorySections;
+  const theorySections = [...coreTheorySections];
+  if (related) theorySections.push("관련 notes");
+  if (references) theorySections.push("참고 자료");
 
   const blocks = theorySections.map((section) => {
     if (section === "개념") return sectionBlock(section, input.concept ?? "");

@@ -84,3 +84,18 @@ it("checks the review base again after building the commit", async () => {
   expect((await post("original", "review")).status).toBe(409);
   expect(github.mock.calls.some(([route]) => route === "POST /repos/{owner}/{repo}/git/refs")).toBe(false);
 });
+
+it("opens a concurrently created canonical source instead of saving a first note under another folder", async () => {
+  const notePath = "languages/java/notes/java-basic/note/ch1.md";
+  targetSha = null;
+  extraPaths = ["languages/java/notes/Java-Basic/src/ch1/A.java"];
+  const result = await POST(new Request("http://localhost/api/github/save", {
+    method: "POST", body: JSON.stringify({
+      expected: { ...expected, path: notePath, sha: null }, mode: "quick", message: "First note",
+      sourceMetadata: { name: "Java Basic", type: "book" }, changes: [{ path: notePath, content: "# 첫 글" }],
+    }),
+  }));
+  expect(result.status).toBe(409);
+  expect(await result.json()).toMatchObject({ error: "source_exists", sourceName: "Java-Basic", sourcePaths: extraPaths });
+  expect(github.mock.calls.filter(([route]) => /^(POST|PATCH)/.test(route))).toHaveLength(0);
+});

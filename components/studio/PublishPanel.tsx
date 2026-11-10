@@ -24,6 +24,8 @@ interface PublishProps {
   sourceMetadata?: SourceMetadata;
   validationError?: string | null;
   onModeChange(mode: SaveMode): void;
+  onSourceConflict?(name: string | null, paths: string[]): void;
+  onPublishedQuick?(path: string): void;
 }
 
 function ChangeComparison({ before, after }: { before: string; after: string }) {
@@ -52,7 +54,7 @@ function ChangeComparison({ before, after }: { before: string; after: string }) 
   );
 }
 
-export function PublishPanel({ path, content, mode, showQuick, sourceMetadata, validationError, onModeChange }: PublishProps) {
+export function PublishPanel({ path, content, mode, showQuick, sourceMetadata, validationError, onModeChange, onSourceConflict, onPublishedQuick }: PublishProps) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [readError, setReadError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -112,13 +114,26 @@ export function PublishPanel({ path, content, mode, showQuick, sourceMetadata, v
         }),
       });
       if (response.status === 409) {
+        const conflict = await response.json().catch(() => null);
+        if (conflict?.error === "source_exists" && onSourceConflict) {
+          onSourceConflict(conflict.sourceName, conflict.sourcePaths);
+          setError("기존 학습 자료를 확인한 뒤 다시 저장하세요.");
+          reload();
+          return;
+        }
         setError("저장소가 변경되었습니다. 최신 내용과 다시 비교하세요.");
         reload();
+        return;
+      }
+      if (response.status === 422) {
+        const result = await response.json();
+        setError(result.error ?? "README의 관리 마커를 확인하세요.");
         return;
       }
       if (!response.ok) throw new Error("save");
       const result: SaveResult = await response.json();
       if (result.mode !== mode || (mode === "review" && !result.pullRequestUrl)) throw new Error("receipt");
+      if (result.mode === "quick") onPublishedQuick?.(path);
       setReceipt({ path, content, result });
       reload();
     } catch {

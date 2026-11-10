@@ -185,7 +185,7 @@ describe("source README generation", () => {
     expect(isRemovableSourceReadme({ sourcePath, content })).toBe(true);
   });
 
-  it("recognizes generated source metadata sections as removable", () => {
+  it("preserves source metadata supplied by the author", () => {
     const sourcePath = "languages/java/notes/java-intro";
     const content = upsertSourceReadme({
       sourcePath,
@@ -200,7 +200,7 @@ describe("source README generation", () => {
       srcSlugs: [],
     });
 
-    expect(isRemovableSourceReadme({ sourcePath, content })).toBe(true);
+    expect(isRemovableSourceReadme({ sourcePath, content })).toBe(false);
   });
 
   it("preserves a generated source README with user prose outside its managed block", () => {

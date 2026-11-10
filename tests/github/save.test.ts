@@ -55,7 +55,7 @@ describe("save mode recommendation", () => {
     expect(changes[0].content).toContain("- [book-network](notes/book-network/)");
     expect(changes[0].content).toContain("- [etc](notes/etc/)");
     expect(changes[0].content).not.toContain("notes/etc/note/tcp.md");
-    expect(changes[0].content).toContain("- [udp](theory/udp.md)");
+    expect(changes[0].content).toContain("- [UDP](theory/udp.md)");
   });
 
   it("adds a source README update for an incoming note", () => {

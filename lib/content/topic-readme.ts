@@ -1,4 +1,5 @@
 import { encodeMarkdownPath } from "./markdown-path";
+import { escapeLinkLabel, isArticleFilename, unmanagedReadme, upsertManagedSection } from "./managed-readme";
 
 const indexStart = "<!-- til-studio:index:start -->";
 const indexEnd = "<!-- til-studio:index:end -->";
@@ -19,7 +20,7 @@ export function isRemovableTopicReadme(input: {
   topicPath: string;
   content: string;
 }): boolean {
-  const base = removeManagedBlock(normalizeReadme(input.content));
+  const base = unmanagedReadme(input.content, "index");
   return base === createTopicReadmeBase(input.topicPath);
 }
 
@@ -27,40 +28,36 @@ export function upsertTopicReadmeIndex(input: {
   topicPath: string;
   existingContent?: string | null;
   documentPaths: string[];
+  theoryTitles?: ReadonlyMap<string, string>;
 }): string {
-  const base = input.existingContent?.trimEnd() || createTopicReadmeBase(input.topicPath);
-  const block = renderIndexBlock(input.topicPath, input.documentPaths);
-  const pattern = new RegExp(`${escapeRegExp(indexStart)}[\\s\\S]*?${escapeRegExp(indexEnd)}`);
-
-  if (pattern.test(base)) {
-    return `${base.replace(pattern, block).trimEnd()}\n`;
-  }
-
-  return `${base}\n\n${block}\n`;
+  const base = input.existingContent ?? createTopicReadmeBase(input.topicPath);
+  return upsertManagedSection(base, "index", renderIndexBlock(input.topicPath, input.documentPaths, input.theoryTitles));
 }
 
-function renderIndexBlock(topicPath: string, documentPaths: string[]): string {
+export function theoryPathsForTopic(topicPath: string, paths: string[]) {
+  const prefix = topicPath + "/theory/";
+  return paths.filter((path) => path.startsWith(prefix) && isArticleFilename(path.slice(prefix.length))).sort();
+}
+
+function renderIndexBlock(topicPath: string, documentPaths: string[], titles?: ReadonlyMap<string, string>): string {
   const noteSources = new Set<string>();
-  const theories: string[] = [];
+  const theories = theoryPathsForTopic(topicPath, documentPaths);
 
   for (const path of documentPaths) {
     if (!path.startsWith(`${topicPath}/`)) continue;
     const relative = path.slice(topicPath.length + 1);
     const segments = relative.split("/");
 
-    if (segments[0] === "notes" && segments.length >= 2) {
+    if (segments[0] === "notes" && segments.length >= 3 && !segments[1].startsWith(".")) {
       noteSources.add(segments[1]);
     }
 
-    if (segments[0] === "theory" && segments.length >= 2 && !path.endsWith("README.md")) {
-      theories.push(relative);
-    }
   }
 
   const lines = [indexStart, "## Notes"];
   if (noteSources.size) {
     for (const source of [...noteSources].sort()) {
-      lines.push(`- [${source}](${encodeMarkdownPath(`notes/${source}/`)})`);
+      lines.push(`- [${escapeLinkLabel(source)}](${encodeMarkdownPath(`notes/${source}/`)})`);
     }
   } else {
     lines.push("", "아직 등록된 note가 없습니다.");
@@ -68,8 +65,9 @@ function renderIndexBlock(topicPath: string, documentPaths: string[]): string {
 
   lines.push("", "## Theory");
   if (theories.length) {
-    for (const path of theories.sort()) {
-      lines.push(`- [${titleFromFilePath(path)}](${encodeMarkdownPath(path)})`);
+    for (const path of theories) {
+      const relative = path.slice(topicPath.length + 1);
+      lines.push(`- [${escapeLinkLabel(titles?.get(path) || titleFromFilePath(path))}](${encodeMarkdownPath(relative)})`);
     }
   } else {
     lines.push("", "아직 등록된 theory가 없습니다.");
@@ -110,32 +108,4 @@ function createTopicReadmeBase(topicPath: string): string {
 
 function titleFromFilePath(path: string): string {
   return (path.split("/").at(-1) ?? path).replace(/\.md$/i, "");
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function normalizeReadme(content: string): string {
-  return content
-    .replace(/\r\n?/g, "\n")
-    .split("\n")
-    .map((line) => line.trimEnd())
-    .join("\n")
-    .trimEnd();
-}
-
-function removeManagedBlock(content: string): string | null {
-  if (count(content, indexStart) !== 1 || count(content, indexEnd) !== 1) {
-    return null;
-  }
-
-  const pattern = new RegExp(
-    `${escapeRegExp(indexStart)}[\\s\\S]*?${escapeRegExp(indexEnd)}`,
-  );
-  return normalizeReadme(content.replace(pattern, ""));
-}
-
-function count(value: string, needle: string): number {
-  return value.split(needle).length - 1;
 }

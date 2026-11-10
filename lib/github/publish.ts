@@ -1,4 +1,5 @@
 import { createInstallationOctokit, type InstallationOctokit } from "./client";
+import type { RepositoryMarkdownSnapshot } from "./repository";
 import { getRuntimeSetting } from "@/lib/settings/runtime-settings";
 
 export class PublishConflict extends Error {}
@@ -26,6 +27,18 @@ export async function readPublishFile(
     if (error instanceof Error && "status" in error && error.status === 404) return null;
     throw error;
   }
+}
+
+export function snapshotFileReader(snapshot: RepositoryMarkdownSnapshot, existingClient?: InstallationOctokit) {
+  const paths = new Set(snapshot.allPaths);
+  let client = existingClient ? Promise.resolve(existingClient) : undefined;
+  return async (path: string) => {
+    if (!paths.has(path)) return null;
+    client ??= createInstallationOctokit();
+    const file = await readPublishFile(await client, snapshot.owner, snapshot.repo, snapshot.headSha, path);
+    if (!file) throw new Error("Cannot read an indexed GitHub file");
+    return file;
+  };
 }
 
 export async function fetchPublishPreview(path: string) {

@@ -4,10 +4,9 @@ import Link from "next/link";
 import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { treeFromPaths } from "@/lib/content/indexer";
 import { draftToNoteMarkdown, type StructuredNoteDraft } from "@/lib/content/note-draft";
-import { buildNotePath, buildTheoryPath, makeSlug, parentReadmePath } from "@/lib/content/paths";
+import { buildNotePath, buildTheoryPath, makeSlug, matchingSourceNames, sourceNamesAtTopic, sourcePracticeSlugs, parentReadmePath } from "@/lib/content/paths";
 import { deriveStudyTarget } from "@/lib/content/studio-target";
 import {
-  buildStudioWorkspace,
   defaultSaveModeForDraft,
   type StudioDraftKind,
   type StudioSourceOption,
@@ -135,19 +134,6 @@ function applySourceCodeLinks(markdown: string, sourceCodeSlugs: string[]): stri
   return `---\n${nextFrontmatter.join("\n")}\n---\n\n${body}`;
 }
 
-function sourceCodeSlugsForSource(paths: string[], sourcePath: string): string[] {
-  if (!sourcePath) return [];
-  const prefix = `${sourcePath}/src/`;
-  return [
-    ...new Set(
-      paths
-        .filter((path) => path.startsWith(prefix))
-        .map((path) => path.slice(prefix.length).split("/")[0])
-        .filter((slug) => Boolean(slug) && slug !== ".gitkeep"),
-    ),
-  ].sort((left, right) => left.localeCompare(right));
-}
-
 export function StudioWorkspace() {
   const [tree, setTree] = useState(initialTree);
   const [repositoryPaths, setRepositoryPaths] = useState<string[]>([]);
@@ -169,16 +155,12 @@ export function StudioWorkspace() {
   const [status, setStatus] = useState("TIL 레포 구조를 불러오는 중");
   const [notice, setNotice] = useState<StudioNotice | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const workspace = useMemo(() => buildStudioWorkspace(tree, visibleRootPaths), [tree, visibleRootPaths]);
   const target = useMemo(() => deriveStudyTarget(selectedPath), [selectedPath]);
-  const selectedTopicSources = useMemo<StudioSourceOption[]>(() => {
-    if (!selectedPath) return [];
-    return (
-      workspace.areas
-        .flatMap((area) => area.topics)
-        .find((topic) => topic.path === selectedPath)?.sources ?? []
-    );
-  }, [selectedPath, workspace]);
+  const selectedTopicSources = useMemo<StudioSourceOption[]>(() =>
+    sourceNamesAtTopic(repositoryPaths, selectedPath).map((name) => ({ name, path: `${selectedPath}/notes/${name}` })),
+  [repositoryPaths, selectedPath]);
+  const matchingSources = isCreatingSource
+    ? matchingSourceNames(selectedTopicSources.map((source) => source.name), sourceName) : [];
   const notePath = useMemo(() => {
     if (!target) return "";
     if (!sourceName.trim() || !noteDraft.title.trim()) return "";
@@ -197,7 +179,7 @@ export function StudioWorkspace() {
     return existingSource?.path ?? `${selectedPath}/notes/${isCreatingSource ? makeSlug(sourceName) : sourceName}`;
   }, [isCreatingSource, selectedPath, selectedTopicSources, sourceName]);
   const sourceCodeOptions = useMemo(
-    () => sourceCodeSlugsForSource(repositoryPaths, selectedSourcePath),
+    () => sourcePracticeSlugs(repositoryPaths, selectedSourcePath),
     [repositoryPaths, selectedSourcePath],
   );
   const theoryPath = useMemo(() => {
@@ -423,6 +405,18 @@ export function StudioWorkspace() {
     }));
   }
 
+  function openSource(name: string) {
+    changeDraft((current) => current.selectedPath === selectedPath && current.sourceName === sourceName && current.isCreatingSource
+      ? { sourceName: name, isCreatingSource: false, selectedSourceCodeSlugs: [] } : {});
+  }
+
+  function acceptExistingSource(name: string | null, paths: string[]) {
+    setRepositoryPaths((current) => [...new Set([...current, ...paths])]);
+    if (name) openSource(name);
+    setStatus(name ? `기존 학습 자료를 열었습니다 · ${name}` : "기존 학습 자료 목록에서 저장할 자료를 선택하세요.");
+    setNotice(null);
+  }
+
   async function createSourceWorkspace() {
     if (!target) {
       setStatus("먼저 왼쪽에서 학습 공간을 만들 topic을 선택하세요");
@@ -440,6 +434,15 @@ export function StudioWorkspace() {
         message: "새 학습 공간에 사용할 책, 강의, 자료 이름을 입력하세요.",
         tone: "error",
       });
+      return;
+    }
+    if (matchingSources.length) {
+      if (matchingSources.length === 1) {
+        openSource(matchingSources[0]);
+        setStatus(`기존 학습 자료를 열었습니다 · ${matchingSources[0]}`);
+      } else {
+        setStatus("이름이 비슷한 학습 자료가 여러 개입니다. 기존 학습 자료 목록에서 선택하세요.");
+      }
       return;
     }
     const metadata = sourceMetadataPayload();
@@ -471,8 +474,28 @@ export function StudioWorkspace() {
           sourceMetadata: metadata,
         }),
       });
+      const result = await response.json() as { error?: string; sourceName?: string; sourcePaths?: string[] };
+      if (response.status === 409 && result.error === "source_exists") {
+        acceptExistingSource(result.sourceName ?? null, result.sourcePaths ?? []);
+        return;
+      }
+      if (response.status === 409 || response.status === 422) {
+        setStatus("학습 자료 공간을 생성하지 않았습니다");
+        setNotice({
+          title: "학습 공간을 확인하세요",
+          message: response.status === 422 ? result.error ?? "README의 관리 마커를 확인하세요."
+            : "저장소나 자료 이름이 변경되었습니다. 최신 목록에서 기존 학습 자료를 확인하세요.",
+          tone: "error",
+        });
+        return;
+      }
       if (!response.ok) throw new Error("Source workspace creation failed");
-      setStatus(`학습 공간 생성 완료: ${selectedPath}/notes/${sourceName.trim()}`);
+      const name = result.sourceName ?? makeSlug(sourceName);
+      if (mode === "quick") {
+        setRepositoryPaths((current) => [...new Set([...current, `${selectedPath}/notes/${name}/README.md`])]);
+        openSource(name);
+      }
+      setStatus(`학습 공간 생성 완료: ${selectedPath}/notes/${name}`);
       setNotice({
         title: "학습 공간 생성 완료",
         message: "README와 note/src 폴더가 준비되었습니다.",
@@ -565,7 +588,7 @@ export function StudioWorkspace() {
         keyPoints: result.keyPoints,
         cautions: result.cautions,
         sources: result.sources,
-        relatedNotes: notePath ? [notePath] : [],
+        relatedNotes: repositoryPaths.includes(notePath) ? [notePath] : [],
       }),
       mode: "review",
       draftKind: "theory",
@@ -604,7 +627,8 @@ export function StudioWorkspace() {
   const publishContent = draftKind === "note"
     ? applySourceCodeLinks(ensureCreatedFrontmatter(publishMarkdown, noteDraft.created || seoulDate()), selectedSourceCodeSlugs)
     : publishMarkdown;
-  const validationError = !publishPath ? "저장할 경로를 만들 수 없습니다. 작업 위치, 학습 자료, 제목을 확인하세요."
+  const validationError = draftKind === "note" && matchingSources.length ? "같은 이름의 자료가 있습니다. 학습 자료와 실습에서 기존 자료를 선택하세요."
+    : !publishPath ? "저장할 경로를 만들 수 없습니다. 작업 위치, 학습 자료, 제목을 확인하세요."
     : draftKind === "note" && isCreatingSource && !sourceMetadata.type ? "새 학습 자료의 자료 유형을 선택하세요."
     : !publishMarkdown.trim() ? "발행할 내용이 없습니다." : undefined;
 
@@ -928,6 +952,11 @@ export function StudioWorkspace() {
                   mode={draftKind === "theory" ? "review" : mode}
                   showQuick={draftKind === "note"}
                   onModeChange={(mode) => changeDraft({ mode })}
+                  onSourceConflict={acceptExistingSource}
+                  onPublishedQuick={(path) => {
+                    setRepositoryPaths((current) => [...new Set([...current, path])]);
+                    if (isCreatingSource) openSource(makeSlug(sourceName));
+                  }}
                   sourceMetadata={draftKind === "note" && isCreatingSource ? sourceMetadataPayload() ?? undefined : undefined}
                   validationError={validationError}
                 />

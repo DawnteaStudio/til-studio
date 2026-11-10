@@ -1,3 +1,6 @@
+import { extractDocumentOutline } from "@/lib/content/markdown";
+import { isArticleFilename } from "@/lib/content/managed-readme";
+import { sourcePracticeSlugs } from "@/lib/content/paths";
 import { createInstallationOctokit } from "./client";
 import { PublishConflict } from "./publish";
 import {
@@ -32,6 +35,9 @@ export function buildTopicReadmeChanges(input: {
     .filter((path) => path.endsWith(".md"));
   const readmePaths = [...new Set(incomingMarkdownPaths.map(readmePathForContentPath).filter(Boolean))];
   const nextPaths = [...new Set([...input.existingPaths, ...incomingMarkdownPaths])];
+  const theoryTitles = new Map(input.incomingChanges
+    .filter(({ path }) => path.includes("/theory/"))
+    .map(({ path, content }) => [path, extractDocumentOutline(content).title]));
 
   return readmePaths
     .filter((path): path is string => typeof path === "string")
@@ -41,6 +47,7 @@ export function buildTopicReadmeChanges(input: {
         topicPath: topicPathForReadme(readmePath),
         existingContent: input.existingReadmes[readmePath],
         documentPaths: nextPaths,
+        theoryTitles,
       }),
     }));
 }
@@ -69,23 +76,14 @@ export function buildSourceReadmeChanges(input: {
 
   return affectedSourcePaths.map((sourcePath) => {
     const readmePath = `${sourcePath}/README.md`;
-    const notePaths = nextPaths.filter(
-      (path) => path.startsWith(`${sourcePath}/note/`) && path.endsWith(".md"),
-    );
+    const notePrefix = sourcePath + "/note/";
+    const notePaths = nextPaths.filter((path) => path.startsWith(notePrefix) && isArticleFilename(path.slice(notePrefix.length)));
     const notes = notePaths
       .map((path) => {
         const content = incomingContent[path] ?? input.noteContents[path];
         return content ? parseSourceNote({ path, content }) : null;
       })
       .filter((note): note is NonNullable<typeof note> => Boolean(note));
-    const srcSlugs = [
-      ...new Set(
-        nextPaths
-          .filter((path) => path.startsWith(`${sourcePath}/src/`))
-          .map((path) => path.slice(`${sourcePath}/src/`.length).split("/")[0])
-          .filter(Boolean),
-      ),
-    ];
     const sourceSlug = sourcePath.split("/").at(-1) ?? "source";
 
     return {
@@ -98,7 +96,7 @@ export function buildSourceReadmeChanges(input: {
         },
         existingContent: input.existingReadmes[readmePath],
         notes,
-        srcSlugs,
+        srcSlugs: sourcePracticeSlugs(nextPaths, sourcePath),
       }),
     };
   });

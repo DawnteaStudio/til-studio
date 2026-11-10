@@ -39,7 +39,7 @@ describe("ancestor README generation", () => {
     ).toEqual(["c", "java"]);
   });
 
-  it("preserves prose and replaces a legacy languages table", () => {
+  it("preserves prose and the unmarked languages table", () => {
     const readme = upsertAncestorReadme({
       directoryPath: "languages",
       existingContent: [
@@ -71,13 +71,13 @@ describe("ancestor README generation", () => {
 
     expect(readme).toContain("프로그래밍 언어 학습 공간입니다.");
     expect(readme).toContain("## 기본 구조");
-    expect(readme).not.toContain("| 언어 | 링크 |");
+    expect(readme).toContain("| 언어 | 링크 |");
     expect(readme.match(/<!-- til-studio:children:start -->/g)).toHaveLength(1);
     expect(readme).toContain("- [c](c/)");
     expect(readme).toContain("- [java](java/)");
   });
 
-  it("replaces a legacy cs topic table without removing unrelated tables", () => {
+  it("preserves unmarked topic and unrelated tables", () => {
     const readme = upsertAncestorReadme({
       directoryPath: "cs",
       existingContent: [
@@ -102,7 +102,7 @@ describe("ancestor README generation", () => {
     });
 
     expect(readme).toContain("| 이름 | 값 |");
-    expect(readme).not.toContain("| 주제 | 설명 | 링크 |");
+    expect(readme).toContain("| 주제 | 설명 | 링크 |");
     expect(readme).toContain("- [algorithms](algorithms/)");
     expect(readme).toContain("- [security](security/)");
   });

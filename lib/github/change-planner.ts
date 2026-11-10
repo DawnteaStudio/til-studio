@@ -1,3 +1,6 @@
+import { extractDocumentOutline } from "@/lib/content/markdown";
+import { sourcePracticeSlugs } from "@/lib/content/paths";
+import { isArticleFilename } from "@/lib/content/managed-readme";
 import {
   ancestorReadmePath,
   isRemovableAncestorReadme,
@@ -14,6 +17,7 @@ import {
   isRemovableTopicReadme,
   readmePathForContentPath,
   topicPathForReadme,
+  theoryPathsForTopic,
   upsertTopicReadmeIndex,
 } from "@/lib/content/topic-readme";
 import type { RepositoryChange } from "./types";
@@ -83,28 +87,16 @@ export async function planRepositoryChanges(input: {
       }
     }
 
-    const notePaths = resultingPaths.filter(
-      (path) =>
-        path.startsWith(`${sourcePath}/note/`) && path.endsWith(".md"),
-    );
+    const notePrefix = sourcePath + "/note/";
+    const notePaths = resultingPaths.filter((path) => path.startsWith(notePrefix) && isArticleFilename(path.slice(notePrefix.length)));
     const notes = (
       await Promise.all(
         notePaths.map(async (path) => {
           const content = await readCurrentDocument(path);
-          return content ? parseSourceNote({ path, content }) : null;
+          return content !== null ? parseSourceNote({ path, content }) : null;
         }),
       )
     ).filter((note): note is NonNullable<typeof note> => Boolean(note));
-    const srcSlugs = [
-      ...new Set(
-        resultingPaths
-          .filter((path) => path.startsWith(`${sourcePath}/src/`))
-          .map((path) =>
-            path.slice(`${sourcePath}/src/`.length).split("/")[0],
-          )
-          .filter((slug) => Boolean(slug) && slug !== ".gitkeep"),
-      ),
-    ];
     const sourceSlug = sourcePath.split("/").at(-1) ?? "source";
     const content = upsertSourceReadme({
       sourcePath,
@@ -114,20 +106,15 @@ export async function planRepositoryChanges(input: {
       },
       existingContent: existingReadme,
       notes,
-      srcSlugs,
+      srcSlugs: sourcePracticeSlugs(resultingPaths, sourcePath),
     });
 
-    appendGenerated({ operation: "upsert", path: readmePath, content });
+    if (content !== existingReadme) appendGenerated({ operation: "upsert", path: readmePath, content });
   }
 
-  const topicReadmePaths = affectedTopicReadmePaths(
-    input.requestedChanges,
-    input.existingPaths,
-    resultingPaths,
-  );
-  const structurallyChangedTopicReadmes: string[] = [];
+  const topicReadmePaths = [...new Set(input.requestedChanges.map(({ path }) => readmePathForContentPath(path))
+    .filter((path): path is string => path !== null))].sort();
   for (const readmePath of topicReadmePaths) {
-    const existedBefore = input.existingPaths.includes(readmePath);
     const topicPath = topicPathForReadme(readmePath);
     const existingReadme = await readCurrentDocument(readmePath);
     const hasRemainingTopicContent = resultingPaths.some(
@@ -144,22 +131,23 @@ export async function planRepositoryChanges(input: {
       })
     ) {
       appendGenerated({ operation: "delete", path: readmePath });
-      if (existedBefore) structurallyChangedTopicReadmes.push(readmePath);
       continue;
     }
 
+    const theoryTitles = new Map(await Promise.all(theoryPathsForTopic(topicPath, resultingPaths).map(async (path) => {
+      const markdown = await readCurrentDocument(path);
+      return [path, markdown === null ? "" : extractDocumentOutline(markdown).title] as const;
+    })));
     const content = upsertTopicReadmeIndex({
+      theoryTitles,
       topicPath,
       existingContent: existingReadme,
       documentPaths: resultingPaths,
     });
-    appendGenerated({ operation: "upsert", path: readmePath, content });
-    if (!existedBefore) structurallyChangedTopicReadmes.push(readmePath);
+    if (content !== existingReadme) appendGenerated({ operation: "upsert", path: readmePath, content });
   }
 
-  const ancestorDirectories = affectedAncestorDirectories(
-    structurallyChangedTopicReadmes,
-  );
+  const ancestorDirectories = affectedAncestorDirectories(topicReadmePaths);
   for (const directoryPath of ancestorDirectories) {
     const readmePath = ancestorReadmePath(directoryPath);
     const existingReadme = await readCurrentDocument(readmePath);
@@ -186,7 +174,7 @@ export async function planRepositoryChanges(input: {
       existingContent: existingReadme,
       repositoryPaths: resultingPaths,
     });
-    appendGenerated({ operation: "upsert", path: readmePath, content });
+    if (content !== existingReadme) appendGenerated({ operation: "upsert", path: readmePath, content });
   }
 
   return collapseChanges([...input.requestedChanges, ...generatedChanges]);
@@ -210,37 +198,6 @@ function affectedSourcePaths(changes: RepositoryChange[]): string[] {
         .filter((path): path is string => Boolean(path)),
     ),
   ].sort((left, right) => left.localeCompare(right));
-}
-
-function affectedTopicReadmePaths(
-  changes: RepositoryChange[],
-  existingPaths: string[],
-  resultingPaths: string[],
-): string[] {
-  const readmePaths = new Set<string>();
-
-  for (const change of changes) {
-    const readmePath = readmePathForContentPath(change.path);
-    if (!readmePath) continue;
-
-    if (change.path.includes("/theory/")) {
-      readmePaths.add(readmePath);
-      continue;
-    }
-
-    const sourcePath = sourcePathForContentPath(change.path);
-    if (
-      sourcePath &&
-      hasSourceContent(existingPaths, sourcePath) !==
-        hasSourceContent(resultingPaths, sourcePath)
-    ) {
-      readmePaths.add(readmePath);
-    }
-  }
-
-  return [...readmePaths].sort((left, right) =>
-    left.localeCompare(right),
-  );
 }
 
 function affectedAncestorDirectories(topicReadmePaths: string[]): string[] {
@@ -277,12 +234,4 @@ function collapseChanges(changes: RepositoryChange[]): RepositoryChange[] {
 
 function pathDepth(path: string): number {
   return path ? path.split("/").length : 0;
-}
-
-function hasSourceContent(paths: string[], sourcePath: string): boolean {
-  return paths.some(
-    (path) =>
-      path.startsWith(`${sourcePath}/note/`) ||
-      path.startsWith(`${sourcePath}/src/`),
-  );
 }

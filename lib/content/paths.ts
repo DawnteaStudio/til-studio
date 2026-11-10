@@ -12,6 +12,49 @@ export function makeSlug(value: string): string {
     .toLowerCase();
 }
 
+export function sourceNamesAtTopic(paths: string[], topic: string): string[] {
+  const names = new Set<string>();
+  const prefix = topic + "/notes/";
+  for (const path of paths) {
+    if (!path.startsWith(prefix)) continue;
+    const [name, child] = path.slice(prefix.length).split("/");
+    if (name && child) names.add(name);
+  }
+  return [...names].sort();
+}
+
+export function matchingSourceNames(names: string[], rawName: string): string[] {
+  const name = rawName.trim();
+  if (names.includes(name)) return [name];
+  const slug = makeSlug(name);
+  if (!slug) return [];
+  if (names.includes(slug)) return [slug];
+  return names.filter((entry) => makeSlug(entry) === slug);
+}
+
+export function existingSourceConflict(paths: string[], topic: string, rawName: string) {
+  const matches = matchingSourceNames(sourceNamesAtTopic(paths, topic), rawName);
+  if (!matches.length) return null;
+  const folders = new Set(matches);
+  const prefix = topic + "/notes/";
+  return {
+    error: "source_exists" as const,
+    sourceName: matches.length === 1 ? matches[0] : null,
+    sourcePaths: paths.filter((path) => path.startsWith(prefix) && folders.has(path.slice(prefix.length).split("/")[0])),
+  };
+}
+
+export function sourcePracticeSlugs(paths: string[], sourcePath: string): string[] {
+  const prefix = sourcePath + "/src/";
+  const slugs = new Set<string>();
+  for (const path of paths) {
+    if (!path.startsWith(prefix)) continue;
+    const [slug, file] = path.slice(prefix.length).split("/");
+    if (slug && !slug.startsWith(".") && file && !path.endsWith("/.gitkeep")) slugs.add(slug);
+  }
+  return [...slugs].sort();
+}
+
 export function buildNotePath(input: NotePathInput): string {
   return [
     input.area,

@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { makeSlug } from "@/lib/content/paths";
+import { existingSourceConflict, makeSlug } from "@/lib/content/paths";
 import { upsertSourceReadme } from "@/lib/content/source-readme";
 import { planRepositoryChanges } from "@/lib/github/change-planner";
 import {
-  fetchRepositoryMarkdownDocument,
   fetchRepositoryMarkdownSnapshot,
 } from "@/lib/github/repository";
 import { saveToGitHub } from "@/lib/github/save";
-import { getRuntimeSetting } from "@/lib/settings/runtime-settings";
+import { PublishConflict, snapshotFileReader } from "@/lib/github/publish";
+import { ManagedReadmeError } from "@/lib/content/managed-readme";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +45,9 @@ const sourceSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const body = sourceSchema.parse(await request.json());
+  const parsed = sourceSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Invalid source request" }, { status: 400 });
+  const body = parsed.data;
   if (!isSafeTopicPath(body.topicPath)) {
     return NextResponse.json({ error: "Unsafe topic path" }, { status: 400 });
   }
@@ -57,6 +59,11 @@ export async function POST(request: Request) {
 
   const sourcePath = `${body.topicPath}/notes/${sourceSlug}`;
   const snapshot = await fetchRepositoryMarkdownSnapshot();
+  const existing = existingSourceConflict(snapshot.allPaths, body.topicPath, body.sourceName);
+  if (existing) return NextResponse.json(existing, { status: 409 });
+  if (snapshot.allPaths.some((path) => path === sourcePath || sourcePath.startsWith(path + "/"))) {
+    return NextResponse.json({ error: "source_path_conflict" }, { status: 409 });
+  }
   const sourceMetadata = {
     ...body.sourceMetadata,
     name: body.sourceMetadata.name.trim(),
@@ -84,26 +91,41 @@ export async function POST(request: Request) {
       content: "",
     },
   ];
-  const changes = await planRepositoryChanges({
-    existingPaths: snapshot.allPaths,
-    requestedChanges,
-    readDocument: async (path) =>
-      (await fetchRepositoryMarkdownDocument(path))?.body ?? null,
-    sourceMetadata,
-  });
+  try {
+    const readFile = snapshotFileReader(snapshot);
+    const changes = await planRepositoryChanges({
+      existingPaths: snapshot.allPaths,
+      requestedChanges,
+      readDocument: async (path) =>
+        (await readFile(path))?.content ?? null,
+      sourceMetadata,
+    });
 
-  const result = await saveToGitHub({
-    repository: {
-      owner: getRuntimeSetting("TIL_REPOSITORY_OWNER") ?? "DawnteaStudio",
-      repo: getRuntimeSetting("TIL_REPOSITORY_NAME") ?? "TIL",
-      defaultBranch: snapshot.branch,
-    },
-    mode: body.mode,
-    message: "Create TIL source workspace from til-studio",
-    changes,
-  });
+    const result = await saveToGitHub({
+      repository: {
+        owner: snapshot.owner,
+        repo: snapshot.repo,
+        defaultBranch: snapshot.branch,
+      },
+      plannedHeadSha: snapshot.headSha,
+      mode: body.mode,
+      message: "Create TIL source workspace from til-studio",
+      changes,
+    });
 
-  return NextResponse.json(result);
+    return NextResponse.json({ ...result, sourceName: sourceSlug });
+  } catch (error) {
+    if (error instanceof PublishConflict) {
+      const latest = await fetchRepositoryMarkdownSnapshot();
+      if (latest.owner === snapshot.owner && latest.repo === snapshot.repo && latest.branch === snapshot.branch) {
+        const existing = existingSourceConflict(latest.allPaths, body.topicPath, body.sourceName);
+        if (existing) return NextResponse.json(existing, { status: 409 });
+      }
+      return NextResponse.json({ error: "repository_changed" }, { status: 409 });
+    }
+    if (error instanceof ManagedReadmeError) return NextResponse.json({ error: error.message }, { status: 422 });
+    return NextResponse.json({ error: "학습 자료를 생성하지 못했습니다." }, { status: 502 });
+  }
 }
 
 function isSafeTopicPath(path: string): boolean {

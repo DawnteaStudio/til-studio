@@ -44,5 +44,6 @@ describe("Markdown templates", () => {
     expect(markdown).toContain("## 핵심 내용\n\n- 불일치 이후 비교 위치를 결정합니다.");
     expect(markdown).toContain("## 주의할 점\n\n- 인덱스 정의가 구현마다 다를 수 있습니다.");
     expect(markdown).toContain("## 참고 자료\n\n- [KMP overview](https://example.com/kmp)");
+    expect(markdown).not.toContain("관련 notes");
   });
 });

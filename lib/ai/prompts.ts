@@ -73,4 +73,5 @@ export const theoryResearchSystemPrompt = [
   "concept must be a Korean definition paragraph.",
   "keyPoints and cautions must be Korean string arrays.",
   "sources must be an array of { title, url } objects for the references used.",
+  "Use the original publisher's direct URL for sources you consulted, preferring specifications and official documentation. Do not guess a URL or invent a replacement for a search redirect.",
 ].join("\n");

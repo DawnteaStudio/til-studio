@@ -38,6 +38,35 @@ describe("repository change planning", () => {
     ]);
   });
 
+  it("repairs a populated source missing from a topic and links only titled theory articles", async () => {
+    const source = "languages/java/notes/java-basic";
+    const article = source + "/note/ch1.md";
+    const theory = "languages/java/theory/old-name.md";
+    const docs: Record<string, string> = {
+      "README.md": "# 연구",
+      "languages/README.md": "# Languages",
+      "languages/java/README.md": "직접 작성한 머리말  \n",
+      [source + "/README.md"]: "# 강의\n\n- [수기 참고 자료](https://example.com)",
+      [article]: "# 예전 글",
+      [theory]: "~~~text\n# 가짜 제목\n~~~\n\n## 실제 [제목](https://example.com) [예제]",
+      "languages/java/theory/image.png": "",
+      "languages/java/theory/README_ko.md": "# 도움말",
+      "languages/java/theory/images/example.md": "# 이미지 설명",
+    };
+    const changes = await planRepositoryChanges({
+      existingPaths: Object.keys(docs),
+      requestedChanges: [{ operation: "upsert", path: article, content: "# 현재 글" }],
+      readDocument: async (path) => docs[path] ?? null,
+    });
+    const topic = upsertContent(changes, "languages/java/README.md");
+    expect(topic).toContain("직접 작성한 머리말  \n");
+    expect(topic).toContain("[java-basic](notes/java-basic/)");
+    expect(topic).toContain("[실제 제목 \\[예제\\]](theory/old-name.md)");
+    expect(topic).not.toMatch(/image\.png|README_ko|example\.md/);
+    expect(upsertContent(changes, "languages/README.md")).toContain("[java](java/) — 글 2편");
+    expect(upsertContent(changes, source + "/README.md")).toContain("[수기 참고 자료](https://example.com)");
+  });
+
   it("creates source, topic, area, and root README changes for a new topic", async () => {
     const documents: Record<string, string> = {
       "README.md": "# TIL\n\nRoot intro",
@@ -117,7 +146,22 @@ describe("repository change planning", () => {
     expect(sourceReadme).not.toContain("./note/ch2.md");
   });
 
-  it("does not plan parent README changes when adding a note to an existing source", async () => {
+  it("preserves edits inside the overview when deleting the last note", async () => {
+    const source = "languages/java/notes/java";
+    const article = source + "/note/one.md";
+    const readme = source + "/README.md";
+    const original = upsertSourceReadme({ sourcePath: source, metadata: { type: "book", name: "Java" },
+      notes: [{ path: article, slug: "one", created: "", title: "첫 글", srcSlugs: [] }], srcSlugs: [] })
+      .replace("Java 학습 내용을 정리합니다.", "Java 학습 내용을 정리합니다.\n\n직접 쓴 수업 기록.");
+    const changes = await planRepositoryChanges({
+      existingPaths: [article, readme], requestedChanges: [{ operation: "delete", path: article }],
+      readDocument: async (path) => path === readme ? original : null,
+    });
+    expect(upsertContent(changes, readme)).toContain("직접 쓴 수업 기록.");
+    expect(upsertContent(changes, readme)).not.toContain("one.md");
+  });
+
+  it("updates the area count without rewriting an already correct topic or root", async () => {
     const areaPath = "cs";
     const topicPath = `${areaPath}/software-engineering`;
     const sourcePath = `${topicPath}/notes/etc`;
@@ -153,7 +197,9 @@ describe("repository change planning", () => {
     expect(changes.map((change) => change.path)).toEqual([
       newNotePath,
       `${sourcePath}/README.md`,
+      `${areaPath}/README.md`,
     ]);
+    expect(upsertContent(changes, `${areaPath}/README.md`)).toContain("글 2편");
   });
 
   it("plans topic and ancestor README changes when bootstrapping a source without notes", async () => {
@@ -317,9 +363,8 @@ describe("repository change planning", () => {
     expect(upsertContent(changes, `${topicPath}/README.md`)).toContain(
       "사용자가 작성한 topic 설명",
     );
-    expect(changes.map((change) => change.path)).not.toContain(
-      `${areaPath}/README.md`,
-    );
+    expect(upsertContent(changes, `${areaPath}/README.md`)).toContain("사용자가 작성한 area 설명");
+    expect(upsertContent(changes, `${areaPath}/README.md`)).toContain("작성 예정");
     expect(changes.map((change) => change.path)).not.toContain("README.md");
   });
 });

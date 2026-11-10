@@ -335,6 +335,72 @@ describe("StudioWorkspace note and theory actions", () => {
     expect(body.changes[0].content).toContain("created:");
   });
 
+  it("opens a known material by its canonical name without sending a create request", async () => {
+    const requests = mockFetch();
+    render(<StudioWorkspace />);
+    fireEvent.click((await screen.findByText("algorithms")).closest("button")!);
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
+    fireEvent.change(screen.getByLabelText("새 학습 자료 이름"), { target: { value: "apss" } });
+    fireEvent.click(screen.getByRole("button", { name: "기존 학습 자료 열기" }));
+    expect(screen.getByText("선택한 학습 자료: APSS")).toBeTruthy();
+    expect(requests).not.toHaveBeenCalledWith("/api/github/source", expect.anything());
+  });
+
+  it("opens the actual material returned by a concurrent create while keeping the note", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input) === "/api/github/tree") return Response.json(treeResponse);
+      if (String(input) === "/api/github/source") {
+        return Response.json({ error: "source_exists", sourceName: "NewCourse",
+          sourcePaths: ["cs/algorithms/notes/NewCourse/src/ch1/sample.js"] }, { status: 409 });
+      }
+      return Response.json({}, { status: 404 });
+    }));
+    render(<StudioWorkspace />);
+    fireEvent.click((await screen.findByText("algorithms")).closest("button")!);
+    fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "내 메모" } });
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
+    fireEvent.change(screen.getByLabelText("새 학습 자료 이름"), { target: { value: "NewCourse" } });
+    fireEvent.change(screen.getByLabelText("자료 유형"), { target: { value: "book" } });
+    fireEvent.click(screen.getByRole("button", { name: "학습 자료 공간 만들기" }));
+    expect(await screen.findByText("선택한 학습 자료: NewCourse")).toBeTruthy();
+    expect(screen.getByDisplayValue("내 메모")).toBeTruthy();
+    expect(screen.getByLabelText("ch1 소스코드 연결")).toBeTruthy();
+  });
+
+  it("rechecks the canonical first-note destination after another writer creates the source", async () => {
+    const canonical = "cs/algorithms/notes/NewCourse/note/my-note.md";
+    let posts = 0;
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>(async (input, init) => {
+      const url = String(input);
+      if (url === "/api/github/tree") return Response.json(treeResponse);
+      if (url.startsWith("/api/github/save?")) return previewTarget(url);
+      if (url === "/api/github/save") {
+        posts++;
+        if (posts === 1) return Response.json({ error: "source_exists", sourceName: "NewCourse",
+          sourcePaths: ["cs/algorithms/notes/NewCourse/src/ch1/main.js"] }, { status: 409 });
+        const request = JSON.parse(String(init?.body));
+        expect(request.expected.path).toBe(canonical);
+        expect(request.sourceMetadata).toBeUndefined();
+        expect(request.changes[0].content).toContain("내 메모");
+        return Response.json({ mode: "quick", commitSha: "saved" });
+      }
+      return Response.json({}, { status: 404 });
+    }));
+    render(<StudioWorkspace />);
+    fireEvent.click((await screen.findByText("algorithms")).closest("button")!);
+    fireEvent.change(screen.getByLabelText("제목"), { target: { value: "My Note" } });
+    fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "내 메모" } });
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
+    fireEvent.change(screen.getByLabelText("새 학습 자료 이름"), { target: { value: "NewCourse" } });
+    fireEvent.change(screen.getByLabelText("자료 유형"), { target: { value: "book" } });
+    fireEvent.click(screen.getByRole("tab", { name: "저장" }));
+    await saveReadyDraft();
+    await screen.findByText(canonical);
+    await saveReadyDraft();
+    expect(await screen.findByRole("status", { name: "GitHub 저장 완료" })).toBeTruthy();
+    expect(posts).toBe(2);
+  });
+
   it("creates a source workspace before writing a note", async () => {
     const fetchMock = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
@@ -511,6 +577,24 @@ describe("StudioWorkspace note and theory actions", () => {
     });
 
     expect(screen.queryByRole("status", { name: "글 초안 생성 완료" })).toBeNull();
+  });
+
+  it.each([["ch6", true], ["unsaved", false]] as const)("links the active note in a theory only if %s exists on GitHub", async (title, exists) => {
+    mockFetch();
+    render(<StudioWorkspace />);
+    fireEvent.click((await screen.findByText("algorithms")).closest("button")!);
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "기존 학습 자료" }));
+    fireEvent.click(screen.getByRole("button", { name: "APSS" }));
+    fireEvent.change(screen.getByLabelText("제목"), { target: { value: title } });
+    fireEvent.click(screen.getByRole("button", { name: "Theory" }));
+    fireEvent.change(screen.getByLabelText("정리할 개념 키워드"), { target: { value: "KMP" } });
+    fireEvent.click(screen.getByRole("button", { name: "웹에서 조사하기" }));
+    await screen.findByText("KMP 실패 함수");
+    fireEvent.click(screen.getByRole("button", { name: "Theory 초안 만들기" }));
+    const source = (screen.getByLabelText("Markdown source") as HTMLTextAreaElement).value;
+    if (exists) expect(source).toContain("](../notes/APSS/note/ch6.md)");
+    else expect(source).not.toContain("## 관련 노트");
   });
 
   it("asks for a theory workspace before creating a theory draft", async () => {

@@ -1,12 +1,12 @@
+import { ManagedReadmeError } from "@/lib/content/managed-readme";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { planRepositoryChanges } from "@/lib/github/change-planner";
 import {
-  fetchRepositoryMarkdownDocument,
   fetchRepositoryMarkdownSnapshot,
 } from "@/lib/github/repository";
 import { saveToGitHub } from "@/lib/github/save";
-import { getRuntimeSetting } from "@/lib/settings/runtime-settings";
+import { PublishConflict, snapshotFileReader } from "@/lib/github/publish";
 
 export const dynamic = "force-dynamic";
 
@@ -38,18 +38,20 @@ export async function POST(request: Request) {
   }
 
   try {
+    const readFile = snapshotFileReader(snapshot);
     const changes = await planRepositoryChanges({
       existingPaths: snapshot.allPaths,
       requestedChanges: [{ operation: "delete", path: body.path }],
       readDocument: async (path) =>
-        (await fetchRepositoryMarkdownDocument(path))?.body ?? null,
+        (await readFile(path))?.content ?? null,
     });
     const result = await saveToGitHub({
       repository: {
-        owner: getRuntimeSetting("TIL_REPOSITORY_OWNER") ?? "DawnteaStudio",
-        repo: getRuntimeSetting("TIL_REPOSITORY_NAME") ?? "TIL",
+        owner: snapshot.owner,
+        repo: snapshot.repo,
         defaultBranch: snapshot.branch,
       },
+      plannedHeadSha: snapshot.headSha,
       mode: body.mode,
       message: body.message,
       changes,
@@ -57,8 +59,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof ManagedReadmeError) return NextResponse.json({ error: error.message }, { status: 422 });
     const message = error instanceof Error ? error.message : "";
-    if (message.startsWith("GitHub deletion target does not exist:")) {
+    if (error instanceof PublishConflict || message.startsWith("GitHub deletion target does not exist:")) {
       return NextResponse.json(
         { error: "note가 이미 변경되었거나 삭제되었습니다." },
         { status: 409 },

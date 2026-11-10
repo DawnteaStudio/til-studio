@@ -1,4 +1,5 @@
 import { encodeMarkdownPath } from "./markdown-path";
+import { escapeLinkLabel, isArticleFilename, unmanagedReadme, upsertManagedSection } from "./managed-readme";
 
 const childrenStart = "<!-- til-studio:children:start -->";
 const childrenEnd = "<!-- til-studio:children:end -->";
@@ -23,7 +24,7 @@ export function isRemovableAncestorReadme(input: {
 }): boolean {
   if (!input.directoryPath) return false;
 
-  const base = removeManagedBlock(normalizeReadme(input.content));
+  const base = unmanagedReadme(input.content, "children");
   return base === createMinimalReadme(input.directoryPath);
 }
 
@@ -38,15 +39,13 @@ export function directChildDirectories(
     if (!repositoryPath.startsWith(prefix)) continue;
     const relative = repositoryPath.slice(prefix.length);
     const [child, ...remaining] = relative.split("/");
-    if (!child || remaining.length === 0) continue;
+    if (!child || child.startsWith(".") || remaining.length === 0) continue;
     if (structuralDirectories.has(child)) continue;
     if (!directoryPath && rootInfrastructureDirectories.has(child)) continue;
     children.add(child);
   }
 
-  return [...children].sort((left, right) =>
-    left.localeCompare(right, undefined, { sensitivity: "base" }),
-  );
+  return [...children].sort();
 }
 
 export function upsertAncestorReadme(input: {
@@ -54,25 +53,9 @@ export function upsertAncestorReadme(input: {
   existingContent?: string | null;
   repositoryPaths: string[];
 }): string {
-  const current = input.existingContent?.trimEnd() || createMinimalReadme(input.directoryPath);
-  const base = removeLegacyChildIndex(current);
-  const block = renderChildrenBlock(
-    directChildDirectories(input.directoryPath, input.repositoryPaths),
-  );
-  const startCount = count(base, childrenStart);
-  const endCount = count(base, childrenEnd);
-
-  if (startCount !== endCount || startCount > 1) {
-    throw new Error("managed child-index markers are malformed");
-  }
-
-  if (startCount === 1) {
-    const start = base.indexOf(childrenStart);
-    const end = base.indexOf(childrenEnd) + childrenEnd.length;
-    return `${base.slice(0, start)}${block}${base.slice(end)}`.trimEnd() + "\n";
-  }
-
-  return `${base.trimEnd()}\n\n${block}\n`;
+  const current = input.existingContent ?? createMinimalReadme(input.directoryPath);
+  const children = directChildDirectories(input.directoryPath, input.repositoryPaths);
+  return upsertManagedSection(current, "children", renderChildrenBlock(children, input.directoryPath, input.repositoryPaths));
 }
 
 function createMinimalReadme(directoryPath: string): string {
@@ -86,12 +69,28 @@ function createMinimalReadme(directoryPath: string): string {
   return `${parentLink}# ${title}`;
 }
 
-function renderChildrenBlock(children: string[]): string {
+function topicStatus(topicPath: string, paths: string[]) {
+  const prefix = topicPath + "/";
+  let articles = 0;
+  let hasPractice = false;
+  for (const path of paths) {
+    if (!path.startsWith(prefix)) continue;
+    const parts = path.slice(prefix.length).split("/");
+    if (parts[0] === "theory" && parts.length === 2 && isArticleFilename(parts[1])) articles++;
+    if (parts[0] !== "notes" || parts[1]?.startsWith(".")) continue;
+    if (parts[2] === "note" && parts.length === 4 && isArticleFilename(parts[3])) articles++;
+    if (parts[2] === "src" && parts.length >= 5 && !parts[3].startsWith(".") && parts.at(-1) !== ".gitkeep") hasPractice = true;
+  }
+  return articles ? `글 ${articles}편` : hasPractice ? "실습 코드" : "작성 예정";
+}
+
+function renderChildrenBlock(children: string[], directoryPath: string, paths: string[]): string {
   const lines = [childrenStart, "## 하위 항목", ""];
 
   if (children.length) {
     for (const child of children) {
-      lines.push(`- [${child}](${encodeMarkdownPath(`${child}/`)})`);
+      const status = directoryPath ? ` — ${topicStatus(`${directoryPath}/${child}`, paths)}` : "";
+      lines.push(`- [${escapeLinkLabel(child)}](${encodeMarkdownPath(`${child}/`)})${status}`);
     }
   } else {
     lines.push("아직 등록된 하위 항목이 없습니다.");
@@ -99,45 +98,4 @@ function renderChildrenBlock(children: string[]): string {
 
   lines.push(childrenEnd);
   return lines.join("\n");
-}
-
-function removeLegacyChildIndex(content: string): string {
-  return content
-    .replace(
-      /\n(?:---\n\n)?## 언어 목록\n[\s\S]*?(?=\n(?:---\n\n)?## |\s*$)/,
-      "",
-    )
-    .replace(
-      /\n(?:---\n\n)?## 주제 목록\n[\s\S]*?(?=\n(?:---\n\n)?## |\s*$)/,
-      "",
-    )
-    .trimEnd();
-}
-
-function count(value: string, needle: string): number {
-  return value.split(needle).length - 1;
-}
-
-function normalizeReadme(content: string): string {
-  return content
-    .replace(/\r\n?/g, "\n")
-    .split("\n")
-    .map((line) => line.trimEnd())
-    .join("\n")
-    .trimEnd();
-}
-
-function removeManagedBlock(content: string): string | null {
-  if (count(content, childrenStart) !== 1 || count(content, childrenEnd) !== 1) {
-    return null;
-  }
-
-  const pattern = new RegExp(
-    `${escapeRegExp(childrenStart)}[\\s\\S]*?${escapeRegExp(childrenEnd)}`,
-  );
-  return normalizeReadme(content.replace(pattern, ""));
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

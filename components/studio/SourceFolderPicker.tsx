@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { makeSlug } from "@/lib/content/paths";
+import { makeSlug, matchingSourceNames } from "@/lib/content/paths";
 import type { SourceType } from "@/lib/content/source-readme";
 import {
   recommendTechnologyBadge,
@@ -54,6 +54,7 @@ export function SourceFolderPicker({
 }) {
   const [technologyName, setTechnologyName] = useState("");
   const slug = makeSlug(sourceName);
+  const existingMatch = matchingSourceNames(sources.map((source) => source.name), sourceName).length > 0;
   const displayedPath =
     savePath ||
     (selectedPath && slug
@@ -310,7 +311,7 @@ export function SourceFolderPicker({
                 >
                   {isCreatingWorkspace
                     ? "학습 자료 공간 생성 중"
-                    : "학습 자료 공간 만들기"}
+                    : existingMatch ? "기존 학습 자료 열기" : "학습 자료 공간 만들기"}
                 </button>
               </div>
             </div>

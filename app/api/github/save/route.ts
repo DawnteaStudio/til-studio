@@ -1,9 +1,11 @@
+import { existingSourceConflict } from "@/lib/content/paths";
+import { sourcePathForNote } from "@/lib/content/source-readme";
+import { ManagedReadmeError } from "@/lib/content/managed-readme";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { planRepositoryChanges } from "@/lib/github/change-planner";
 import { fetchRepositoryMarkdownSnapshot } from "@/lib/github/repository";
-import { createInstallationOctokit } from "@/lib/github/client";
-import { fetchPublishPreview, isPublishPath, PublishConflict, readPublishFile } from "@/lib/github/publish";
+import { fetchPublishPreview, isPublishPath, PublishConflict, snapshotFileReader } from "@/lib/github/publish";
 import { saveToGitHub } from "@/lib/github/save";
 
 export const dynamic = "force-dynamic";
@@ -73,19 +75,26 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { owner, repo, branch, headSha, allPaths } = await fetchRepositoryMarkdownSnapshot();
+    const snapshot = await fetchRepositoryMarkdownSnapshot();
+    const { owner, repo, branch, headSha, allPaths } = snapshot;
     if (expected && (expected.owner !== owner || expected.repo !== repo || expected.branch !== branch)) {
       throw new PublishConflict();
     }
 
-    const client = await createInstallationOctokit();
-    const paths = new Set(allPaths);
-    async function readExisting(path: string) {
-      if (!paths.has(path)) return null;
-      const file = await readPublishFile(client, owner, repo, headSha, path);
-      if (!file) throw new Error("Cannot read an indexed file");
-      return file;
+    const sourceTopics = body.sourceMetadata ? [...new Set(body.changes.map(({ path }) => sourcePathForNote(path))
+      .filter((source): source is string => source !== null)
+      .map((source) => source.slice(0, source.lastIndexOf("/notes/"))))] : [];
+    function firstSourceConflict(paths: string[]) {
+      if (!body.sourceMetadata) return null;
+      for (const topic of sourceTopics) {
+        const existing = existingSourceConflict(paths, topic, body.sourceMetadata.name);
+        if (existing) return NextResponse.json(existing, { status: 409 });
+      }
+      return null;
     }
+    const existing = firstSourceConflict(allPaths);
+    if (existing) return existing;
+    const readExisting = snapshotFileReader(snapshot);
     if (expected) {
       if (allPaths.some((path) => path.startsWith(expected.path + "/") || expected.path.startsWith(path + "/"))) {
         throw new PublishConflict();
@@ -99,12 +108,25 @@ export async function POST(request: Request) {
       readDocument: async (path) => (await readExisting(path))?.content ?? null,
       sourceMetadata: body.sourceMetadata,
     });
-    const result = await saveToGitHub({
-      repository: { owner, repo, defaultBranch: branch }, plannedHeadSha: headSha,
-      mode: body.mode, message: body.message, changes,
-    });
+    let result;
+    try {
+      result = await saveToGitHub({
+        repository: { owner, repo, defaultBranch: branch }, plannedHeadSha: headSha,
+        mode: body.mode, message: body.message, changes,
+      });
+    } catch (error) {
+      if (error instanceof PublishConflict && sourceTopics.length) {
+        const latest = await fetchRepositoryMarkdownSnapshot();
+        if (latest.owner === owner && latest.repo === repo && latest.branch === branch) {
+          const conflict = firstSourceConflict(latest.allPaths);
+          if (conflict) return conflict;
+        }
+      }
+      throw error;
+    }
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof ManagedReadmeError) return NextResponse.json({ error: error.message }, { status: 422 });
     if (error instanceof PublishConflict) {
       return NextResponse.json({ error: "저장소가 변경되었습니다. 최신 내용과 다시 비교하세요." }, { status: 409 });
     }

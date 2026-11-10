@@ -28,6 +28,7 @@ vi.mock("@/lib/settings/runtime-settings", () => ({
   }),
 }));
 
+import { PublishConflict } from "@/lib/github/publish";
 import { POST } from "@/app/api/github/source/route";
 
 describe("source workspace route", () => {
@@ -37,6 +38,7 @@ describe("source workspace route", () => {
       owner: "example",
       repo: "repo",
       branch: "main",
+      headSha: "pinned",
       allPaths: ["README.md", "languages/README.md"],
       paths: ["README.md", "languages/README.md"],
       tree: {},
@@ -98,11 +100,39 @@ describe("source workspace route", () => {
       expect.objectContaining({
         mode: "quick",
         message: "Create TIL source workspace from til-studio",
+        plannedHeadSha: "pinned",
       }),
     );
     await expect(response.json()).resolves.toEqual(
       expect.objectContaining({ commitSha: "abc123" }),
     );
+  });
+
+  const create = () => POST(request({
+    mode: "quick", topicPath: "languages/java", sourceName: "Java Basic",
+    sourceMetadata: { name: "Java Basic", type: "book" },
+  }));
+  const existingPath = "languages/java/notes/Java-Basic/src/ch1/Main.java";
+
+  it("opens the exact existing folder even if it contains only code, without planning any writes", async () => {
+    mocks.fetchSnapshot.mockResolvedValueOnce({ allPaths: [existingPath] });
+    const response = await create();
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: "source_exists", sourceName: "Java-Basic", sourcePaths: [existingPath] });
+    expect(mocks.planChanges).not.toHaveBeenCalled();
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
+  it("reports the existing folder if another writer creates it after the plan", async () => {
+    const before = { owner: "example", repo: "repo", branch: "main", headSha: "old", allPaths: [] };
+    mocks.fetchSnapshot.mockResolvedValueOnce(before)
+      .mockResolvedValueOnce({ ...before, headSha: "new", allPaths: [existingPath] });
+    mocks.save.mockRejectedValueOnce(new PublishConflict());
+    const response = await create();
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    expect(mocks.save).toHaveBeenCalledWith(expect.objectContaining({ plannedHeadSha: "old" }));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ sourceName: "Java-Basic" });
   });
 
   it.each(["../languages/java", "languages/../java", "languages/java/"])(
