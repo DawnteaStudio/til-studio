@@ -86,7 +86,7 @@ describe("note deletion controls", () => {
   });
 
   it("submits Review deletion and displays the pull request link", async () => {
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn<typeof fetch>(async () =>
       Response.json({
         mode: "review",
         branch: "til-studio/delete",
@@ -110,7 +110,7 @@ describe("note deletion controls", () => {
         expect.objectContaining({ method: "POST" }),
       ),
     );
-    const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body));
+    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
     expect(body).toEqual({
       mode: "review",
       path: "languages/java/notes/java-intro/note/test.md",

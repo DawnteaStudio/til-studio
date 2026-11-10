@@ -56,40 +56,34 @@ const fields: Array<{
 ];
 
 export function NoteComposer({ draft, onChange }: NoteComposerProps) {
-  return (
-    <section className="studio-paper rounded-[2rem] p-5 md:p-7">
-      <div className="mb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b806f]">Note Draft</p>
-        <h2 className="mt-2 text-2xl font-semibold text-[#25221c]">공부하면서 편하게 적기</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6c6255]">
-          Markdown 문법을 몰라도 괜찮아요. 아래 칸에 자연스럽게 적으면 publish할 때 notes
-          형식으로 변환됩니다.
-        </p>
-      </div>
+  function fieldInput(item: (typeof fields)[number]) {
+    const inputProps = {
+      value: draft[item.field],
+      placeholder: item.placeholder,
+      className: "studio-field w-full rounded-2xl px-4 py-3 text-base leading-7 text-[#25221c] placeholder:text-[#807965] focus-visible:outline-2 focus-visible:outline-[#204a78]",
+    };
+    return (
+      <label key={item.field} className="block">
+        <span className="mb-2 block text-sm font-semibold text-[#3f3a31]">{item.label}</span>
+        {item.rows ? (
+          <textarea {...inputProps} rows={item.rows} onChange={(event) => onChange(item.field, event.target.value)} />
+        ) : (
+          <input {...inputProps} onChange={(event) => onChange(item.field, event.target.value)} />
+        )}
+      </label>
+    );
+  }
 
-      <div className="grid gap-5">
-        {fields.map((item) => (
-          <label key={item.field} className="block">
-            <span className="mb-2 block text-sm font-semibold text-[#3f3a31]">{item.label}</span>
-            {item.rows ? (
-              <textarea
-                value={draft[item.field]}
-                onChange={(event) => onChange(item.field, event.target.value)}
-                placeholder={item.placeholder}
-                rows={item.rows}
-                className="studio-field w-full resize-y rounded-3xl bg-white/65 px-5 py-4 text-[15px] leading-7 text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:bg-white/90 focus:ring-4 focus:ring-[#ff34ff]/20"
-              />
-            ) : (
-              <input
-                value={draft[item.field]}
-                onChange={(event) => onChange(item.field, event.target.value)}
-                placeholder={item.placeholder}
-                className="studio-field h-12 w-full rounded-3xl bg-white/65 px-5 text-[15px] text-[#25221c] outline-none shadow-inner placeholder:text-[#8d8373] focus:bg-white/90 focus:ring-4 focus:ring-[#ff34ff]/20"
-              />
-            )}
-          </label>
-        ))}
-      </div>
+  return (
+    <section className="studio-paper space-y-5 rounded-2xl p-4 md:p-6">
+      {fieldInput(fields.find(({ field }) => field === "learned")!)}
+      {fieldInput(fields.find(({ field }) => field === "title")!)}
+      <details className="border-t border-[#204a78]/15 pt-1">
+        <summary className="cursor-pointer py-3 text-sm font-semibold text-[#504b40]">추가 메모와 출처</summary>
+        <div className="grid gap-4 pb-2">
+          {fields.filter(({ field }) => field !== "title" && field !== "learned").map(fieldInput)}
+        </div>
+      </details>
     </section>
   );
 }

@@ -2,21 +2,22 @@ import { indexMarkdownDocument, treeFromPaths } from "@/lib/content/indexer";
 import { documentPathCandidates } from "@/lib/content/document-path";
 import type { ContentNode } from "@/lib/content/types";
 import { getRuntimeSetting } from "@/lib/settings/runtime-settings";
-import { createInstallationOctokit } from "./client";
+import { createInstallationOctokit, type InstallationOctokit } from "./client";
 
 export interface RepositoryMarkdownSnapshot {
   owner: string;
   repo: string;
   branch: string;
+  headSha: string;
   allPaths: string[];
   paths: string[];
   tree: ContentNode;
 }
 
-export async function fetchRepositoryMarkdownSnapshot(): Promise<RepositoryMarkdownSnapshot> {
+export async function fetchRepositoryMarkdownSnapshot(client?: InstallationOctokit): Promise<RepositoryMarkdownSnapshot> {
   const owner = getRuntimeSetting("TIL_REPOSITORY_OWNER") ?? "DawnteaStudio";
   const repo = getRuntimeSetting("TIL_REPOSITORY_NAME") ?? "TIL";
-  const octokit = await createInstallationOctokit();
+  const octokit = client ?? await createInstallationOctokit();
 
   const repository = await octokit.request("GET /repos/{owner}/{repo}", { owner, repo });
   const branch = repository.data.default_branch;
@@ -32,6 +33,8 @@ export async function fetchRepositoryMarkdownSnapshot(): Promise<RepositoryMarkd
     recursive: "true",
   });
 
+  if (gitTree.data.truncated) throw new Error("GitHub returned an incomplete repository tree");
+
   const allPaths = gitTree.data.tree
     .filter((item) => item.type === "blob")
     .map((item) => item.path)
@@ -44,6 +47,7 @@ export async function fetchRepositoryMarkdownSnapshot(): Promise<RepositoryMarkd
     owner,
     repo,
     branch,
+    headSha: ref.data.object.sha,
     allPaths,
     paths,
     tree: treeFromPaths(paths),

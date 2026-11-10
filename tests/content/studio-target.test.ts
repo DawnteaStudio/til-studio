@@ -3,6 +3,10 @@ import { deriveStudyTarget } from "@/lib/content/studio-target";
 
 describe("studio target derivation", () => {
   it("derives an area and topic from topic-level folders", () => {
+    expect(deriveStudyTarget("software-engineering/design")).toEqual({
+      area: "software-engineering",
+      topic: "design",
+    });
     expect(deriveStudyTarget("cs/algorithms")).toEqual({
       area: "cs",
       topic: "algorithms",

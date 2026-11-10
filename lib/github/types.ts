@@ -25,6 +25,8 @@ export type RepositoryChange =
 
 export interface SaveRequest {
   repository: RepositoryRef;
+  /** Commit whose contents were used to generate the managed README changes. */
+  plannedHeadSha?: string;
   mode: SaveMode;
   message: string;
   changes: RepositoryChange[];

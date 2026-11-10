@@ -1,4 +1,5 @@
 import { createInstallationOctokit } from "./client";
+import { PublishConflict } from "./publish";
 import {
   parseSourceNote,
   sourcePathForNote,
@@ -111,12 +112,16 @@ export async function saveToGitHub(request: SaveRequest): Promise<SaveResult> {
   const octokit = await createInstallationOctokit();
   const { owner, repo, defaultBranch } = request.repository;
   const targetBranch = request.mode === "quick" ? defaultBranch : branchName();
-  const baseRef = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
-    owner,
-    repo,
-    ref: `heads/${defaultBranch}`,
-  });
-  const baseSha = baseRef.data.object.sha;
+  async function defaultHead() {
+    const ref = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
+      owner, repo, ref: `heads/${defaultBranch}`,
+    });
+    return ref.data.object.sha;
+  }
+  const baseSha = await defaultHead();
+  if (request.plannedHeadSha && baseSha !== request.plannedHeadSha) {
+    throw new PublishConflict();
+  }
   const baseCommit = await octokit.request(
     "GET /repos/{owner}/{repo}/git/commits/{commit_sha}",
     { owner, repo, commit_sha: baseSha },
@@ -191,6 +196,7 @@ export async function saveToGitHub(request: SaveRequest): Promise<SaveResult> {
   const latestCommitSha = nextCommit.data.sha;
 
   if (request.mode === "review") {
+    if (request.plannedHeadSha && await defaultHead() !== baseSha) throw new PublishConflict();
     await octokit.request("POST /repos/{owner}/{repo}/git/refs", {
       owner,
       repo,
@@ -198,13 +204,17 @@ export async function saveToGitHub(request: SaveRequest): Promise<SaveResult> {
       sha: latestCommitSha,
     });
   } else {
-    await octokit.request("PATCH /repos/{owner}/{repo}/git/refs/{ref}", {
-      owner,
-      repo,
-      ref: `heads/${defaultBranch}`,
-      sha: latestCommitSha,
-      force: false,
-    });
+    try {
+      await octokit.request("PATCH /repos/{owner}/{repo}/git/refs/{ref}", {
+        owner, repo, ref: `heads/${defaultBranch}`, sha: latestCommitSha, force: false,
+      });
+    } catch (error) {
+      if (request.plannedHeadSha && error instanceof Error && "status" in error &&
+          (error.status === 409 || error.status === 422)) {
+        if (await defaultHead() !== baseSha) throw new PublishConflict();
+      }
+      throw error;
+    }
   }
 
   if (request.mode === "review") {

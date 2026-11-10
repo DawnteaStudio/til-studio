@@ -32,6 +32,8 @@ describe("FolderTree workspace picker", () => {
     fireEvent.click(screen.getByRole("button", { name: "새 토픽" }));
     fireEvent.change(screen.getByLabelText("새 토픽 이름"), { target: { value: "Graph Theory" } });
 
+    expect(onSelectPath).not.toHaveBeenCalledWith("cs/graph-theory");
+    fireEvent.click(screen.getByRole("button", { name: "이 주제로 작성" }));
     expect(onSelectPath).toHaveBeenLastCalledWith("cs/graph-theory");
     expect(screen.queryByText("Source")).toBeNull();
     expect(screen.queryByLabelText("새 자료 폴더")).toBeNull();
@@ -54,7 +56,7 @@ describe("FolderTree workspace picker", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Theory", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Theory" }));
 
     expect(onDraftKindChange).toHaveBeenCalledWith("theory");
   });

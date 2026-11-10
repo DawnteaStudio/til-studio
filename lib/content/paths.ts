@@ -17,7 +17,7 @@ export function buildNotePath(input: NotePathInput): string {
     input.area,
     input.topic,
     "notes",
-    makeSlug(input.source),
+    input.existingSourceName ?? makeSlug(input.source),
     "note",
     `${makeSlug(input.title)}.md`,
   ].join("/");

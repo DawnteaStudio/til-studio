@@ -15,7 +15,7 @@ describe("Gemini provider", () => {
   it("sends absent-field and technical-tone instructions in the Gemini request body", async () => {
     process.env.GEMINI_API_KEY = "test-gemini-key";
     process.env.GEMINI_MODEL = "gemini-test-model";
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn<typeof fetch>(async () =>
       Response.json({
         candidates: [{ content: { parts: [{ text: "# Draft" }] } }],
       }),

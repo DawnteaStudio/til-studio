@@ -1,27 +1,9 @@
 import { LearningMap } from "@/components/public/LearningMap";
-import {
-  folderVisibilityCookieName,
-  parseVisibleRootFoldersValue,
-  visibleRootFolders,
-} from "@/lib/content/visibility";
-import { fetchRepositoryMarkdownSnapshot } from "@/lib/github/repository";
-import { cookies } from "next/headers";
+import { loadReaderArchive } from "@/components/public/reader-archive";
 
 export const dynamic = "force-dynamic";
 
 export default async function MapPage() {
-  const snapshot = await fetchRepositoryMarkdownSnapshot();
-  const savedRoots = parseVisibleRootFoldersValue((await cookies()).get(folderVisibilityCookieName)?.value);
-  const visibleRootPaths = visibleRootFolders(snapshot.paths, savedRoots);
-
-  return (
-    <LearningMap
-      tree={snapshot.tree}
-      paths={snapshot.paths}
-      owner={snapshot.owner}
-      repo={snapshot.repo}
-      branch={snapshot.branch}
-      initialVisibleRootPaths={visibleRootPaths}
-    />
-  );
+  const { articles, practices, roots, owner, repo, branch } = await loadReaderArchive();
+  return <LearningMap articles={articles} practices={practices} roots={roots} owner={owner} repo={repo} branch={branch} />;
 }

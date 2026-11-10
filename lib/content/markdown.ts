@@ -12,9 +12,29 @@ export interface HeadingAnchor {
   text: string;
 }
 
+const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
+
+export function stripFrontmatter(markdown: string): string {
+  return markdown.replace(frontmatter, "");
+}
+
+export function noteCreatedDate(markdown: string): string | null {
+  const header = frontmatter.exec(markdown)?.[1];
+  return header?.match(/^created:[ \t]*["']?(\d{4}-\d{2}-\d{2})["']?[ \t]*\r?$/m)?.[1] ?? null;
+}
+
+export function extractDocumentOutline(markdown: string) {
+  const tree = parser.parse(stripFrontmatter(markdown)) as Root;
+  const nodes = tree.children.filter((node): node is Heading => node.type === "heading");
+  const first = nodes.find((node) => node.depth <= 2);
+  return {
+    title: first ? plainText(first).trim() : "",
+    headings: nodes.filter((node) => node !== first).map((node) => plainText(node).trim()).filter(Boolean),
+  };
+}
+
 export function extractTitle(markdown: string): string {
-  const title = markdown.match(/^#\s+(.+)$/m)?.[1]?.trim();
-  return title ?? "Untitled";
+  return extractDocumentOutline(markdown).title || "Untitled";
 }
 
 export function extractHeadings(markdown: string): string[] {
@@ -22,7 +42,7 @@ export function extractHeadings(markdown: string): string[] {
 }
 
 export function extractHeadingAnchors(markdown: string): HeadingAnchor[] {
-  const tree = parser.parse(markdown) as Root;
+  const tree = parser.parse(stripFrontmatter(markdown)) as Root;
   const slugger = new GithubSlugger();
 
   return tree.children

@@ -9,7 +9,9 @@ describe("HashLink", () => {
 
     render(
       <>
-        <div id="개념" ref={(node) => node && (node.scrollIntoView = scrollIntoView)} />
+        <div id="개념" ref={(node) => {
+          if (node) node.scrollIntoView = scrollIntoView;
+        }} />
         <HashLink href="#개념">개념</HashLink>
       </>,
     );

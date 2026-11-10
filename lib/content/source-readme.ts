@@ -195,14 +195,7 @@ function renderLearningLog(notes: SourceNote[], srcSlugs: string[]): string {
   );
   const srcOnlySlugs = [...sourceSet]
     .filter((slug) => {
-      const isLinked = sortedNotes.some((note) => {
-        const explicitSlugs = note.srcSlugs.filter((srcSlug) =>
-          sourceSet.has(srcSlug),
-        );
-        return explicitSlugs.length
-          ? explicitSlugs.includes(slug)
-          : note.slug === slug;
-      });
+      const isLinked = sortedNotes.some((note) => linkedPracticeSlugs(note.slug, note.srcSlugs, sourceSet).includes(slug));
       return !isLinked;
     })
     .sort();
@@ -216,12 +209,7 @@ function renderLearningLog(notes: SourceNote[], srcSlugs: string[]): string {
 
   if (sortedNotes.length || srcOnlySlugs.length) {
     for (const note of sortedNotes) {
-      const explicitSlugs = note.srcSlugs.filter((slug) => sourceSet.has(slug));
-      const linkedSlugs = explicitSlugs.length
-        ? explicitSlugs
-        : sourceSet.has(note.slug)
-          ? [note.slug]
-          : [];
+      const linkedSlugs = linkedPracticeSlugs(note.slug, note.srcSlugs, sourceSet);
       const srcLink = linkedSlugs.length
         ? linkedSlugs.map((slug) => sourceLink(slug)).join(", ")
         : "-";
@@ -244,7 +232,13 @@ function renderLearningLog(notes: SourceNote[], srcSlugs: string[]): string {
   return lines.join("\n");
 }
 
-function parseFrontmatterSourceSlugs(content: string): string[] {
+export function linkedPracticeSlugs(noteSlug: string, explicit: string[], available: Set<string>): string[] {
+  const linked = explicit.filter((slug) => available.has(slug));
+  if (linked.length) return linked;
+  return available.has(noteSlug) ? [noteSlug] : [];
+}
+
+export function parseFrontmatterSourceSlugs(content: string): string[] {
   const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!frontmatter) return [];
 

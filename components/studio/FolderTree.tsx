@@ -37,6 +37,7 @@ export function FolderTree({
   const visibleRootSet = useMemo(() => new Set(visibleRootPaths), [visibleRootPaths]);
   const [selectedAreaPath, setSelectedAreaPath] = useState("");
   const [isCreatingTopic, setIsCreatingTopic] = useState(false);
+  const [newTopicName, setNewTopicName] = useState("");
   const selectedArea =
     workspace.areas.find((area) => area.path === selectedPath.split("/")[0]) ??
     workspace.areas.find((area) => area.path === selectedAreaPath) ??
@@ -44,16 +45,6 @@ export function FolderTree({
 
   return (
     <nav className="space-y-4 text-sm">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#5de7ff]">Workspace</p>
-        <p className="mt-2 text-2xl font-semibold text-[#f3ecd8]">
-          {draftKind === "theory" ? "Theory" : "Notes"}
-        </p>
-        <p className="mt-2 text-xs leading-5 text-[#9d957f]">
-          레포 전체가 아니라 글이 들어갈 작업 단위만 고릅니다.
-        </p>
-      </div>
-
       <div className="studio-panel grid grid-cols-2 rounded-2xl p-1">
         {(["note", "theory"] as const).map((kind) => {
           const active = draftKind === kind;
@@ -84,7 +75,7 @@ export function FolderTree({
 
       {workspace.areas.length ? (
         <section className="studio-panel rounded-3xl p-3">
-          <p className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#5de7ff]">Area</p>
+          <p className="px-1 text-xs font-semibold text-[#5de7ff]">분야</p>
           <div className="mt-3 grid gap-2">
             {workspace.areas.map((area) => (
               <button
@@ -111,7 +102,7 @@ export function FolderTree({
 
       {selectedArea ? (
         <section className="studio-panel overflow-hidden rounded-3xl p-3 transition-all duration-300">
-          <p className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#5de7ff]">Topic</p>
+          <p className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#5de7ff]">주제</p>
           <div className="mt-3 grid gap-2">
             {selectedArea.topics.map((topic) => (
               <button
@@ -130,13 +121,14 @@ export function FolderTree({
               >
                 <span className="block font-medium">{topic.name}</span>
                 {draftKind === "note" ? (
-                  <span className="mt-1 block text-xs opacity-70">{topic.sources.length} sources</span>
+                  <span className="mt-1 block text-xs opacity-70">자료 {topic.sources.length}개</span>
                 ) : null}
               </button>
             ))}
             <button
               type="button"
               onClick={() => {
+                setNewTopicName("");
                 setIsCreatingTopic(true);
                 onSelectPath("");
               }}
@@ -150,31 +142,34 @@ export function FolderTree({
               새 토픽
             </button>
             {isCreatingTopic ? (
-              <label className="grid gap-2 rounded-2xl bg-white/10 p-3 text-xs text-[#d8d0bd] transition-all duration-300">
-                <span className="font-semibold">새 토픽 이름</span>
-                <input
-                  onChange={(event) =>
-                    onSelectPath(
-                      topicPathFromSelection({
-                        area: selectedArea.path,
-                        existingTopicPath: "",
-                        newTopicName: event.target.value,
-                      }),
-                    )
-                  }
-                  className="studio-field h-10 rounded-xl bg-[#111827] px-3 text-sm text-[#f4efe4] outline-none focus:ring-4 focus:ring-[#ff34ff]/25"
-                />
-              </label>
+              <form
+                className="grid gap-2 rounded-2xl bg-white/10 p-3 text-xs text-[#d8d0bd]"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const path = topicPathFromSelection({ area: selectedArea.path, existingTopicPath: "", newTopicName });
+                  if (!path || path.endsWith("/")) return;
+                  setIsCreatingTopic(false);
+                  onSelectPath(path);
+                }}
+              >
+                <label className="grid gap-2">
+                  <span className="font-semibold">새 토픽 이름</span>
+                  <input value={newTopicName} onChange={(event) => setNewTopicName(event.target.value)}
+                    className="studio-field h-11 rounded-xl bg-[#111827] px-3 text-sm text-[#f4efe4] focus:ring-4 focus:ring-[#ff34ff]/25"
+                  />
+                </label>
+                <button type="submit" disabled={!newTopicName.trim()} className="min-h-11 rounded-xl bg-[#c7f05a] px-3 font-semibold text-[#111827] disabled:opacity-50">
+                  이 주제로 작성
+                </button>
+              </form>
             ) : null}
           </div>
         </section>
       ) : null}
 
       {rootDirectories.length ? (
-        <section className="studio-panel rounded-3xl p-3">
-          <p className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#5de7ff]">
-            공개 표시 폴더
-          </p>
+        <details className="studio-panel rounded-3xl p-3">
+          <summary className="cursor-pointer px-1 py-2 text-xs font-semibold text-[#5de7ff]">공개 표시 폴더</summary>
           <div className="mt-3 space-y-1">
             {rootDirectories.map((node) => {
               const checked = visibleRootSet.has(node.path);
@@ -201,7 +196,7 @@ export function FolderTree({
               );
             })}
           </div>
-        </section>
+        </details>
       ) : null}
     </nav>
   );

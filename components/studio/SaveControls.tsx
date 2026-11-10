@@ -2,48 +2,30 @@ import type { SaveMode } from "@/lib/content/types";
 
 interface SaveControlsProps {
   mode: SaveMode;
+  branch?: string;
   onModeChange(mode: SaveMode): void;
   onSave(): void;
   showQuick?: boolean;
+  disabled?: boolean;
+  busy?: boolean;
 }
 
-export function SaveControls({ mode, onModeChange, onSave, showQuick = true }: SaveControlsProps) {
+export function SaveControls({ mode, branch, onModeChange, onSave, showQuick = true, disabled, busy }: SaveControlsProps) {
   return (
-    <section className="studio-panel space-y-3 rounded-[1.75rem] p-4">
-      <h2 className="text-sm font-semibold text-[#f4efe4]">Save</h2>
-      <div className={showQuick ? "grid grid-cols-2 gap-2" : "grid gap-2"}>
-        {showQuick ? (
-          <button
-            type="button"
-            className={
-              mode === "quick"
-                ? "studio-action rounded-2xl bg-[#ff34ff] px-3 py-2.5 text-sm font-semibold text-[#111827]"
-                : "studio-chip rounded-2xl px-3 py-2.5 text-sm font-medium text-[#ece4d3]"
-            }
-            onClick={() => onModeChange("quick")}
-          >
-            Quick
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className={
-            mode === "review"
-              ? "studio-action rounded-2xl bg-[#5de7ff] px-3 py-2.5 text-sm font-semibold text-[#111827]"
-              : "studio-chip rounded-2xl px-3 py-2.5 text-sm font-medium text-[#ece4d3]"
-          }
-          onClick={() => onModeChange("review")}
-        >
-          Review
-        </button>
-      </div>
-      <button
-        type="button"
-        className="studio-action w-full rounded-2xl bg-[#204a78] px-3 py-3.5 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(32,74,120,0.3)]"
-        onClick={onSave}
-      >
-        GitHub에 저장
+    <div className="space-y-4">
+      <fieldset className="space-y-2" disabled={busy}>
+        <legend className="mb-2 text-sm font-semibold">저장 방식</legend>
+        {(showQuick ? (["quick", "review"] as const) : (["review"] as const)).map((option) => (
+          <label key={option} className="flex min-h-11 items-center gap-3 rounded-xl border border-[#204a78]/20 bg-white/55 px-3 py-2 text-sm font-semibold">
+            <input type="radio" name="studio-publish-mode" checked={mode === option} onChange={() => onModeChange(option)} />
+            {option === "quick" ? `${branch || "기본 브랜치"}에 바로 저장` : "검토용 초안 PR 만들기"}
+          </label>
+        ))}
+      </fieldset>
+      <button type="button" disabled={disabled || busy} onClick={onSave}
+        className="studio-action min-h-12 w-full rounded-2xl bg-[#204a78] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+        {busy ? "저장 중…" : "GitHub에 저장"}
       </button>
-    </section>
+    </div>
   );
 }

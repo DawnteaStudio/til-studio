@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type SettingsSnapshot = {
   aiProvider: "openai" | "gemini";
@@ -62,10 +62,23 @@ export function SettingsPanel({
   isOpen: boolean;
   onClose(): void;
 }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [form, setForm] = useState<SettingsForm>(emptySettings);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!isOpen || !dialog) return;
+    const opener = document.activeElement;
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "");
+    return () => {
+      if (dialog.open) dialog.close?.();
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -132,14 +145,18 @@ export function SettingsPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-40 bg-[#0d0f0b]/70 px-4 py-6 backdrop-blur-sm">
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="studio-settings-title"
+      onCancel={(event) => { event.preventDefault(); onClose(); }}
+      className="fixed inset-0 m-auto w-[min(48rem,calc(100%-2rem))] max-w-none overflow-visible rounded-3xl bg-transparent p-0 backdrop:bg-[#0d0f0b]/70 backdrop:backdrop-blur-sm"
+    >
       <section className="mx-auto flex max-h-[calc(100vh-3rem)] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-[#3b4031] bg-[#1d2118] text-[#f4efe4] shadow-[0_24px_70px_rgba(0,0,0,0.48)]">
         <div className="flex items-start justify-between gap-4 border-b border-[#303628] px-5 py-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9cab82]">Runtime</p>
-            <h2 className="mt-1 text-2xl font-semibold">설정</h2>
+            <h2 id="studio-settings-title" className="text-2xl font-semibold">설정</h2>
             <p className="mt-2 text-sm leading-6 text-[#b9b19f]">
-              저장된 secret은 다시 표시하지 않고, 설정 여부만 보여줍니다.
+              저장된 키를 교체할 때만 새 값을 입력하세요.
             </p>
           </div>
           <button
@@ -299,7 +316,7 @@ export function SettingsPanel({
         </div>
 
         <div className="flex flex-col gap-3 border-t border-[#303628] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="min-h-5 text-sm text-[#b9b19f]">{status}</p>
+          <p role="status" className="min-h-5 text-sm text-[#b9b19f]">{status}</p>
           <div className="flex gap-2">
             <button
               type="button"
@@ -319,6 +336,6 @@ export function SettingsPanel({
           </div>
         </div>
       </section>
-    </div>
+    </dialog>
   );
 }

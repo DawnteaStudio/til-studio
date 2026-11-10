@@ -17,9 +17,23 @@ const treeResponse = {
   ],
 };
 
+function previewTarget(url: string) {
+  return Response.json({
+    owner: "DawnteaStudio", repo: "TIL", branch: "main",
+    path: new URL(url, "http://localhost").searchParams.get("path"), sha: null, content: null,
+  });
+}
+
+async function saveReadyDraft() {
+  const button = screen.getByRole("button", { name: "GitHub에 저장" }) as HTMLButtonElement;
+  await waitFor(() => expect(button.disabled).toBe(false));
+  fireEvent.click(button);
+}
+
 function mockFetch() {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
+    if (url.startsWith("/api/github/save?")) return previewTarget(url);
     if (url === "/api/github/tree") {
       return Response.json(treeResponse);
     }
@@ -67,6 +81,7 @@ function deferred<T>() {
 describe("StudioWorkspace note and theory actions", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.history.replaceState(null, "", "/studio");
     vi.useRealTimers();
   });
 
@@ -82,33 +97,73 @@ describe("StudioWorkspace note and theory actions", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
 
-    expect(await screen.findByText("작업 위치, 제목, 오늘 배운 것을 먼저 입력하세요")).toBeTruthy();
+    expect(await screen.findByText("제목, 오늘 배운 것을 먼저 입력하세요")).toBeTruthy();
   });
 
   it("organizes writing into focused workflow steps", async () => {
     mockFetch();
     render(<StudioWorkspace />);
 
-    expect(await screen.findByRole("tab", { name: /Where/ })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: /Write/ })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: /Preview/ })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: /Publish/ })).toBeTruthy();
-    expect(screen.getByText("작업 위치를 먼저 정하면 나머지 도구는 조용히 접어둘게요.")).toBeTruthy();
+    expect(await screen.findByRole("tab", { name: "위치" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "작성" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "미리보기" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "저장" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "작성" }).getAttribute("aria-selected")).toBe("true");
     expect(screen.queryByRole("button", { name: "GitHub에 저장" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("tab", { name: /Write/ }));
+    fireEvent.click(screen.getByRole("tab", { name: "작성" }));
 
-    expect(screen.getByRole("heading", { name: "공부하면서 편하게 적기" })).toBeTruthy();
+    expect(screen.getByLabelText("오늘 배운 것")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "GitHub에 저장" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
+    fireEvent.click(screen.getByRole("tab", { name: "저장" }));
 
     expect(screen.getByRole("button", { name: "GitHub에 저장" })).toBeTruthy();
+  });
+
+  it("connects a validated practice to a fresh note and keeps the destination for a new draft", async () => {
+    window.history.replaceState(null, "", "/studio?topic=cs%2Falgorithms&source=APSS&practice=ch1&from=map");
+    mockFetch();
+    render(<StudioWorkspace />);
+    await screen.findByText("실습 연결 · APSS / ch1");
+    expect(window.location.search).toBe("?from=map");
+    fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "실습 메모" } });
+    vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+    fireEvent.click(screen.getByRole("button", { name: "새 초안" }));
+    expect((screen.getByLabelText("오늘 배운 것") as HTMLTextAreaElement).value).toBe("");
+    expect(screen.getByText("학습 자료와 실습 · APSS")).toBeTruthy();
+  });
+
+  it("asks before connecting an existing draft, preserves its body, and restores its original destination", async () => {
+    mockFetch();
+    const first = render(<StudioWorkspace />);
+    await screen.findByText("algorithms");
+    fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "기존 기록" } });
+    first.unmount();
+    window.history.replaceState(null, "", "/studio?topic=cs%2Falgorithms&source=APSS&practice=ch2");
+    render(<StudioWorkspace />);
+    expect(await screen.findByRole("button", { name: "기존 초안 계속 작성" })).toBeTruthy();
+    expect((screen.getByLabelText("오늘 배운 것") as HTMLTextAreaElement).value).toBe("기존 기록");
+    fireEvent.click(screen.getByRole("button", { name: "이 초안에 실습 연결" }));
+    expect(window.location.search).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "이전 작업 위치 복원" }));
+    expect(screen.getByText("학습 자료와 실습", { exact: true })).toBeTruthy();
+    expect((screen.getByLabelText("오늘 배운 것") as HTMLTextAreaElement).value).toBe("기존 기록");
+  });
+
+  it("rejects a missing practice without changing the author’s text", async () => {
+    window.history.replaceState(null, "", "/studio?topic=cs%2Falgorithms&source=APSS&practice=ch99");
+    mockFetch();
+    render(<StudioWorkspace />);
+    expect(await screen.findByText(/연결할 실습을 찾지 못했습니다/)).toBeTruthy();
+    expect(window.location.search).toBe("");
+    expect(screen.getByLabelText("오늘 배운 것")).toBeTruthy();
   });
 
   it("opens settings from the gear button and saves without showing stored secrets", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
+    if (url.startsWith("/api/github/save?")) return previewTarget(url);
       if (url === "/api/github/tree") return Response.json(treeResponse);
       if (url === "/api/settings" && !init) {
         return Response.json({
@@ -177,6 +232,7 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await screen.findByText("algorithms");
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
     fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
@@ -194,6 +250,7 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await screen.findByText("algorithms");
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
     fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
@@ -213,6 +270,7 @@ describe("StudioWorkspace note and theory actions", () => {
     expect(await screen.findByText("먼저 topic을 선택하면 학습 자료를 고를 수 있습니다.")).toBeTruthy();
 
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
 
     expect(screen.getByRole("heading", { name: "학습 자료 선택" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "기존 학습 자료" }));
@@ -225,8 +283,9 @@ describe("StudioWorkspace note and theory actions", () => {
   });
 
   it("sends metadata when saving the first note for a new source", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
+    if (url.startsWith("/api/github/save?")) return previewTarget(url);
       if (url === "/api/github/tree") return Response.json(treeResponse);
       if (url === "/api/github/save") return Response.json({ mode: "quick", commitSha: "abc123" });
       return Response.json({}, { status: 404 });
@@ -236,6 +295,7 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await screen.findByText("algorithms");
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
     fireEvent.change(screen.getByLabelText("새 학습 자료 이름"), { target: { value: "혼자 공부하는 C" } });
     fireEvent.change(screen.getByLabelText("자료 유형"), { target: { value: "book" } });
     fireEvent.change(screen.getByLabelText("학습 개요"), { target: { value: "C 문법과 실습" } });
@@ -246,12 +306,12 @@ describe("StudioWorkspace note and theory actions", () => {
     fireEvent.change(screen.getByLabelText("참고 자료"), { target: { value: "https://example.com/book" } });
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "배열과 포인터" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "배열과 포인터 관계를 배웠다." } });
-    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
-    fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
+    fireEvent.click(screen.getByRole("tab", { name: "저장" }));
+    await saveReadyDraft();
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/save", expect.any(Object)));
     const saveCall = fetchMock.mock.calls.find(([url]) => String(url) === "/api/github/save");
-    const body = JSON.parse(String((saveCall?.[1] as RequestInit).body));
+    const body = JSON.parse(String(saveCall?.[1]?.body));
 
     expect(body.sourceMetadata).toEqual({
       name: "혼자 공부하는 C",
@@ -276,8 +336,9 @@ describe("StudioWorkspace note and theory actions", () => {
   });
 
   it("creates a source workspace before writing a note", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
+    if (url.startsWith("/api/github/save?")) return previewTarget(url);
       if (url === "/api/github/tree") return Response.json(treeResponse);
       if (url === "/api/github/source") return Response.json({ mode: "quick", commitSha: "abc123" });
       return Response.json({}, { status: 404 });
@@ -287,6 +348,7 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await screen.findByText("algorithms");
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
     fireEvent.change(screen.getByLabelText("새 학습 자료 이름"), { target: { value: "Java Basic" } });
     fireEvent.change(screen.getByLabelText("자료 유형"), { target: { value: "book" } });
     fireEvent.change(screen.getByLabelText("기술 이름"), { target: { value: "Java" } });
@@ -295,7 +357,7 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/source", expect.any(Object)));
     const sourceCall = fetchMock.mock.calls.find(([url]) => String(url) === "/api/github/source");
-    const body = JSON.parse(String((sourceCall?.[1] as RequestInit).body));
+    const body = JSON.parse(String(sourceCall?.[1]?.body));
 
     expect(body).toMatchObject({
       mode: "quick",
@@ -321,8 +383,9 @@ describe("StudioWorkspace note and theory actions", () => {
   });
 
   it("adds created frontmatter when saving manually edited note markdown", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
+    if (url.startsWith("/api/github/save?")) return previewTarget(url);
       if (url === "/api/github/tree") return Response.json(treeResponse);
       if (url === "/api/github/save") return Response.json({ mode: "quick", commitSha: "abc123" });
       return Response.json({}, { status: 404 });
@@ -332,27 +395,29 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await screen.findByText("algorithms");
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
     fireEvent.click(screen.getByRole("button", { name: "기존 학습 자료" }));
     fireEvent.click(screen.getByText("APSS").closest("button")!);
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "Manual note" } });
-    fireEvent.click(screen.getByRole("tab", { name: /Preview/ }));
+    fireEvent.click(screen.getByRole("tab", { name: "미리보기" }));
     fireEvent.click(screen.getByLabelText("Markdown 직접 수정"));
     fireEvent.change(screen.getByLabelText("Markdown source"), {
       target: { value: "# Manual note\n\n본문" },
     });
-    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
-    fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
+    fireEvent.click(screen.getByRole("tab", { name: "저장" }));
+    await saveReadyDraft();
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/save", expect.any(Object)));
     const saveCall = fetchMock.mock.calls.find(([url]) => String(url) === "/api/github/save");
-    const body = JSON.parse(String((saveCall?.[1] as RequestInit).body));
+    const body = JSON.parse(String(saveCall?.[1]?.body));
 
     expect(body.changes[0].content).toMatch(/^---\ncreated: \d{4}-\d{2}-\d{2}\n---\n\n# Manual note/);
   });
 
   it("lets users attach source code folders to a note without editing metadata", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
+    if (url.startsWith("/api/github/save?")) return previewTarget(url);
       if (url === "/api/github/tree") return Response.json(treeResponse);
       if (url === "/api/github/save") return Response.json({ mode: "quick", commitSha: "abc123" });
       return Response.json({}, { status: 404 });
@@ -362,6 +427,7 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await screen.findByText("algorithms");
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
     fireEvent.click(screen.getByRole("button", { name: "기존 학습 자료" }));
     fireEvent.click(screen.getByRole("button", { name: "APSS" }));
 
@@ -375,12 +441,12 @@ describe("StudioWorkspace note and theory actions", () => {
 
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "Class loading" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "클래스가 어떻게 로딩되는지 배웠다." } });
-    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
-    fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
+    fireEvent.click(screen.getByRole("tab", { name: "저장" }));
+    await saveReadyDraft();
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/save", expect.any(Object)));
     const saveCall = fetchMock.mock.calls.find(([url]) => String(url) === "/api/github/save");
-    const body = JSON.parse(String((saveCall?.[1] as RequestInit).body));
+    const body = JSON.parse(String(saveCall?.[1]?.body));
 
     expect(body.changes[0].content).toContain("src:\n  - ch1\n  - ch2");
     expect(body.changes[0].content).not.toContain("frontmatter");
@@ -392,6 +458,7 @@ describe("StudioWorkspace note and theory actions", () => {
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
+    if (url.startsWith("/api/github/save?")) return previewTarget(url);
         if (url === "/api/github/tree") return Response.json(treeResponse);
         if (url === "/api/ai/note-cleanup") return noteResponse.promise;
         return Response.json({}, { status: 404 });
@@ -401,6 +468,7 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await screen.findByText("algorithms");
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
     fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
@@ -420,6 +488,7 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await screen.findByText("algorithms");
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
     fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
@@ -429,7 +498,7 @@ describe("StudioWorkspace note and theory actions", () => {
     expect(screen.queryByRole("status", { name: "글 초안 생성 완료" })).toBeNull();
 
     vi.useFakeTimers();
-    fireEvent.click(screen.getByRole("tab", { name: /Write/ }));
+    fireEvent.click(screen.getByRole("tab", { name: "작성" }));
     fireEvent.click(screen.getByRole("button", { name: "글 초안 만들기" }));
     await act(async () => {
       await Promise.resolve();
@@ -461,10 +530,8 @@ describe("StudioWorkspace note and theory actions", () => {
     mockFetch();
     render(<StudioWorkspace />);
 
-    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
-    fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
-
-    expect(await screen.findByRole("status", { name: "저장할 수 없습니다" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "저장" }));
+    expect((screen.getByRole("button", { name: "GitHub에 저장" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("저장할 경로를 만들 수 없습니다. 작업 위치, 학습 자료, 제목을 확인하세요.")).toBeTruthy();
   });
 
@@ -474,6 +541,7 @@ describe("StudioWorkspace note and theory actions", () => {
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
+    if (url.startsWith("/api/github/save?")) return previewTarget(url);
         if (url === "/api/github/tree") return Response.json(treeResponse);
         if (url === "/api/github/save") return saveResponse.promise;
         return Response.json({}, { status: 404 });
@@ -483,12 +551,13 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await screen.findByText("algorithms");
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
     fireEvent.click(screen.getByRole("button", { name: "기존 학습 자료" }));
     fireEvent.click(screen.getByText("APSS").closest("button")!);
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
-    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
-    fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
+    fireEvent.click(screen.getByRole("tab", { name: "저장" }));
+    await saveReadyDraft();
 
     expect(await screen.findByRole("status", { name: "GitHub 저장 중" })).toBeTruthy();
 
@@ -501,6 +570,7 @@ describe("StudioWorkspace note and theory actions", () => {
   it("shows a completion notice after a successful GitHub save", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
+    if (url.startsWith("/api/github/save?")) return previewTarget(url);
       if (url === "/api/github/tree") return Response.json(treeResponse);
       if (url === "/api/github/save") return Response.json({ mode: "quick", commitSha: "abc123" });
       return Response.json({}, { status: 404 });
@@ -510,15 +580,16 @@ describe("StudioWorkspace note and theory actions", () => {
 
     await screen.findByText("algorithms");
     fireEvent.click(screen.getByText("algorithms").closest("button")!);
+    fireEvent.click(screen.getByText("학습 자료와 실습", { exact: true }));
     fireEvent.click(screen.getByRole("button", { name: "기존 학습 자료" }));
     fireEvent.click(screen.getByText("APSS").closest("button")!);
     fireEvent.change(screen.getByLabelText("제목"), { target: { value: "KMP 정리" } });
     fireEvent.change(screen.getByLabelText("오늘 배운 것"), { target: { value: "KMP는 접두사 정보를 재사용한다." } });
-    fireEvent.click(screen.getByRole("tab", { name: /Publish/ }));
-    fireEvent.click(screen.getByRole("button", { name: "GitHub에 저장" }));
+    fireEvent.click(screen.getByRole("tab", { name: "저장" }));
+    await saveReadyDraft();
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/github/save", expect.any(Object)));
     expect(await screen.findByRole("status", { name: "GitHub 저장 완료" })).toBeTruthy();
-    expect(screen.getByText("GitHub에 바로 저장되었습니다.")).toBeTruthy();
+    expect(screen.getByText("GitHub에 저장했습니다.")).toBeTruthy();
   });
 });

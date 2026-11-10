@@ -8,6 +8,7 @@ export interface NotePathInput {
   area: Exclude<ContentArea, "coding-test">;
   topic: string;
   source: string;
+  existingSourceName?: string;
   title: string;
 }
 
