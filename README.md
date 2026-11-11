@@ -188,7 +188,7 @@ The new learning-material form accepts technologies one at a time. Known technol
 
 ### Deleting a note
 
-Open a note in the document reader and select delete. Review mode is selected by default and creates a draft pull request; Quick mode commits directly. The note and all affected managed README indexes are updated together. Theory deletion and administrator-only controls are deferred.
+Open a note in the document reader and select delete. Review mode is selected by default and creates a draft pull request; Quick mode commits directly. The note and all affected managed README indexes are updated together. In hosted mode, only the signed-in owner can delete notes. Theory deletion is not yet supported.
 
 ### theory
 

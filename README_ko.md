@@ -188,7 +188,7 @@ Studio에서 note를 저장하거나 삭제하면 note와 학습 자료 README, 
 
 ### note 삭제
 
-문서 화면에서 note 삭제를 선택할 수 있습니다. 기본값인 Review는 draft pull request를 만들고, Quick은 기본 브랜치에 바로 커밋합니다. note와 영향받는 모든 README 인덱스는 함께 갱신됩니다. theory 삭제와 관리자 전용 권한은 후속 범위입니다.
+문서 화면에서 note 삭제를 선택할 수 있습니다. 기본값인 Review는 draft pull request를 만들고, Quick은 기본 브랜치에 바로 커밋합니다. note와 영향받는 모든 README 인덱스는 함께 갱신됩니다. 웹 배포 환경에서는 로그인한 소유자만 note를 삭제할 수 있습니다. theory 삭제는 아직 지원하지 않습니다.
 
 ### theory
 
