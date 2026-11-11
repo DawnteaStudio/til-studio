@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { IndexedDocument } from "@/lib/content/types";
 import { articleHref, type ArchiveArticle } from "@/lib/content/archive";
+import { encodeMarkdownPath } from "@/lib/content/markdown-path";
 import { extractHeadingAnchors } from "@/lib/content/markdown";
 import { ArticleDate, blogHref, topicLabel } from "./ArchiveArticleRow";
 import { ReaderNavigation } from "./ReaderNavigation";
@@ -33,6 +34,19 @@ export function DocumentView({ document, article, previous, next }: DocumentView
               </div>
             ) : <span className="break-all">{document.path}</span>}
           </header>
+          {article?.source && article.linkedPractices?.length ? (
+            <nav aria-label="연결된 실습" className="mb-5 rounded-xl border border-[#211f1a]/15 px-4 py-3 text-sm">
+              <h2 className="font-bold">GitHub에서 실습 코드 열기</h2>
+              <ul className="mt-1 flex flex-wrap gap-x-4">
+                {article.linkedPractices.map((name) => {
+                  const path = encodeMarkdownPath(`${article.area}/${article.topic}/notes/${article.source}/src/${name}`);
+                  const repo = `${encodeURIComponent(document.owner)}/${encodeURIComponent(document.repo)}`;
+                  return <li key={name}><a className="inline-flex min-h-11 items-center break-all text-[#204a78] underline underline-offset-4"
+                    href={`https://github.com/${repo}/tree/${encodeURIComponent(document.branch)}/${path}`}>{name}</a></li>;
+                })}
+              </ul>
+            </nav>
+          ) : null}
           {headings.length > 0 && <details className="mb-6 rounded-xl border border-[#211f1a]/15 px-4 py-2 text-sm">
             <summary className="cursor-pointer py-1 font-bold">이 글의 목차</summary>
             <nav className="grid gap-2 py-2" aria-label="본문 목차">

@@ -7,6 +7,16 @@ const prefix = "languages/c/notes/hongongC";
 const chapter = (slug: string) => `${prefix}/note/${slug}.md`;
 
 describe("archive metadata from repository content", () => {
+  it("keeps a published reservation visible until that material contains actual code", () => {
+    const files = [{ path: chapter("pointers"), body: "---\nsrc: [lab-2, next]\n---\n# Pointers", updated: null }];
+    const paths = [`${prefix}/src/lab-2/.gitkeep`, "languages/c/notes/other/src/lab-2/main.c"];
+    expect(indexArchive(files, paths).articles[0]).toMatchObject({ pendingPractices: ["lab-2", "next"] });
+    paths.push(`${prefix}/src/lab-2/exercises/main.c`);
+    expect(indexArchive(files, paths).articles[0]).toMatchObject({ pendingPractices: ["next"] });
+    paths.push(`${prefix}/src/next/main.c`);
+    expect(indexArchive(files, paths).articles[0].pendingPractices ?? []).toEqual([]);
+  });
+
   it("uses actual headings and note dates, orders chapters numerically and keeps README files out", () => {
     const { articles } = indexArchive([
       { path: chapter("ch2"), body: '---\ncreated: 2023-07-30\n---\n\n```md\n# Not a heading\n```\n## **C 언어 입문**\n\n### 포인터', updated: "2026-10-03" },

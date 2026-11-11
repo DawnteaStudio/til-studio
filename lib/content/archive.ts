@@ -10,6 +10,8 @@ export interface ArchiveArticle {
   created: string | null;
   updated: string | null;
   headings: string[];
+  pendingPractices?: string[];
+  linkedPractices?: string[];
 }
 
 export interface Practice {
@@ -36,4 +38,10 @@ export function articleHref(path: string) {
 
 export function practiceHref({ topicPath, source, slug }: Practice) {
   return `/studio?${new URLSearchParams({ topic: topicPath, source, practice: slug })}`;
+}
+
+export function linkPracticeHref(topicPath: string, source: string, practice?: string) {
+  const params = new URLSearchParams({ topic: topicPath, source });
+  if (practice) params.set("practice", practice);
+  return `/studio/link-practice?${params}`;
 }

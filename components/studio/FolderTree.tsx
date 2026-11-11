@@ -106,6 +106,7 @@ export function FolderTree({
           <div className="mt-3 grid gap-2">
             {selectedArea.topics.map((topic) => (
               <button
+                data-practice-focus="topic"
                 key={topic.path}
                 type="button"
                 onClick={() => {
@@ -127,6 +128,7 @@ export function FolderTree({
             ))}
             <button
               type="button"
+              data-practice-focus="topic"
               onClick={() => {
                 setNewTopicName("");
                 setIsCreatingTopic(true);
@@ -139,7 +141,7 @@ export function FolderTree({
                   : "border-white/20 text-[#d8d0bd] hover:border-[#ff34ff]",
               ].join(" ")}
             >
-              새 토픽
+              새 주제
             </button>
             {isCreatingTopic ? (
               <form
@@ -153,7 +155,7 @@ export function FolderTree({
                 }}
               >
                 <label className="grid gap-2">
-                  <span className="font-semibold">새 토픽 이름</span>
+                  <span className="font-semibold">새 주제 이름</span>
                   <input value={newTopicName} onChange={(event) => setNewTopicName(event.target.value)}
                     className="studio-field h-11 rounded-xl bg-[#111827] px-3 text-sm text-[#f4efe4] focus:ring-4 focus:ring-[#ff34ff]/25"
                   />

@@ -5,6 +5,7 @@ import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState }
 import { treeFromPaths } from "@/lib/content/indexer";
 import { draftToNoteMarkdown, type StructuredNoteDraft } from "@/lib/content/note-draft";
 import { buildNotePath, buildTheoryPath, makeSlug, matchingSourceNames, sourceNamesAtTopic, sourcePracticeSlugs, parentReadmePath } from "@/lib/content/paths";
+import { addPracticeLinks, isValidPracticeName, readPracticeLinks, removePracticeLinks } from "@/lib/content/practice-links";
 import { deriveStudyTarget } from "@/lib/content/studio-target";
 import {
   defaultSaveModeForDraft,
@@ -21,6 +22,7 @@ import {
 import { MarkdownArticle } from "@/components/public/MarkdownArticle";
 import { FileEditor } from "./FileEditor";
 import { FolderTree } from "./FolderTree";
+import { PendingPracticePaths } from "./PracticeAttachments";
 import { NoteComposer } from "./NoteComposer";
 import { PublishPanel } from "./PublishPanel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -93,45 +95,26 @@ function seoulDate(): string {
 }
 
 function ensureCreatedFrontmatter(markdown: string, created: string): string {
-  if (/^---\s*\n[\s\S]*?^created:\s*/m.test(markdown)) return markdown;
-  return `---\ncreated: ${created}\n---\n\n${markdown.trimStart()}`;
+  const header = /^(\uFEFF?---)(\r?\n)([\s\S]*?)^---[ \t]*\r?$/m.exec(markdown);
+  if (header?.index === 0) {
+    if (/^created:[ \t]*/m.test(header[3])) return markdown;
+    const opening = header[1] + header[2];
+    return opening + "created: " + created + header[2] + markdown.slice(opening.length);
+  }
+  const eol = markdown.includes("\r\n") ? "\r\n" : "\n";
+  return [`---`, `created: ${created}`, "---", "", markdown].join(eol);
 }
 
-function applySourceCodeLinks(markdown: string, sourceCodeSlugs: string[]): string {
-  const uniqueSlugs = [...new Set(sourceCodeSlugs.filter(Boolean))];
-  const frontmatterMatch = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
-
-  if (!frontmatterMatch) {
-    if (!uniqueSlugs.length) return markdown;
-    return `---\nsrc:\n${uniqueSlugs.map((slug) => `  - ${slug}`).join("\n")}\n---\n\n${markdown.trimStart()}`;
+function practiceSelection(markdown: string, storedNames: string[]) {
+  try {
+    const fromMarkdown = readPracticeLinks(markdown);
+    const names = [...new Set([...fromMarkdown, ...storedNames])];
+    return { markdown: names.length === fromMarkdown.length ? markdown : addPracticeLinks(markdown, names),
+      names, error: "" };
+  } catch (error) {
+    return { markdown, names: storedNames,
+      error: error instanceof Error ? error.message : "Markdown의 src 항목을 확인하세요." };
   }
-
-  const body = markdown.slice(frontmatterMatch[0].length).trimStart();
-  const cleanedLines: string[] = [];
-  let isSkippingSourceList = false;
-  for (const line of frontmatterMatch[1].split(/\r?\n/)) {
-    if (/^src:\s*/.test(line)) {
-      isSkippingSourceList = /^src:\s*$/.test(line);
-      continue;
-    }
-    if (isSkippingSourceList && /^\s*-\s*/.test(line)) continue;
-    isSkippingSourceList = false;
-    if (line.trim()) cleanedLines.push(line);
-  }
-  const srcLines = uniqueSlugs.length
-    ? ["src:", ...uniqueSlugs.map((slug) => `  - ${slug}`)]
-    : [];
-  const createdIndex = cleanedLines.findIndex((line) => /^created:\s*/.test(line));
-  const nextFrontmatter = [...cleanedLines];
-  if (srcLines.length) {
-    nextFrontmatter.splice(
-      createdIndex === -1 ? 0 : createdIndex + 1,
-      0,
-      ...srcLines,
-    );
-  }
-
-  return `---\n${nextFrontmatter.join("\n")}\n---\n\n${body}`;
 }
 
 export function StudioWorkspace() {
@@ -145,12 +128,14 @@ export function StudioWorkspace() {
   } = draft;
   const aiRequest = useRef<AbortController | null>(null);
   const [mobileLocationOpen, setMobileLocationOpen] = useState(false);
+  const [reservationStep, setReservationStep] = useState<"topic" | "source" | "folder" | null>(null);
   const [practiceOffer, setPracticeOffer] = useState<PracticeTarget | null>(null);
   const [pendingAI, setPendingAI] = useState<StudioDraftKind | null>(null);
   const isBusy = pendingAI === "note";
   const isResearchingTheory = pendingAI === "theory";
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [isTreeLoading, setIsTreeLoading] = useState(true);
+  const [treeRevision, setTreeRevision] = useState(0);
   const [visibleRootPaths, setVisibleRootPaths] = useState<string[]>([]);
   const [status, setStatus] = useState("TIL 레포 구조를 불러오는 중");
   const [notice, setNotice] = useState<StudioNotice | null>(null);
@@ -200,7 +185,11 @@ export function StudioWorkspace() {
   );
   const previousVersion = noteVersion && noteVersion.base !== generatedNoteMarkdown ? noteVersion : null;
   const noteMarkdown = noteVersion?.base === generatedNoteMarkdown ? noteVersion.markdown : generatedNoteMarkdown;
-  const publishMarkdown = draftKind === "note" ? noteMarkdown : theoryMarkdown;
+  const attachments = useMemo(() => practiceSelection(noteMarkdown, selectedSourceCodeSlugs), [noteMarkdown, selectedSourceCodeSlugs]);
+  const noteSlug = makeSlug(noteDraft.title);
+  const implicitPractice = sourceCodeOptions.includes(noteSlug) && !attachments.names.some((name) => sourceCodeOptions.includes(name))
+    ? noteSlug : undefined;
+  const publishMarkdown = draftKind === "note" ? attachments.markdown : theoryMarkdown;
 
   // A storage event can replace the draft from another open Studio window.
   useLayoutEffect(() => {
@@ -236,15 +225,37 @@ export function StudioWorkspace() {
     updateDraft(patch);
   }
 
+  const returnToMemo = useRef(false);
+  const waitingForTopics = reservationStep === "topic" && isTreeLoading;
+  useLayoutEffect(() => {
+    if (activeStep === "write" && returnToMemo.current) {
+      returnToMemo.current = false;
+      document.getElementById("studio-note-memo")?.focus();
+    }
+    if (activeStep !== "where" || !reservationStep || waitingForTopics) return;
+    document.querySelector<HTMLElement>(`[data-practice-focus="${reservationStep}"]`)?.focus();
+  }, [activeStep, reservationStep, waitingForTopics, isCreatingSource]);
+
+  function startPracticeReservation() {
+    const hasMaterial = Boolean(selectedPath && (isCreatingSource ? makeSlug(sourceName) : sourceName));
+    setReservationStep(!selectedPath ? "topic" : hasMaterial ? "folder" : "source");
+    setMobileLocationOpen(!selectedPath);
+    const hasSourceMetadata = sourceMetadata.type || sourceMetadata.overview || sourceMetadata.reference || sourceMetadata.technologies.length;
+    changeDraft({ activeStep: "where", ...(selectedPath && !sourceName && !hasSourceMetadata
+      ? { isCreatingSource: !selectedTopicSources.length } : {}) });
+  }
+
   function startNewDraft() {
     if (!window.confirm("현재 기기에 보관한 초안을 지우고 새 초안을 시작할까요?")) return;
     cancelAI();
+    setReservationStep(null);
     const didReset = resetDraft(true);
     setNotice(null);
     setStatus(didReset ? "새 초안을 시작했습니다" : "초안을 초기화하지 못했습니다. 현재 내용을 확인하세요.");
   }
 
   function updateDraftKind(kind: StudioDraftKind) {
+    setReservationStep(null);
     changeDraft({
       draftKind: kind,
       mode: defaultSaveModeForDraft(kind),
@@ -254,23 +265,33 @@ export function StudioWorkspace() {
   }
 
   function selectStudyPath(path: string) {
-    if (path && path !== selectedPath) {
-      changeDraft({ selectedPath: path, sourceName: "", isCreatingSource: true,
-        selectedSourceCodeSlugs: [], sourceMetadata: { type: "", overview: "", technologies: [], reference: "" },
-        activeStep: "write" });
-      setMobileLocationOpen(false);
+    if (!path) {
+      changeDraft({ selectedPath: "" });
       return;
     }
-    changeDraft({ selectedPath: path, activeStep: path ? "write" : activeStep });
-    if (path) setMobileLocationOpen(false);
+    const changed = path !== selectedPath;
+    const step = reservationStep ? "where" : "write";
+    if (changed) {
+      changeDraft({
+        selectedPath: path, activeStep: step, sourceName: "", selectedSourceCodeSlugs: [],
+        isCreatingSource: !reservationStep || !sourceNamesAtTopic(repositoryPaths, path).length,
+        sourceMetadata: { type: "", overview: "", technologies: [], reference: "" },
+      });
+    } else {
+      changeDraft({ activeStep: step });
+    }
+    setMobileLocationOpen(false);
+    if (reservationStep) setReservationStep(changed || !sourceName ? "source" : "folder");
   }
 
   function goToStep(step: StudioStep) {
+    setReservationStep(null);
     changeDraft({ activeStep: step });
     setMobileLocationOpen(step === "where");
   }
 
   function applyPractice(link: PracticeTarget, keepLocation: boolean) {
+    setReservationStep(null);
     changeDraft((current) => ({
       previousLocation: keepLocation ? current.previousLocation ?? {
         selectedPath: current.selectedPath, sourceName: current.sourceName,
@@ -299,7 +320,7 @@ export function StudioWorkspace() {
     const prefix = `${topic}/notes/${source}/src/${practice}/`;
     const validSegment = (part: string) => part.length > 0 && ![".", ".."].includes(part) && !part.includes("/");
     if (topic.split("/").length !== 2 || !topic.split("/").every(validSegment) || !deriveStudyTarget(topic) ||
-        !validSegment(source) || !validSegment(practice) ||
+        !validSegment(source) || !isValidPracticeName(practice) ||
         !paths.some((path) => path.startsWith(prefix) && path.length > prefix.length && !path.endsWith("/.gitkeep"))) {
       setStatus("연결할 실습을 찾지 못했습니다. 학습 지도에서 실습을 다시 선택하세요.");
       consumePracticeLink();
@@ -316,7 +337,7 @@ export function StudioWorkspace() {
     async function loadTree() {
       setIsTreeLoading(true);
       try {
-        const response = await fetch("/api/github/tree");
+        const response = await fetch("/api/github/tree", { cache: "no-store" });
         if (!response.ok) throw new Error("Repository tree unavailable");
         const data = (await response.json()) as { paths?: string[]; allPaths?: string[] };
         if (isMounted) {
@@ -335,11 +356,11 @@ export function StudioWorkspace() {
           const visibleRoots = saved.length ? roots.filter((root) => saved.includes(root)) : roots;
           setVisibleRootPaths(visibleRoots);
           setStatus("TIL 레포 구조를 불러왔습니다");
-          readPracticeLink(paths);
+          if (treeRevision === 0) readPracticeLink(paths);
           if (visibleRoots.length) persistVisibleRootPaths(visibleRoots);
         }
       } catch {
-        setStatus("TIL 레포 구조를 불러오지 못했습니다");
+        if (isMounted) setStatus("TIL 레포 구조를 불러오지 못했습니다");
       } finally {
         if (isMounted) setIsTreeLoading(false);
       }
@@ -350,7 +371,7 @@ export function StudioWorkspace() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [treeRevision]);
 
   useEffect(() => {
     if (!notice || notice.tone === "progress") return;
@@ -398,16 +419,32 @@ export function StudioWorkspace() {
   }
 
   function toggleSourceCode(slug: string) {
-    changeDraft(({ selectedSourceCodeSlugs: slugs }) => ({
-      selectedSourceCodeSlugs: slugs.includes(slug)
-        ? slugs.filter((item) => item !== slug)
-        : [...slugs, slug].sort((left, right) => left.localeCompare(right)),
-    }));
+    if (attachments.error) return;
+    const removing = attachments.names.includes(slug);
+    const additions = implicitPractice && implicitPractice !== slug ? [implicitPractice, slug] : [slug];
+    const names = removing ? attachments.names.filter((name) => name !== slug) : [...attachments.names, ...additions];
+    if (noteVersion && !previousVersion) {
+      const markdown = removing ? removePracticeLinks(attachments.markdown, [slug]) : addPracticeLinks(attachments.markdown, additions);
+      changeDraft({ selectedSourceCodeSlugs: names, noteVersion: { base: generatedNoteMarkdown, markdown } });
+    } else {
+      changeDraft({ selectedSourceCodeSlugs: names });
+    }
+  }
+
+  function editNoteMarkdown(markdown: string) {
+    const version = { base: generatedNoteMarkdown, markdown };
+    try {
+      changeDraft({ noteVersion: version, selectedSourceCodeSlugs: readPracticeLinks(markdown) });
+    } catch {
+      // Keep unfinished frontmatter exactly as typed so it can be corrected in the editor.
+      changeDraft({ noteVersion: version });
+    }
   }
 
   function openSource(name: string) {
+    if (reservationStep) setReservationStep("folder");
     changeDraft((current) => current.selectedPath === selectedPath && current.sourceName === sourceName && current.isCreatingSource
-      ? { sourceName: name, isCreatingSource: false, selectedSourceCodeSlugs: [] } : {});
+      ? { sourceName: name, isCreatingSource: false } : {});
   }
 
   function acceptExistingSource(name: string | null, paths: string[]) {
@@ -419,10 +456,10 @@ export function StudioWorkspace() {
 
   async function createSourceWorkspace() {
     if (!target) {
-      setStatus("먼저 왼쪽에서 학습 공간을 만들 topic을 선택하세요");
+      setStatus("먼저 학습 공간을 만들 주제를 선택하세요");
       setNotice({
         title: "작업 위치가 필요합니다",
-        message: "왼쪽에서 area와 topic을 선택한 뒤 학습 공간을 만들 수 있습니다.",
+        message: "분야와 주제를 선택한 뒤 학습 공간을 만들 수 있습니다.",
         tone: "error",
       });
       return;
@@ -571,7 +608,7 @@ export function StudioWorkspace() {
 
   function createTheoryFromResearch(result: TheoryResearchResult) {
     if (!target) {
-      setStatus("먼저 왼쪽에서 Theory를 저장할 area와 topic을 선택하세요");
+      setStatus("먼저 개념 글을 저장할 분야와 주제를 선택하세요");
       return;
     }
 
@@ -625,12 +662,13 @@ export function StudioWorkspace() {
 
   const publishPath = draftKind === "theory" ? theoryPath : notePath;
   const publishContent = draftKind === "note"
-    ? applySourceCodeLinks(ensureCreatedFrontmatter(publishMarkdown, noteDraft.created || seoulDate()), selectedSourceCodeSlugs)
+    ? ensureCreatedFrontmatter(publishMarkdown, noteDraft.created || seoulDate())
     : publishMarkdown;
   const validationError = draftKind === "note" && matchingSources.length ? "같은 이름의 자료가 있습니다. 학습 자료와 실습에서 기존 자료를 선택하세요."
     : !publishPath ? "저장할 경로를 만들 수 없습니다. 작업 위치, 학습 자료, 제목을 확인하세요."
     : draftKind === "note" && isCreatingSource && !sourceMetadata.type ? "새 학습 자료의 자료 유형을 선택하세요."
-    : !publishMarkdown.trim() ? "발행할 내용이 없습니다." : undefined;
+    : draftKind === "note" && attachments.error ? attachments.error
+    : !(draftKind === "note" ? noteMarkdown : theoryMarkdown).trim() ? "발행할 내용이 없습니다." : undefined;
 
   const sourcePicker =
     draftKind === "note" ? (
@@ -641,18 +679,36 @@ export function StudioWorkspace() {
         sources={selectedTopicSources}
         isCreating={isCreatingSource}
         metadata={sourceMetadata}
-        onSelectExisting={(sourceName) => changeDraft({ sourceName, isCreatingSource: false, selectedSourceCodeSlugs: [] })}
-        onStartCreating={() => changeDraft({
-          sourceName: "",
-          isCreatingSource: true,
-          selectedSourceCodeSlugs: [],
-          sourceMetadata: { type: "", overview: "", technologies: [], reference: "" },
-        })}
-        onShowExisting={() => changeDraft({ sourceName: "", isCreatingSource: false, selectedSourceCodeSlugs: [] })}
+        onSelectExisting={(sourceName) => {
+          changeDraft({ sourceName, isCreatingSource: false, selectedSourceCodeSlugs: [] });
+          if (reservationStep) setReservationStep("folder");
+        }}
+        onContinueReservation={reservationStep === "source" ? () => {
+          if (matchingSources.length === 1) openSource(matchingSources[0]);
+          else if (matchingSources.length > 1) changeDraft({ sourceName: "", isCreatingSource: false });
+          else setReservationStep("folder");
+        } : undefined}
+        onStartCreating={() => {
+          if (reservationStep) setReservationStep("source");
+          changeDraft({
+            sourceName: "", isCreatingSource: true, selectedSourceCodeSlugs: [],
+            sourceMetadata: { type: "", overview: "", technologies: [], reference: "" },
+          });
+        }}
+        onShowExisting={() => {
+          if (reservationStep) setReservationStep("source");
+          changeDraft({ sourceName: "", isCreatingSource: false, selectedSourceCodeSlugs: [] });
+        }}
         onSourceNameChange={(sourceName) => changeDraft({ sourceName })}
         onMetadataChange={(sourceMetadata) => changeDraft({ sourceMetadata })}
         sourceCodeOptions={sourceCodeOptions}
-        selectedSourceCodeSlugs={selectedSourceCodeSlugs}
+        selectedSourceCodeSlugs={attachments.names}
+        sourcePath={selectedSourcePath}
+        repositoryPaths={repositoryPaths}
+        practiceError={attachments.error}
+        implicitPractice={implicitPractice}
+        onRefreshPractices={() => setTreeRevision((revision) => revision + 1)}
+        refreshingPractices={isTreeLoading}
         onToggleSourceCode={toggleSourceCode}
         onCreateSourceWorkspace={createSourceWorkspace}
         isCreatingWorkspace={isCreatingWorkspace}
@@ -732,6 +788,7 @@ export function StudioWorkspace() {
           <span className="shrink-0 font-semibold">{mobileLocationOpen ? "접기" : "변경"}</span>
         </button>
         <div id="studio-folders" className={mobileLocationOpen ? "pb-2 pt-3 lg:p-0" : "hidden lg:block"}>
+          {reservationStep === "topic" && <p className="mb-3 text-sm font-semibold">코드와 노트를 함께 둘 주제를 선택하세요.</p>}
           <FolderTree
             tree={tree}
             selectedPath={selectedPath}
@@ -837,14 +894,32 @@ export function StudioWorkspace() {
                 <h2 className="text-lg font-semibold">저장 위치</h2>
                 <p className="mt-2 break-all text-sm">{selectedPath || "작업할 분야와 주제를 선택하세요."}</p>
                 {sourcePicker}
-                <button type="button" className="mt-4 rounded-xl bg-[#204a78] px-4 py-2 text-sm font-semibold text-white" onClick={() => goToStep("write")}>작성으로 돌아가기</button>
+                <button type="button" className="mt-4 rounded-xl bg-[#204a78] px-4 py-2 text-sm font-semibold text-white" onClick={() => {
+                  returnToMemo.current = Boolean(reservationStep);
+                  goToStep("write");
+                }}>작성으로 돌아가기</button>
               </section>
             ) : null}
 
             {activeStep === "write" ? (
               draftKind === "note" ? (
                 <>
-                  <NoteComposer draft={noteDraft} onChange={updateNoteDraft} />
+                  <NoteComposer draft={noteDraft} onChange={updateNoteDraft}>
+                    <div className="grid gap-2 text-left break-keep min-[360px]:grid-cols-2">
+                      <button type="button" aria-label="코드를 올릴 위치 정하기" aria-describedby="practice-note-first" onClick={startPracticeReservation}
+                        className="flex min-w-0 flex-col items-start rounded-xl border border-[#204a78]/25 bg-white/55 px-3 py-2 text-left hover:border-[#204a78]">
+                        <span className="block text-xs text-[#504b40]">노트를 먼저 쓸 때</span>
+                        <span className="mt-1 block text-sm font-bold text-[#204a78] underline underline-offset-4">코드를 올릴 위치 정하기</span>
+                        <span id="practice-note-first" className="mt-1 block text-xs leading-5 text-[#504b40]">나중에 파일을 올리면 연결됩니다.</span>
+                      </button>
+                      <Link href="/map?view=unlinked" aria-label="GitHub에 올린 실습 찾기" aria-describedby="practice-code-first"
+                        className="flex min-w-0 flex-col items-start rounded-xl border border-[#204a78]/25 bg-white/55 px-3 py-2 hover:border-[#204a78]">
+                        <span className="block text-xs text-[#504b40]">코드를 먼저 올렸을 때</span>
+                        <span className="mt-1 block text-sm font-bold text-[#204a78] underline underline-offset-4">GitHub에 올린 실습 찾기</span>
+                        <span id="practice-code-first" className="mt-1 block text-xs leading-5 text-[#504b40]">새 노트를 쓰거나 이미 쓴 노트에 코드 링크를 추가하세요.</span>
+                      </Link>
+                    </div>
+                  </NoteComposer>
                   <div className="flex flex-wrap items-center gap-2">
                     <button type="button" onClick={() => goToStep("preview")} className="rounded-xl bg-[#204a78] px-4 py-3 text-sm font-semibold text-white">
                       미리보기 열기
@@ -854,7 +929,7 @@ export function StudioWorkspace() {
                     </button>
                   </div>
                   <details className="studio-paper min-w-0 rounded-2xl px-4 py-1">
-                    <summary className="cursor-pointer py-3 text-sm font-semibold">학습 자료와 실습{sourceName && ` · ${sourceName}`}{selectedSourceCodeSlugs.length > 0 && ` / ${selectedSourceCodeSlugs.join(", ")}`}</summary>
+                    <summary className="cursor-pointer py-3 text-sm font-semibold">학습 자료와 실습{sourceName && ` · ${sourceName}`}{attachments.names.length > 0 && ` / ${attachments.names.join(", ")}`}</summary>
                     {sourcePicker}
                   </details>
                 </>
@@ -923,12 +998,11 @@ export function StudioWorkspace() {
                     ) : null}
                   </aside>
                 ) : null}
+                {draftKind === "note" && attachments.error && <p role="alert" className="mb-2 text-sm text-[#932d28]">{attachments.error}</p>}
                 {isMarkdownEditing && !(draftKind === "note" && previousVersion) ? (
                   <FileEditor
                     value={publishMarkdown}
-                    onChange={(markdown) => changeDraft(draftKind === "note"
-                      ? { noteVersion: { base: generatedNoteMarkdown, markdown } }
-                      : { theoryMarkdown: markdown })}
+                    onChange={(markdown) => draftKind === "note" ? editNoteMarkdown(markdown) : changeDraft({ theoryMarkdown: markdown })}
                   />
                 ) : (
                   <div className="max-h-[560px] overflow-auto rounded-3xl border border-[#204a78]/10 bg-[#fbf6ec] p-6 shadow-inner">
@@ -960,9 +1034,14 @@ export function StudioWorkspace() {
                   sourceMetadata={draftKind === "note" && isCreatingSource ? sourceMetadataPayload() ?? undefined : undefined}
                   validationError={validationError}
                 />
+                {draftKind === "note" && <PendingPracticePaths sourcePath={selectedSourcePath}
+                  names={attachments.names.filter((name) => !sourceCodeOptions.includes(name))} />}
                 {validationError ? (
-                  <button type="button" className="justify-self-start rounded-lg border border-[#204a78]/30 px-3 py-2 text-sm" onClick={() => goToStep(publishPath ? "write" : "where")}>
-                    {publishPath ? "작성으로 돌아가기" : "저장 위치 선택"}
+                  <button type="button" className="justify-self-start rounded-lg border border-[#204a78]/30 px-3 py-2 text-sm" onClick={() => {
+                    if (draftKind === "note" && attachments.error) changeDraft({ activeStep: "preview", isMarkdownEditing: true });
+                    else goToStep(publishPath ? "write" : "where");
+                  }}>
+                    {draftKind === "note" && attachments.error ? "Markdown src 수정" : publishPath ? "작성으로 돌아가기" : "저장 위치 선택"}
                   </button>
                 ) : null}
               </div>

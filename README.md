@@ -165,14 +165,16 @@ notes/<source>/
 ```
 
 - Studio writes learning records to `note/<slug>.md`.
-- Practice code belongs in `src/<slug>/`; Studio does not upload or edit it.
-- A note and source directory are paired only when their slugs match exactly, including case.
+- Commit practice files under `src/<practice-folder>/` in the same material. Folder names are case-sensitive.
+- When writing the note first, select **코드를 올릴 위치 정하기** in the editor. Choose a topic and material, then enter the folder name (for example, `ch2`). After publishing, commit a file at the indicated path to link the note and code in the material README.
+- When code exists first, select **GitHub에 올린 실습 찾기** in the editor to see folders awaiting a note. Start a new note from a folder or link it to an existing note in the same material.
+- Studio records the chosen names in the note’s `src` list. The README links matching folders with actual files. If none match, it looks for a practice folder matching the note’s filename stem.
 - The note frontmatter stores `created: YYYY-MM-DD`.
 - The learning-material README contains metadata, structure guidance, and an automatically managed learning log.
-- The learning log is the union of note and src slugs. A missing side is shown as `-` in the same row.
+- The learning log groups each note with its linked practices and displays `-` for a missing counterpart.
 - Learning-log links use their real names, such as `[ch2](./src/ch2/)` and `[ch2.md](./note/ch2.md)`.
 - Do not manually edit content between the `til-studio:learning-log` markers.
-- Git does not track empty directories, so `note/` and `src/` appear when their first file is committed.
+- Creating a material in Studio adds a `.gitkeep` under both `note/` and `src/`. Reserving a practice folder records its name in the note. The folder links once it contains an actual file.
 
 When Studio saves or deletes a note, it publishes the note and every affected managed index as one Git commit: the learning-material README, topic README, each ancestor README, and the repository root README. New topics and new top-level areas therefore appear in their parent indexes automatically without exposing a partially updated repository state.
 

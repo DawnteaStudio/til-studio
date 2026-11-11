@@ -1,9 +1,11 @@
+import type { ReactNode } from "react";
 import type { StructuredNoteDraft } from "@/lib/content/note-draft";
 
 type NoteDraftField = Exclude<keyof StructuredNoteDraft, "created" | "parentHref">;
 
 interface NoteComposerProps {
   draft: StructuredNoteDraft;
+  children?: ReactNode;
   onChange(field: NoteDraftField, value: string): void;
 }
 
@@ -55,10 +57,11 @@ const fields: Array<{
   },
 ];
 
-export function NoteComposer({ draft, onChange }: NoteComposerProps) {
+export function NoteComposer({ draft, onChange, children }: NoteComposerProps) {
   function fieldInput(item: (typeof fields)[number]) {
     const inputProps = {
       value: draft[item.field],
+      id: item.field === "learned" ? "studio-note-memo" : undefined,
       placeholder: item.placeholder,
       className: "studio-field w-full rounded-2xl px-4 py-3 text-base leading-7 text-[#25221c] placeholder:text-[#807965] focus-visible:outline-2 focus-visible:outline-[#204a78]",
     };
@@ -77,6 +80,7 @@ export function NoteComposer({ draft, onChange }: NoteComposerProps) {
   return (
     <section className="studio-paper space-y-5 rounded-2xl p-4 md:p-6">
       {fieldInput(fields.find(({ field }) => field === "learned")!)}
+      {children}
       {fieldInput(fields.find(({ field }) => field === "title")!)}
       <details className="border-t border-[#204a78]/15 pt-1">
         <summary className="cursor-pointer py-3 text-sm font-semibold text-[#504b40]">추가 메모와 출처</summary>

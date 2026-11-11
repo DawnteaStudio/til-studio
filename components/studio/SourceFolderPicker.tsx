@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PracticeAttachments } from "./PracticeAttachments";
 import { makeSlug, matchingSourceNames } from "@/lib/content/paths";
 import type { SourceType } from "@/lib/content/source-readme";
 import {
@@ -33,6 +34,13 @@ export function SourceFolderPicker({
   onMetadataChange,
   onCreateSourceWorkspace,
   onToggleSourceCode,
+  onContinueReservation,
+  sourcePath,
+  repositoryPaths = [],
+  practiceError,
+  implicitPractice,
+  onRefreshPractices,
+  refreshingPractices,
   isCreatingWorkspace = false,
 }: {
   selectedPath: string;
@@ -50,6 +58,13 @@ export function SourceFolderPicker({
   onMetadataChange(metadata: SourceMetadataForm): void;
   onCreateSourceWorkspace(): void;
   onToggleSourceCode(slug: string): void;
+  onContinueReservation?(): void;
+  sourcePath?: string;
+  repositoryPaths?: string[];
+  practiceError?: string;
+  implicitPractice?: string;
+  onRefreshPractices?(): void;
+  refreshingPractices?: boolean;
   isCreatingWorkspace?: boolean;
 }) {
   const [technologyName, setTechnologyName] = useState("");
@@ -108,7 +123,7 @@ export function SourceFolderPicker({
 
       {!selectedPath ? (
         <p className="mt-4 rounded-lg bg-[#cfc2af] px-4 py-3 text-sm text-[#5a5045]">
-          먼저 topic을 선택하면 학습 자료를 고를 수 있습니다.
+          먼저 주제를 선택하면 학습 자료를 고를 수 있습니다.
         </p>
       ) : (
         <div className="mt-4 grid gap-4">
@@ -147,6 +162,7 @@ export function SourceFolderPicker({
                 <div className="grid gap-2 sm:grid-cols-2">
                   {sources.map((source) => (
                     <button
+                      data-practice-focus="source"
                       key={source.path}
                       type="button"
                       onClick={() => onSelectExisting(source.name)}
@@ -176,6 +192,7 @@ export function SourceFolderPicker({
                     새 학습 자료 이름
                   </span>
                   <input
+                    data-practice-focus="source"
                     value={sourceName}
                     onChange={(event) => onSourceNameChange(event.target.value)}
                     placeholder="예: 혼자 공부하는 C, Software Maestro"
@@ -205,6 +222,12 @@ export function SourceFolderPicker({
                     <option value="etc">기타</option>
                   </select>
                 </label>
+                {onContinueReservation && (
+                  <button type="button" onClick={onContinueReservation} disabled={!slug}
+                    className="min-h-11 justify-self-start rounded-lg border border-[#204a78]/30 px-3 text-sm font-semibold disabled:opacity-50 sm:col-span-2">
+                    코드를 올릴 위치 정하기
+                  </button>
+                )}
                 <label className="grid gap-2 sm:col-span-2">
                   <span className="text-sm font-semibold text-[#3f3a31]">
                     학습 개요
@@ -317,57 +340,22 @@ export function SourceFolderPicker({
             </div>
           )}
 
-          {sourceName ? (
-            <section className="rounded-[1.5rem] border border-[#204a78]/15 bg-[#f7f1e7] p-4 text-[#302c24] shadow-[0_18px_40px_rgba(32,74,120,0.12)]">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase text-[#756b5e]">
-                    Source attachment
-                  </p>
-                  <h3 className="mt-1 text-base font-semibold text-[#25221c]">
-                    소스코드 연결
-                  </h3>
-                </div>
-                {selectedSourceCodeSlugs.length ? (
-                  <p className="rounded-full bg-[#204a78] px-3 py-1.5 text-xs font-semibold text-white">
-                    연결된 소스코드: {selectedSourceCodeSlugs.join(", ")}
-                  </p>
-                ) : null}
-              </div>
-              {sourceCodeOptions.length ? (
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {sourceCodeOptions.map((codeSlug) => {
-                    const checked = selectedSourceCodeSlugs.includes(codeSlug);
-                    return (
-                      <label
-                        key={codeSlug}
-                        className={[
-                          "flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm font-semibold transition",
-                          checked
-                            ? "border-[#204a78] bg-[#204a78] text-white shadow-[0_12px_24px_rgba(32,74,120,0.2)]"
-                            : "border-[#d3c4ae] bg-[#f8f0e4] text-[#3c362d] hover:border-[#204a78]/50",
-                        ].join(" ")}
-                      >
-                        <span className="font-mono">{codeSlug}</span>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => onToggleSourceCode(codeSlug)}
-                          aria-label={`${codeSlug} 소스코드 연결`}
-                          className="size-4 accent-[#ff34ff]"
-                        />
-                      </label>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="mt-3 rounded-lg bg-[#e1d4c2] px-4 py-3 text-sm leading-6 text-[#5a5045]">
-                  아직 연결할 소스코드 폴더가 없습니다. GitHub에
-                  <span className="font-mono"> src/</span> 폴더를 추가하면 이
-                  글과 연결할 수 있습니다.
-                </p>
-              )}
-            </section>
+          {sourceName && (!isCreating || slug) ? (
+            <PracticeAttachments
+              key={sourcePath ?? sourceName}
+              topic={selectedPath}
+              sourceName={sourceName}
+              sourcePath={sourcePath ?? `${selectedPath}/notes/${isCreating ? slug : sourceName}`}
+              existingSource={!isCreating}
+              available={sourceCodeOptions}
+              selected={selectedSourceCodeSlugs}
+              paths={repositoryPaths}
+              onToggle={onToggleSourceCode}
+              onRefresh={onRefreshPractices}
+              refreshing={refreshingPractices}
+              markdownError={practiceError}
+              implicitPractice={implicitPractice}
+            />
           ) : null}
 
           <div className="rounded-[1.5rem] bg-[#111827] px-4 py-3 text-[#e8dcc7] shadow-[0_18px_45px_rgba(17,24,39,0.18)]">

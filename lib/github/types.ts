@@ -27,6 +27,8 @@ export interface SaveRequest {
   repository: RepositoryRef;
   /** Commit whose contents were used to generate the managed README changes. */
   plannedHeadSha?: string;
+  /** Server-generated identifier for a retryable review of one practice link. */
+  reviewKey?: string;
   mode: SaveMode;
   message: string;
   changes: RepositoryChange[];

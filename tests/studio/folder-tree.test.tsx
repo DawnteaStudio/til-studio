@@ -29,8 +29,8 @@ describe("FolderTree workspace picker", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "cs" }));
-    fireEvent.click(screen.getByRole("button", { name: "새 토픽" }));
-    fireEvent.change(screen.getByLabelText("새 토픽 이름"), { target: { value: "Graph Theory" } });
+    fireEvent.click(screen.getByRole("button", { name: "새 주제" }));
+    fireEvent.change(screen.getByLabelText("새 주제 이름"), { target: { value: "Graph Theory" } });
 
     expect(onSelectPath).not.toHaveBeenCalledWith("cs/graph-theory");
     fireEvent.click(screen.getByRole("button", { name: "이 주제로 작성" }));

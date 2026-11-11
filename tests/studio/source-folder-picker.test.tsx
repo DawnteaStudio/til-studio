@@ -234,7 +234,7 @@ describe("learning material picker", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "소스코드 연결" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "이 노트의 실습 코드" })).toBeTruthy();
     expect(screen.getByText("연결된 소스코드: ch1")).toBeTruthy();
 
     fireEvent.click(screen.getByLabelText("ch2 소스코드 연결"));

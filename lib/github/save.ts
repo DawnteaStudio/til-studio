@@ -109,7 +109,15 @@ function branchName(): string {
 export async function saveToGitHub(request: SaveRequest): Promise<SaveResult> {
   const octokit = await createInstallationOctokit();
   const { owner, repo, defaultBranch } = request.repository;
-  const targetBranch = request.mode === "quick" ? defaultBranch : branchName();
+  const reuseReview = request.mode === "review" && Boolean(request.reviewKey);
+  const targetBranch = request.mode === "quick" ? defaultBranch :
+    reuseReview ? `til-studio/practice-${request.reviewKey}` : branchName();
+  async function existingReview(): Promise<SaveResult | undefined> {
+    const { data: [pr] } = await octokit.request("GET /repos/{owner}/{repo}/pulls", {
+      owner, repo, base: defaultBranch, head: `${owner}:${targetBranch}`, state: "open", per_page: 1,
+    });
+    if (pr) return { mode: "review", branch: targetBranch, commitSha: pr.head.sha, pullRequestUrl: pr.html_url };
+  }
   async function defaultHead() {
     const ref = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
       owner, repo, ref: `heads/${defaultBranch}`,
@@ -119,6 +127,10 @@ export async function saveToGitHub(request: SaveRequest): Promise<SaveResult> {
   const baseSha = await defaultHead();
   if (request.plannedHeadSha && baseSha !== request.plannedHeadSha) {
     throw new PublishConflict();
+  }
+  if (reuseReview) {
+    const existing = await existingReview();
+    if (existing) return existing;
   }
   const baseCommit = await octokit.request(
     "GET /repos/{owner}/{repo}/git/commits/{commit_sha}",
@@ -191,52 +203,54 @@ export async function saveToGitHub(request: SaveRequest): Promise<SaveResult> {
       parents: [baseSha],
     },
   );
-  const latestCommitSha = nextCommit.data.sha;
+  let latestCommitSha = nextCommit.data.sha;
 
   if (request.mode === "review") {
     if (request.plannedHeadSha && await defaultHead() !== baseSha) throw new PublishConflict();
-    await octokit.request("POST /repos/{owner}/{repo}/git/refs", {
-      owner,
-      repo,
-      ref: `refs/heads/${targetBranch}`,
-      sha: latestCommitSha,
-    });
-  } else {
     try {
-      await octokit.request("PATCH /repos/{owner}/{repo}/git/refs/{ref}", {
-        owner, repo, ref: `heads/${defaultBranch}`, sha: latestCommitSha, force: false,
+      await octokit.request("POST /repos/{owner}/{repo}/git/refs", {
+        owner, repo, ref: `refs/heads/${targetBranch}`, sha: latestCommitSha,
       });
     } catch (error) {
-      if (request.plannedHeadSha && error instanceof Error && "status" in error &&
-          (error.status === 409 || error.status === 422)) {
-        if (await defaultHead() !== baseSha) throw new PublishConflict();
+      if (!reuseReview || !isRefConflict(error)) throw error;
+      // A prior request may have created the branch but lost its response before opening the PR.
+      const ref = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
+        owner, repo, ref: `heads/${targetBranch}`,
+      });
+      const { data: existing } = await octokit.request("GET /repos/{owner}/{repo}/git/commits/{commit_sha}", {
+        owner, repo, commit_sha: ref.data.object.sha,
+      });
+      if (existing.parents.length !== 1 || existing.parents[0].sha !== baseSha || existing.tree.sha !== nextTree.data.sha) {
+        throw new PublishConflict();
+      }
+      latestCommitSha = ref.data.object.sha;
+    }
+    try {
+      const pr = await octokit.request("POST /repos/{owner}/{repo}/pulls", {
+        owner, repo, head: targetBranch, base: defaultBranch,
+        title: request.message, body: "Created by til-studio.", draft: true,
+      });
+      return { mode: "review", branch: targetBranch, commitSha: latestCommitSha, pullRequestUrl: pr.data.html_url };
+    } catch (error) {
+      if (reuseReview && isRefConflict(error)) {
+        const existing = await existingReview();
+        if (existing) return existing;
       }
       throw error;
     }
   }
 
-  if (request.mode === "review") {
-    const pr = await octokit.request("POST /repos/{owner}/{repo}/pulls", {
-      owner,
-      repo,
-      head: targetBranch,
-      base: defaultBranch,
-      title: request.message,
-      body: "Created by til-studio.",
-      draft: true,
+  try {
+    await octokit.request("PATCH /repos/{owner}/{repo}/git/refs/{ref}", {
+      owner, repo, ref: `heads/${defaultBranch}`, sha: latestCommitSha, force: false,
     });
-
-    return {
-      mode: request.mode,
-      branch: targetBranch,
-      commitSha: latestCommitSha,
-      pullRequestUrl: pr.data.html_url,
-    };
+  } catch (error) {
+    if (request.plannedHeadSha && isRefConflict(error) && await defaultHead() !== baseSha) throw new PublishConflict();
+    throw error;
   }
+  return { mode: "quick", branch: targetBranch, commitSha: latestCommitSha };
+}
 
-  return {
-    mode: request.mode,
-    branch: targetBranch,
-    commitSha: latestCommitSha,
-  };
+function isRefConflict(error: unknown) {
+  return error instanceof Error && "status" in error && (error.status === 409 || error.status === 422);
 }
