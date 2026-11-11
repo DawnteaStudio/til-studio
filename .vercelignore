@@ -1,0 +1,10 @@
+.env*
+.til-studio/
+.superpowers/
+.worktrees/
+desktop/
+test-results/
+playwright-report/
+coverage/
+dist/
+*.app/

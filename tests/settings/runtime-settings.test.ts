@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getRuntimeSetting,
   readSettingsSnapshot,
@@ -25,6 +25,7 @@ describe("runtime settings", () => {
     if (originalOpenAIKey === undefined) delete process.env.OPENAI_API_KEY;
     else process.env.OPENAI_API_KEY = originalOpenAIKey;
     await rm(tempDir, { recursive: true, force: true });
+    vi.unstubAllEnvs();
   });
 
   it("stores secrets server-side while returning only configured flags", async () => {
@@ -52,5 +53,25 @@ describe("runtime settings", () => {
     expect(await getRuntimeSetting("OPENAI_API_KEY")).toBe("sk-original");
     const rawFile = await readFile(process.env.TIL_STUDIO_SETTINGS_FILE!, "utf8");
     expect(rawFile).toContain("sk-original");
+  });
+
+  it("ignores local settings on a hosted server and refuses local writes", async () => {
+    saveRuntimeSettings({ openAIKey: "local-key" });
+    const before = await readFile(process.env.TIL_STUDIO_SETTINGS_FILE!, "utf8");
+    vi.stubEnv("TIL_STUDIO_MODE", "hosted");
+    vi.stubEnv("OPENAI_API_KEY", "environment-key");
+    expect(getRuntimeSetting("OPENAI_API_KEY")).toBe("environment-key");
+    expect(readSettingsSnapshot().readOnly).toBe(true);
+    expect(() => saveRuntimeSettings({ openAIKey: "replacement" })).toThrow(/환경변수/);
+    expect(await readFile(process.env.TIL_STUDIO_SETTINGS_FILE!, "utf8")).toBe(before);
+    vi.stubEnv("OPENAI_API_KEY", "");
+    expect(getRuntimeSetting("OPENAI_API_KEY")).toBeUndefined();
+  });
+
+  it("automatically uses environment settings when Vercel is present", () => {
+    saveRuntimeSettings({ openAIModel: "local-model" });
+    vi.stubEnv("VERCEL", "1");
+    vi.stubEnv("OPENAI_MODEL", "hosted-model");
+    expect(readSettingsSnapshot()).toMatchObject({ readOnly: true, openAIModel: "hosted-model" });
   });
 });

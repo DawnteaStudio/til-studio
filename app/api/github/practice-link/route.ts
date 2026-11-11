@@ -1,3 +1,4 @@
+import { authorizeAdminRequest } from "@/lib/auth/access";
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -24,6 +25,8 @@ const requestSchema = z.object({
 }).refine(({ path, expected }) => path === expected.path);
 
 export async function POST(request: Request) {
+  const denied = await authorizeAdminRequest(request);
+  if (denied) return denied;
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "글 경로와 실습 폴더, 미리 확인한 글 버전을 확인하세요." }, { status: 400 });
   const { path, practice, expected, mode } = parsed.data;

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { articleHref, compareChapters, linkPracticeHref, practiceHref, type ArchiveArticle, type Practice } from "@/lib/content/archive";
+import { encodeMarkdownPath } from "@/lib/content/markdown-path";
+import { useReaderAccess } from "./ReaderAccessProvider";
 import { sourcePathForNote } from "@/lib/content/source-readme";
 import { blogHref, topicLabel } from "./ArchiveArticleRow";
 import { ReaderNavigation } from "./ReaderNavigation";
@@ -23,6 +25,8 @@ const areaNames: Record<string, string> = {
 };
 
 export function LearningMap({ articles, practices, roots, owner, repo, branch, view = "all" }: LearningMapProps) {
+  const { canManage } = useReaderAccess();
+  const githubBase = `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/tree/${encodeURIComponent(branch)}`;
   const { visibleRootPaths } = useVisibleRootPaths(roots, roots);
   const visibleArticles = articles.filter((a) => visibleRootPaths.includes(a.area));
   const visiblePractices = practices.filter((p) => visibleRootPaths.includes(p.topicPath.split("/")[0]));
@@ -32,15 +36,15 @@ export function LearningMap({ articles, practices, roots, owner, repo, branch, v
     <main className="public-shell text-[#f7f4ea]">
       <div className="public-frame py-5 sm:py-8">
         <ReaderNavigation current="학습 지도" />
-        {view === "unlinked" ? (
-          <UnlinkedPractices practices={visiblePractices} articles={visibleArticles} />
+        {view === "unlinked" && canManage ? (
+          <UnlinkedPractices practices={visiblePractices} articles={visibleArticles} githubBase={githubBase} />
         ) : (
           <>
             <header className="pt-8 pb-6 sm:pt-11">
               <h1 className="text-4xl font-bold">학습 지도</h1>
-              <p className="mt-3 leading-6 text-[#d8d0bd]">주제별 글과 시리즈를 읽고, GitHub에 올린 실습을 노트에 연결하세요.</p>
+              <p className="mt-3 leading-6 text-[#d8d0bd]">주제별 글과 시리즈, 함께 공부한 실습 코드를 찾아보세요.</p>
               <p className="mt-3 text-sm text-[#9cecff]">{areas.length}개 분야 · {topics.length}개 주제 · 글 {visibleArticles.length}편</p>
-              <Link href="/map?view=unlinked" className="mt-2 inline-flex min-h-11 items-center text-sm text-[#9cecff] underline underline-offset-4">연결할 실습 모아보기</Link>
+              {canManage && <Link href="/map?view=unlinked" className="mt-2 inline-flex min-h-11 items-center text-sm text-[#9cecff] underline underline-offset-4">연결할 실습 모아보기</Link>}
             </header>
             {areas.length === 0 && <p className="public-paper rounded-2xl p-5 text-[#29261f]">공개한 폴더에 아직 등록된 글이나 실습이 없습니다.</p>}
             {areas.map((area) => (
@@ -48,7 +52,7 @@ export function LearningMap({ articles, practices, roots, owner, repo, branch, v
                 <h2 className="mb-3 text-2xl font-bold">{areaNames[area] ?? area}</h2>
                 <div className="grid gap-4 lg:grid-cols-2">
                   {topics.filter((path) => path.split("/")[0] === area).map((path) => (
-                    <TopicCard key={path} path={path} articles={visibleArticles.filter((a) => `${a.area}/${a.topic}` === path)}
+                    <TopicCard key={path} path={path} githubBase={githubBase} articles={visibleArticles.filter((a) => `${a.area}/${a.topic}` === path)}
                       practices={visiblePractices.filter((p) => p.topicPath === path)} />
                   ))}
                 </div>
@@ -63,7 +67,7 @@ export function LearningMap({ articles, practices, roots, owner, repo, branch, v
   );
 }
 
-function UnlinkedPractices({ articles, practices }: { articles: ArchiveArticle[]; practices: Practice[] }) {
+function UnlinkedPractices({ articles, practices, githubBase }: { articles: ArchiveArticle[]; practices: Practice[]; githubBase: string }) {
   const sourceGroups = new Map<string, Practice[]>();
   for (const practice of practices) {
     const path = `${practice.topicPath}/notes/${practice.source}`;
@@ -94,7 +98,7 @@ function UnlinkedPractices({ articles, practices }: { articles: ArchiveArticle[]
               <section key={path} className="public-paper min-w-0 rounded-3xl p-5 text-[#29261f] sm:p-6">
                 <p className="text-sm text-[#605a50]">{areaNames[area] ?? area} · {topicLabel(topic)}</p>
                 <h2 className="mt-1 break-all text-xl font-bold">{source}</h2>
-                <PracticeList practices={group} hasExistingNote={noteSources.has(path)} />
+                <PracticeList practices={group} hasExistingNote={noteSources.has(path)} githubBase={githubBase} />
               </section>
             );
           })}
@@ -104,15 +108,18 @@ function UnlinkedPractices({ articles, practices }: { articles: ArchiveArticle[]
   );
 }
 
-function PracticeList({ practices, hasExistingNote }: { practices: Practice[]; hasExistingNote: boolean }) {
+function PracticeList({ practices, hasExistingNote, githubBase }: { practices: Practice[]; hasExistingNote: boolean; githubBase: string }) {
+  const { canManage } = useReaderAccess();
   return (
     <ul className="mt-2 divide-y divide-[#211f1a]/10">
       {practices.map((p) => <li key={p.slug} className="py-2">
         <span className="block break-all font-mono">{p.slug}</span>
         <div className="flex flex-wrap gap-x-4">
-          <Link href={practiceHref(p)} aria-label={`${p.slug} · 이 실습으로 노트 쓰기`}
-            className="inline-flex min-h-11 items-center font-semibold text-[#204a78] underline underline-offset-4">이 실습으로 노트 쓰기</Link>
-          {hasExistingNote && <Link href={linkPracticeHref(p.topicPath, p.source, p.slug)} aria-label={`${p.slug} · 이미 쓴 노트에 코드 링크 추가`}
+          <a href={`${githubBase}/${encodeMarkdownPath(`${p.topicPath}/notes/${p.source}/src/${p.slug}`)}`}
+            aria-label={`${p.slug} · GitHub에서 코드 열기`} className="inline-flex min-h-11 items-center font-semibold text-[#204a78] underline underline-offset-4">GitHub에서 코드 열기</a>
+          {canManage && <Link href={practiceHref(p)} aria-label={`${p.slug} · 이 실습으로 노트 쓰기`}
+            className="inline-flex min-h-11 items-center font-semibold text-[#204a78] underline underline-offset-4">이 실습으로 노트 쓰기</Link>}
+          {canManage && hasExistingNote && <Link href={linkPracticeHref(p.topicPath, p.source, p.slug)} aria-label={`${p.slug} · 이미 쓴 노트에 코드 링크 추가`}
             className="inline-flex min-h-11 items-center font-semibold text-[#204a78] underline underline-offset-4">이미 쓴 노트에 코드 링크 추가</Link>}
         </div>
       </li>)}
@@ -120,7 +127,8 @@ function PracticeList({ practices, hasExistingNote }: { practices: Practice[]; h
   );
 }
 
-function TopicCard({ path, articles, practices }: { path: string; articles: ArchiveArticle[]; practices: Practice[] }) {
+function TopicCard({ path, articles, practices, githubBase }: { path: string; articles: ArchiveArticle[]; practices: Practice[]; githubBase: string }) {
+  const { canManage } = useReaderAccess();
   const topic = topicLabel(path.split("/")[1]);
   const series = [...new Set([...articles.flatMap((a) => a.source ? [a.source] : []), ...practices.map((p) => p.source)])].sort();
   const notes = articles.filter((a) => a.kind === "note").length;
@@ -150,7 +158,7 @@ function TopicCard({ path, articles, practices }: { path: string; articles: Arch
             {chapters.length > 0 && <ol className="mt-1 list-inside list-disc text-sm">
               {chapters.slice(0, 3).map((a) => <li key={a.path} className="py-1"><Link href={articleHref(a.path)} className="hover:underline">{a.title}</Link></li>)}
             </ol>}
-            {waiting.length > 0 && <details className="mt-3 rounded-xl bg-[#dfd7c8]/70 px-3 py-2 text-sm">
+            {canManage && waiting.length > 0 && <details className="mt-3 rounded-xl bg-[#dfd7c8]/70 px-3 py-2 text-sm">
               <summary className="cursor-pointer py-1 font-semibold">코드를 기다리는 노트 {waiting.length}편</summary>
               <p className="mt-2 text-[#605a50]">표시된 폴더에 실습 파일을 올리면 노트와 연결됩니다.</p>
               <ul className="divide-y divide-[#211f1a]/10">
@@ -161,8 +169,8 @@ function TopicCard({ path, articles, practices }: { path: string; articles: Arch
               </ul>
             </details>}
             {pending.length > 0 && <details className="mt-3 rounded-xl bg-[#dfd7c8]/70 px-3 py-2 text-sm">
-              <summary className="cursor-pointer py-1 font-semibold">아직 노트와 연결되지 않은 실습 {pending.length}개</summary>
-              <PracticeList practices={pending} hasExistingNote={hasExistingNote} />
+              <summary className="cursor-pointer py-1 font-semibold">{canManage ? "아직 노트와 연결되지 않은 실습" : "실습 코드"} {pending.length}개</summary>
+              <PracticeList practices={pending} hasExistingNote={hasExistingNote} githubBase={githubBase} />
             </details>}
           </div>
         );

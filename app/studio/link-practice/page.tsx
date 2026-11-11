@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/auth/access";
 import Link from "next/link";
 import { GitHubReadHelp } from "@/components/public/GitHubReadHelp";
 import { ReaderNavigation } from "@/components/public/ReaderNavigation";
@@ -43,6 +44,7 @@ async function selection(query: Query) {
 }
 
 export default async function LinkPracticePage({ searchParams }: { searchParams: Promise<Query> }) {
+  await requireAdminPage("/studio/link-practice");
   let form;
   try {
     form = await selection(await searchParams);

@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { isHostedMode } from "@/lib/auth/mode";
 
 export type AIProviderSetting = "openai" | "gemini";
 
@@ -32,6 +33,7 @@ type RuntimeSettingsFile = {
 };
 
 export type RuntimeSettingsSnapshot = {
+  readOnly: boolean;
   aiProvider: AIProviderSetting;
   openAIModel: string;
   geminiModel: string;
@@ -82,6 +84,7 @@ function writeSettingsFile(settings: RuntimeSettingsFile) {
 }
 
 function valueFromSettingsOrEnv(name: keyof RuntimeSettingsFile): string | undefined {
+  if (isHostedMode()) return process.env[name]?.trim() || undefined;
   return readSettingsFile()[name]?.trim() || process.env[name]?.trim() || undefined;
 }
 
@@ -99,6 +102,7 @@ export function getRuntimeSetting(name: keyof RuntimeSettingsFile): string | und
 
 export function readSettingsSnapshot(): RuntimeSettingsSnapshot {
   return {
+    readOnly: isHostedMode(),
     aiProvider: providerName(getRuntimeSetting("AI_PROVIDER")),
     openAIModel: getRuntimeSetting("OPENAI_MODEL") || defaults.openAIModel,
     geminiModel: getRuntimeSetting("GEMINI_MODEL") || defaults.geminiModel,
@@ -125,6 +129,7 @@ function assignSecret(settings: RuntimeSettingsFile, key: keyof RuntimeSettingsF
 }
 
 export function saveRuntimeSettings(input: RuntimeSettingsInput): RuntimeSettingsSnapshot {
+  if (isHostedMode()) throw new Error("배포 환경의 설정은 환경변수에서 변경하세요.");
   const settings = readSettingsFile();
 
   assignValue(settings, "AI_PROVIDER", input.aiProvider);

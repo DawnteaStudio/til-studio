@@ -1,3 +1,4 @@
+import { authorizeAdminRequest } from "@/lib/auth/access";
 import { NextResponse } from "next/server";
 import { indexMarkdownDocument, treeFromPaths } from "@/lib/content/indexer";
 import { memoryDataAdapter } from "@/lib/db/memory";
@@ -6,7 +7,9 @@ import { getRuntimeSetting } from "@/lib/settings/runtime-settings";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const denied = await authorizeAdminRequest(request);
+  if (denied) return denied;
   const owner = getRuntimeSetting("TIL_REPOSITORY_OWNER") ?? "DawnteaStudio";
   const repo = getRuntimeSetting("TIL_REPOSITORY_NAME") ?? "TIL";
   const octokit = await createInstallationOctokit();

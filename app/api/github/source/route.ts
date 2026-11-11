@@ -1,3 +1,4 @@
+import { authorizeAdminRequest } from "@/lib/auth/access";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { existingSourceConflict, makeSlug } from "@/lib/content/paths";
@@ -45,6 +46,8 @@ const sourceSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const denied = await authorizeAdminRequest(request);
+  if (denied) return denied;
   const parsed = sourceSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid source request" }, { status: 400 });
   const body = parsed.data;

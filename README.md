@@ -6,6 +6,12 @@ til-studio is a GitHub-backed writing workspace and public reading site for a pe
 
 The first target repository is [`DawnteaStudio/TIL`](https://github.com/DawnteaStudio/TIL), but the app is designed around configuration so it can be adapted to another GitHub-backed TIL repository.
 
+## Hosted blog
+
+The hosted site offers public reading and owner-only Studio access through GitHub OAuth. Set `TIL_PUBLIC_ROOTS` to a JSON array of published folders. Missing or invalid hosted scope exposes no folders, and browser folder filters can only narrow that scope. Hosted settings come from environment variables and are read-only in Studio. Owner drafts synchronize through private Vercel Blob storage.
+
+See [the deployment, OAuth, draft migration and recovery guide](docs/hosting.md). Use `.env.example` for the complete variable list. Outside hosted mode, the desktop settings workflow remains available.
+
 ## Table of Contents
 
 - [What You Can Do](#what-you-can-do)
@@ -26,7 +32,7 @@ The first target repository is [`DawnteaStudio/TIL`](https://github.com/DawnteaS
 
 - Connect a GitHub TIL repository through a GitHub App.
 - Browse the repository as a public home page, blog index, learning map, and document reader.
-- Choose which top-level folders are visible from Studio.
+- Publish selected top-level folders through hosted configuration and filter locally from Studio.
 - Hide README files from public recent lists and article lists.
 - Write notes without hand-crafting the final Markdown structure.
 - Generate note paths from area, topic, learning material, and title.
@@ -40,7 +46,7 @@ The first target repository is [`DawnteaStudio/TIL`](https://github.com/DawnteaS
 
 ### Home: `/`
 
-The home page summarizes the connected repository and shows recent public documents. It respects the folder visibility settings saved in Studio. README files are not shown in the recent list.
+The home page summarizes the connected repository and shows recent public documents. It applies hosted publication scope and the browser’s folder filter. README files are not shown in the recent list.
 
 Use this page when you want a quick overview or a lightweight portfolio-style entry point.
 
@@ -82,7 +88,7 @@ Use this page when you want to create or update content in the TIL repository.
 ## Recommended Workflow
 
 1. Open `/studio`.
-2. In "Public folders", keep only the top-level folders you want to show publicly.
+2. Choose the top-level folders to display in this browser. For hosted publication, configure `TIL_PUBLIC_ROOTS`.
 3. Pick an area and topic from the folder tree.
 4. For a note, choose an existing learning material or create one with its type and optional metadata.
 5. Fill in the title, learning source, learned content, confusion, conclusion, and experiments.
@@ -103,7 +109,7 @@ For theory writing:
 
 ## Folder Visibility Rules
 
-Folder visibility is controlled from Studio and saved in local storage and a cookie.
+Hosted publication scope is set by the server environment variable `TIL_PUBLIC_ROOTS`. Direct document URLs use the same scope. Studio folder selection is saved in local storage and a cookie and only filters this browser within the published scope. Outside hosted mode, Studio controls the locally visible folders.
 
 - If a top-level folder is unchecked, its documents are hidden from public views that respect visibility.
 - If every folder is visible, all non-README public documents can appear.

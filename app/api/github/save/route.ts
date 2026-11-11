@@ -1,3 +1,4 @@
+import { authorizeAdminRequest } from "@/lib/auth/access";
 import { existingSourceConflict } from "@/lib/content/paths";
 import { sourcePathForNote } from "@/lib/content/source-readme";
 import { ManagedReadmeError } from "@/lib/content/managed-readme";
@@ -54,6 +55,8 @@ const saveSchema = z.object({
 });
 
 export async function GET(request: Request) {
+  const denied = await authorizeAdminRequest(request);
+  if (denied) return denied;
   const path = new URL(request.url).searchParams.get("path");
   if (!path || !isPublishPath(path)) {
     return NextResponse.json({ error: "글 경로를 확인하세요." }, { status: 400 });
@@ -66,6 +69,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const denied = await authorizeAdminRequest(request);
+  if (denied) return denied;
   const parsed = saveSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "저장 요청을 확인하세요." }, { status: 400 });
   const body = parsed.data;

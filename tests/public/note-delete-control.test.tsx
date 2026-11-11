@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ReaderAccessProvider } from "@/components/public/ReaderAccessProvider";
 import { DocumentView } from "@/components/public/DocumentView";
 import { NoteDeleteControl } from "@/components/public/NoteDeleteControl";
 
@@ -34,27 +35,32 @@ describe("note deletion controls", () => {
       branch: "main",
     };
     const { rerender } = render(
-      <DocumentView
+      <ReaderAccessProvider canManage hosted={false}><DocumentView
         document={{
           ...base,
           path: "languages/java/notes/java-intro/note/test.md",
           kind: "note",
         }}
-      />,
+      /></ReaderAccessProvider>,
     );
 
     expect(screen.getByRole("button", { name: "글 삭제" })).toBeTruthy();
 
     rerender(
-      <DocumentView
+      <ReaderAccessProvider canManage hosted={false}><DocumentView
         document={{
           ...base,
           path: "languages/java/theory/test.md",
           kind: "theory",
         }}
-      />,
+      /></ReaderAccessProvider>,
     );
 
+    expect(screen.queryByRole("button", { name: "글 삭제" })).toBeNull();
+
+    rerender(<ReaderAccessProvider canManage={false} hosted><DocumentView
+      document={{ ...base, path: "languages/java/notes/java-intro/note/test.md", kind: "note" }}
+    /></ReaderAccessProvider>);
     expect(screen.queryByRole("button", { name: "글 삭제" })).toBeNull();
   });
 

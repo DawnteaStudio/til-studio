@@ -8,6 +8,7 @@ export default defineConfig({
     },
   },
   test: {
+    server: { deps: { inline: ["next-auth"] } },
     environment: "jsdom",
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
     passWithNoTests: true,

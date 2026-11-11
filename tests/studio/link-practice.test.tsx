@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { LinkPracticeForm } from "@/components/studio/LinkPracticeForm";
+import { ReaderAccessProvider } from "@/components/public/ReaderAccessProvider";
 import { LearningMap } from "@/components/public/LearningMap";
 import type { ArchiveArticle, Practice } from "@/lib/content/archive";
 
@@ -22,7 +23,7 @@ it("offers existing-note links only for practices with a note in the same source
     { topicPath: "languages/c", source: "Workbook", slug: "ch2" },
     { topicPath: "languages/c", source: "다른 자료", slug: "ch3" },
   ];
-  render(<LearningMap articles={[article]} practices={practices} roots={["languages"]} {...target} />);
+  render(<ReaderAccessProvider canManage hosted={false}><LearningMap articles={[article]} practices={practices} roots={["languages"]} {...target} /></ReaderAccessProvider>);
   for (const summary of screen.getAllByText(/아직 노트와 연결되지 않은 실습/)) fireEvent.click(summary);
   expect(screen.getByRole("link", { name: "ch2 · 이미 쓴 노트에 코드 링크 추가" }).getAttribute("href"))
     .toBe("/studio/link-practice?topic=languages%2Fc&source=Workbook&practice=ch2");

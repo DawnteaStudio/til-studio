@@ -1,3 +1,4 @@
+import { authorizeAdminRequest } from "@/lib/auth/access";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { researchTheory } from "@/lib/ai/service";
@@ -7,6 +8,8 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const denied = await authorizeAdminRequest(request);
+  if (denied) return denied;
   try {
     const body = requestSchema.parse(await request.json());
     const result = await researchTheory(body.keyword);

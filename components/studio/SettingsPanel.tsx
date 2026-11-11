@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 type SettingsSnapshot = {
+  readOnly: boolean;
   aiProvider: "openai" | "gemini";
   openAIModel: string;
   geminiModel: string;
@@ -24,6 +25,7 @@ type SettingsForm = SettingsSnapshot & {
 };
 
 const emptySettings: SettingsForm = {
+  readOnly: false,
   aiProvider: "openai",
   openAIModel: "gpt-4o-mini-2024-07-18",
   geminiModel: "gemini-2.5-flash",
@@ -113,6 +115,7 @@ export function SettingsPanel({
   }
 
   async function saveSettings() {
+    if (form.readOnly) return;
     setIsSaving(true);
     setStatus("설정 저장 중");
     try {
@@ -156,7 +159,7 @@ export function SettingsPanel({
           <div>
             <h2 id="studio-settings-title" className="text-2xl font-semibold">설정</h2>
             <p className="mt-2 text-sm leading-6 text-[#b9b19f]">
-              저장된 키를 교체할 때만 새 값을 입력하세요.
+              {form.readOnly ? "배포 환경에서는 현재 설정을 확인할 수 있습니다. 변경하려면 Vercel 프로젝트의 환경변수를 수정하고 다시 배포하세요." : "저장된 키를 교체할 때만 새 값을 입력하세요."}
             </p>
           </div>
           <button
@@ -177,7 +180,7 @@ export function SettingsPanel({
             </div>
           ) : null}
 
-          <div className="grid gap-5">
+          <fieldset disabled={form.readOnly || isLoading || isSaving} className="grid min-w-0 gap-5">
             <section className="rounded-3xl bg-[#171b14] p-4">
               <h3 className="text-sm font-semibold text-[#f3ecd8]">AI</h3>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -312,7 +315,7 @@ export function SettingsPanel({
                 </label>
               </div>
             </section>
-          </div>
+          </fieldset>
         </div>
 
         <div className="flex flex-col gap-3 border-t border-[#303628] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -325,14 +328,14 @@ export function SettingsPanel({
             >
               닫기
             </button>
-            <button
+            {!form.readOnly && <button
               type="button"
               onClick={saveSettings}
-              disabled={isSaving}
+              disabled={isSaving || isLoading}
               className="rounded-2xl bg-[#d8c69a] px-4 py-2.5 text-sm font-semibold text-[#1e2118] transition hover:bg-[#e5d3a5] disabled:opacity-60"
             >
               {isSaving ? "저장 중" : "설정 저장"}
-            </button>
+            </button>}
           </div>
         </div>
       </section>

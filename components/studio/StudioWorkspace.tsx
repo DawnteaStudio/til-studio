@@ -28,6 +28,7 @@ import { PublishPanel } from "./PublishPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { SourceFolderPicker } from "./SourceFolderPicker";
 import { useStudioDraft } from "./useStudioDraft";
+import { DraftSyncPanel, DraftSyncStatus } from "./DraftSyncPanel";
 import { TheoryResearchPanel, type TheoryResearchResult } from "./TheoryResearchPanel";
 
 const initialTree: ContentNode = {
@@ -117,10 +118,11 @@ function practiceSelection(markdown: string, storedNames: string[]) {
   }
 }
 
-export function StudioWorkspace() {
+export function StudioWorkspace({ cloudDraftKey }: { cloudDraftKey?: string } = {}) {
   const [tree, setTree] = useState(initialTree);
   const [repositoryPaths, setRepositoryPaths] = useState<string[]>([]);
-  const { draft, updateDraft, resetDraft, savedAt, storageError } = useStudioDraft();
+  const draftStore = useStudioDraft(cloudDraftKey);
+  const { draft, updateDraft, resetDraft, savedAt, storageError, hydrated, cloudStatus } = draftStore;
   const {
     selectedPath, sourceName, selectedSourceCodeSlugs, isCreatingSource, sourceMetadata,
     theoryTitle, noteDraft, noteVersion, theoryMarkdown, isMarkdownEditing, theoryKeyword,
@@ -245,11 +247,11 @@ export function StudioWorkspace() {
       ? { isCreatingSource: !selectedTopicSources.length } : {}) });
   }
 
-  function startNewDraft() {
-    if (!window.confirm("현재 기기에 보관한 초안을 지우고 새 초안을 시작할까요?")) return;
+  async function startNewDraft() {
+    if (!window.confirm(cloudDraftKey ? "서버의 초안을 비우고 새 초안을 시작할까요? 다른 기기의 변경이 있으면 먼저 확인합니다." : "현재 기기에 보관한 초안을 지우고 새 초안을 시작할까요?")) return;
     cancelAI();
     setReservationStep(null);
-    const didReset = resetDraft(true);
+    const didReset = await resetDraft(true);
     setNotice(null);
     setStatus(didReset ? "새 초안을 시작했습니다" : "초안을 초기화하지 못했습니다. 현재 내용을 확인하세요.");
   }
@@ -331,6 +333,15 @@ export function StudioWorkspace() {
     else applyPractice(link, false);
   });
 
+  const treeLoaded = useRef(false);
+  const practiceInitialized = useRef(false);
+  useEffect(() => {
+    if (!hydrated || isTreeLoading || !treeLoaded.current || practiceInitialized.current ||
+        (cloudDraftKey && ["loading", "offline"].includes(cloudStatus))) return;
+    practiceInitialized.current = true;
+    readPracticeLink(repositoryPaths);
+  }, [hydrated, cloudStatus, cloudDraftKey, isTreeLoading, repositoryPaths]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -356,7 +367,7 @@ export function StudioWorkspace() {
           const visibleRoots = saved.length ? roots.filter((root) => saved.includes(root)) : roots;
           setVisibleRootPaths(visibleRoots);
           setStatus("TIL 레포 구조를 불러왔습니다");
-          if (treeRevision === 0) readPracticeLink(paths);
+          treeLoaded.current = true;
           if (visibleRoots.length) persistVisibleRootPaths(visibleRoots);
         }
       } catch {
@@ -813,17 +824,14 @@ export function StudioWorkspace() {
                   <p role="status" className="text-sm font-medium text-[#204a78]">{status}</p>
                 ) : null}
                 <div className="flex flex-wrap items-center gap-3 text-xs">
-                  <span role={storageError ? "alert" : undefined}>
-                    {storageError ? "기기 저장 실패 · 창을 닫기 전에 내용을 복사하세요" : savedAt
-                      ? `이 기기에 자동 저장됨 · ${new Date(savedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}`
-                      : "작성하면 이 기기에 자동 저장됩니다"}
-                  </span>
+                  <DraftSyncStatus store={draftStore} />
                   <button type="button" onClick={startNewDraft} className="min-h-11 rounded-lg border border-[#204a78]/30 px-3 py-2 font-semibold">
                     새 초안
                   </button>
                 </div>
               </div>
             </div>
+            <DraftSyncPanel store={draftStore} hosted={Boolean(cloudDraftKey)} />
             <div
               role="tablist"
               aria-label="작성 단계"

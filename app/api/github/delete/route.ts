@@ -1,3 +1,4 @@
+import { authorizeAdminRequest } from "@/lib/auth/access";
 import { ManagedReadmeError } from "@/lib/content/managed-readme";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -20,6 +21,8 @@ const deleteSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const denied = await authorizeAdminRequest(request);
+  if (denied) return denied;
   const parsed = deleteSchema.safeParse(await request.json());
   if (!parsed.success || !isSafeNotePath(parsed.data.path)) {
     return NextResponse.json(

@@ -7,6 +7,7 @@ import { ArticleDate, blogHref, topicLabel } from "./ArchiveArticleRow";
 import { ReaderNavigation } from "./ReaderNavigation";
 import { HashLink } from "./HashLink";
 import { MarkdownArticle } from "./MarkdownArticle";
+import { OwnerOnly } from "./ReaderAccessProvider";
 import { NoteDeleteControl } from "./NoteDeleteControl";
 
 interface DocumentViewProps {
@@ -69,9 +70,9 @@ export function DocumentView({ document, article, previous, next }: DocumentView
             </nav>
           )}
         </article>
-        {document.kind === "note" && <div className="public-glass mx-auto mt-4 max-w-4xl rounded-2xl p-4">
+        {document.kind === "note" && <OwnerOnly><div className="public-glass mx-auto mt-4 max-w-4xl rounded-2xl p-4">
           <NoteDeleteControl title={document.title} path={document.path} />
-        </div>}
+        </div></OwnerOnly>}
       </div>
     </main>
   );
