@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import type { StructuredNoteDraft } from "@/lib/content/note-draft";
 
 type NoteDraftField = Exclude<keyof StructuredNoteDraft, "created" | "parentHref">;
@@ -58,22 +58,23 @@ const fields: Array<{
 ];
 
 export function NoteComposer({ draft, onChange, children }: NoteComposerProps) {
+  const fieldPrefix = useId();
   function fieldInput(item: (typeof fields)[number]) {
     const inputProps = {
       value: draft[item.field],
-      id: item.field === "learned" ? "studio-note-memo" : undefined,
+      id: item.field === "learned" ? "studio-note-memo" : `${fieldPrefix}-${item.field}`,
       placeholder: item.placeholder,
       className: "studio-field w-full rounded-2xl px-4 py-3 text-base leading-7 text-[#25221c] placeholder:text-[#807965] focus-visible:outline-2 focus-visible:outline-[#204a78]",
     };
     return (
-      <label key={item.field} className="block">
-        <span className="mb-2 block text-sm font-semibold text-[#3f3a31]">{item.label}</span>
+      <div key={item.field} className="block">
+        <label htmlFor={inputProps.id} className="mb-2 block text-sm font-semibold text-[#3f3a31]">{item.label}</label>
         {item.rows ? (
           <textarea {...inputProps} rows={item.rows} onChange={(event) => onChange(item.field, event.target.value)} />
         ) : (
           <input {...inputProps} onChange={(event) => onChange(item.field, event.target.value)} />
         )}
-      </label>
+      </div>
     );
   }
 
