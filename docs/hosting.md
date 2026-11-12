@@ -2,6 +2,12 @@
 
 방문자는 홈, 글 목록, 학습 지도와 실습 코드를 읽습니다. 관리자는 `/login`에서 GitHub로 로그인한 뒤 Studio에서 글을 작성하고, 코드 링크를 추가하고, 글을 삭제합니다. 관리자 계정은 GitHub의 숫자 계정 ID로 지정합니다.
 
+## GitHub 자동 배포
+
+`DawnteaStudio/til-studio`의 `main` 브랜치에 푸시하면 Vercel 프로젝트 `tmp12/til-studio`의 Production 배포가 시작됩니다. 배포가 완료되면 [공개 블로그](https://til-studio-rust.vercel.app)에 반영됩니다. 이 연결은 사이트 코드용이며, 글과 실습 코드를 저장하는 `DawnteaStudio/TIL` 콘텐츠 저장소와 별개입니다.
+
+푸시 후 Vercel 프로젝트의 **Deployments**에서 해당 커밋 SHA와 `main` 브랜치, Production 환경을 확인합니다. 상태가 **Ready**가 되면 공개 블로그에서 변경 내용을 확인하세요.
+
 ## 배포 설정
 
 Vercel 프로젝트에서 Production 환경변수를 설정하고 배포합니다. Preview 환경은 별도로 값을 지정합니다. Vercel에서는 `VERCEL=1`로 배포 모드가 자동 활성화됩니다. 다른 서버는 `TIL_STUDIO_MODE=hosted`를 지정해야 합니다. 배포 모드는 로컬 `.til-studio/settings.local.json`을 읽지 않습니다. Studio 설정 창은 현재 설정 여부를 보여주며, 변경은 Vercel 환경변수 저장 후 재배포로 적용합니다.
